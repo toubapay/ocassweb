@@ -66,6 +66,18 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
     }
   }
 
+  Future<void> _cancelPolicy(InsurancePolicy policy) async {
+    try {
+      await apiClient.cancelInsurancePolicy(policy.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Policy cancelled')));
+      await _loadPolicies();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not cancel policy')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,11 +169,30 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                             border: Border.all(color: AppColors.divider), borderRadius: BorderRadius.circular(12)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(policy.plan.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                            Chip(label: Text(policy.status), visualDensity: VisualDensity.compact),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(policy.plan.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                Chip(label: Text(policy.status), visualDensity: VisualDensity.compact),
+                              ],
+                            ),
+                            if (policy.status == 'PENDING' || policy.status == 'ACTIVE')
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () => _cancelPolicy(policy),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.red,
+                                    minimumSize: Size.zero,
+                                    padding: EdgeInsets.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
+                                ),
+                              ),
                           ],
                         ),
                       )),

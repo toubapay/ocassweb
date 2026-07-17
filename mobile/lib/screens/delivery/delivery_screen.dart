@@ -43,6 +43,19 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     if (mounted) setState(() => _requests = requests);
   }
 
+  Future<void> _cancel(String id) async {
+    try {
+      await apiClient.cancelDeliveryRequest(id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request cancelled')));
+      await _loadRequests();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Could not cancel request')));
+    }
+  }
+
   Future<void> _submit() async {
     if (!context.read<AuthProvider>().isAuthenticated) {
       ScaffoldMessenger.of(context)
@@ -130,8 +143,24 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                           Chip(label: Text(r.status), visualDensity: VisualDensity.compact),
                         ],
                       ),
-                      Text('Estimate: ${formatCfa(r.priceEstimate)}',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Estimate: ${formatCfa(r.priceEstimate)}',
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          if (r.status == 'REQUESTED')
+                            TextButton(
+                              onPressed: () => _cancel(r.id),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.red,
+                                minimumSize: Size.zero,
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 )),

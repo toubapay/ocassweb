@@ -171,6 +171,11 @@ class ApiClient {
     return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
   }
 
+  Future<DeliveryRequest> cancelDeliveryRequest(String id) async {
+    final res = await _dio.patch('/delivery/requests/$id/cancel');
+    return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
+  }
+
   // ---------------- Insurance ----------------
 
   Future<List<InsurancePlan>> fetchInsurancePlans({String? category}) async {
@@ -194,6 +199,11 @@ class ApiClient {
     return InsurancePolicy.fromJson(_data(res)['policy'] as Map<String, dynamic>);
   }
 
+  Future<InsurancePolicy> cancelInsurancePolicy(String id) async {
+    final res = await _dio.patch('/insurance/policies/$id/cancel');
+    return InsurancePolicy.fromJson(_data(res)['policy'] as Map<String, dynamic>);
+  }
+
   // ---------------- Restaurant ----------------
 
   Future<List<Restaurant>> fetchRestaurants({String? search}) async {
@@ -208,6 +218,27 @@ class ApiClient {
   Future<Restaurant> fetchRestaurant(String slug) async {
     final res = await _dio.get('/restaurants/$slug');
     return Restaurant.fromJson(_data(res)['restaurant'] as Map<String, dynamic>);
+  }
+
+  Future<List<RestaurantOrder>> fetchRestaurantOrders() async {
+    final res = await _dio.get('/restaurants/orders');
+    return (_data(res)['orders'] as List<dynamic>)
+        .map((o) => RestaurantOrder.fromJson(o as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// [items] is a list of {menuItemId, quantity} maps, matching the
+  /// backend's createOrder payload shape (server/src/modules/restaurant/orders.controller.js).
+  Future<RestaurantOrder> createRestaurantOrder(
+    String restaurantSlug,
+    List<Map<String, dynamic>> items, {
+    String? note,
+  }) async {
+    final res = await _dio.post('/restaurants/$restaurantSlug/orders', data: {
+      'items': items,
+      if (note != null && note.isNotEmpty) 'note': note,
+    });
+    return RestaurantOrder.fromJson(_data(res)['order'] as Map<String, dynamic>);
   }
 
   // ---------------- Ride sharing ----------------
@@ -229,6 +260,11 @@ class ApiClient {
       'dropoffAddress': dropoffAddress,
       'vehicleType': vehicleType,
     });
+    return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
+  Future<RideRequest> cancelRide(String id) async {
+    final res = await _dio.patch('/rideshare/rides/$id/cancel');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
   }
 }

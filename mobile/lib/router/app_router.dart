@@ -15,6 +15,7 @@ import '../screens/delivery/delivery_screen.dart';
 import '../screens/insurance/insurance_screen.dart';
 import '../screens/restaurant/restaurant_list_screen.dart';
 import '../screens/restaurant/restaurant_detail_screen.dart';
+import '../screens/restaurant/restaurant_orders_screen.dart';
 import '../screens/rideshare/ride_sharing_screen.dart';
 import '../screens/profile/profile_screen.dart';
 
@@ -61,6 +62,7 @@ final GoRouter appRouter = GoRouter(
 
         // Same ordering rule for /restaurant/*.
         GoRoute(path: '/restaurant', builder: (context, state) => const RestaurantListScreen()),
+        GoRoute(path: '/restaurant/orders', builder: (context, state) => const RestaurantOrdersScreen()),
         GoRoute(
           path: '/restaurant/:slug',
           builder: (context, state) =>

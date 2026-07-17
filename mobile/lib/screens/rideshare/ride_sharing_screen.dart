@@ -48,6 +48,18 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
     if (mounted) setState(() => _rides = rides);
   }
 
+  Future<void> _cancel(String id) async {
+    try {
+      await apiClient.cancelRide(id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ride cancelled')));
+      await _loadRides();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not cancel ride')));
+    }
+  }
+
   Future<void> _submit() async {
     if (!context.read<AuthProvider>().isAuthenticated) {
       ScaffoldMessenger.of(context)
@@ -145,8 +157,24 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
                           Chip(label: Text(r.status), visualDensity: VisualDensity.compact),
                         ],
                       ),
-                      Text('${r.vehicleType} · ${formatCfa(r.priceEstimate)}',
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('${r.vehicleType} · ${formatCfa(r.priceEstimate)}',
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          if (r.status == 'REQUESTED')
+                            TextButton(
+                              onPressed: () => _cancel(r.id),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.red,
+                                minimumSize: Size.zero,
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 )),

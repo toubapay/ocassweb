@@ -10,6 +10,7 @@ import '../../widgets/top_bar.dart';
 
 const _links = [
   ('My orders', Icons.receipt_long_rounded, '/ecommerce/orders'),
+  ('My food orders', Icons.restaurant_rounded, '/restaurant/orders'),
   ('My wishlist', Icons.favorite_rounded, '/ecommerce/wishlist'),
   ('Delivery requests', Icons.local_shipping_rounded, '/delivery'),
   ('My rides', Icons.two_wheeler_rounded, '/ride-sharing'),
