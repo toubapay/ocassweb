@@ -45,6 +45,9 @@ const theme = createTheme({
       "Arial",
       "sans-serif",
     ].join(","),
+    // MUI derives every variant's rem size from htmlFontSize; setting it below
+    // the real 16px root scales all typography up uniformly (here, +5%).
+    htmlFontSize: 16 / 1.05,
     button: { textTransform: "none", fontWeight: 700 },
     h6: { fontWeight: 700 },
     subtitle1: { fontWeight: 600 },
