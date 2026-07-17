@@ -41,7 +41,9 @@ testable end-to-end without Twilio/etc. Swap in a real SMS provider in
 
 ```bash
 npm install
-# .env.development already points NEXT_PUBLIC_BASE_URL at http://localhost:5000/api
+# The browser calls same-origin /api/*, which next.config.js rewrites to
+# BACKEND_URL (defaults to http://localhost:5000) server-side - no
+# NEXT_PUBLIC_BASE_URL needed for local dev.
 yarn dev                    # http://localhost:3000
 ```
 
@@ -49,15 +51,29 @@ yarn dev                    # http://localhost:3000
 
 - **Ecommerce** — full flow: category browse (sidebar + grid, matching the
   reference design), product detail, cart, wishlist, checkout, order history.
-- **Delivery, Ride Sharing** — request forms with a price estimate and a
-  history list, backed by real endpoints.
-- **Insurance** — browse plans by category, subscribe, view policies.
-- **Restaurant** — browse restaurants and menus (ordering not wired to cart yet).
+- **Restaurant** — full ordering flow: per-restaurant quantity cart, place
+  order, order history.
+- **Delivery, Ride Sharing** — request forms with a price estimate, a
+  history list, and cancelling a still-pending request/ride.
+- **Insurance** — browse plans by category, subscribe, view policies, cancel
+  a pending/active one.
 - **Auth** — phone + OTP, JWT session, protected routes via `middleware.js`.
+- **Mobile** — a Flutter app in `/mobile` with the same module coverage
+  against the same backend (see `mobile/README.md`).
 
-Restaurant checkout and richer delivery/ride dispatch (live pricing, maps,
-driver assignment) are intentionally left as the next milestones — the
-current build gives each module a real API + UI shell to extend.
+Richer delivery/ride dispatch (live pricing, maps, driver assignment) is
+intentionally left as the next milestone — the current build gives each
+module a real API + UI, not just a shell.
+
+## Deploying
+
+- [DEPLOY_GCP.md](./DEPLOY_GCP.md) — Cloud Run + Cloud SQL
+- [DEPLOY_RAILWAY.md](./DEPLOY_RAILWAY.md) — Railway + Railway Postgres
+
+Neither has been run from this environment — both were prepared and
+documented but not executed, since this sandbox has no credentials for
+either platform (see each guide for specifics on what was and wasn't
+verifiable from here).
 
 ## Notes for deployment
 
