@@ -47,4 +47,23 @@ async function createRide(req, res, next) {
   }
 }
 
-module.exports = { listMyRides, createRide };
+async function cancelRide(req, res, next) {
+  try {
+    const existing = await prisma.rideRequest.findUnique({ where: { id: req.params.id } });
+    if (!existing || existing.userId !== req.user.id) {
+      return res.status(404).json({ message: "Ride not found" });
+    }
+    if (existing.status !== "REQUESTED") {
+      return res.status(400).json({ message: `Cannot cancel a ride that is ${existing.status}` });
+    }
+    const ride = await prisma.rideRequest.update({
+      where: { id: req.params.id },
+      data: { status: "CANCELLED" },
+    });
+    res.json({ ride });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { listMyRides, createRide, cancelRide };

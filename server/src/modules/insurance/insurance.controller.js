@@ -46,4 +46,24 @@ async function subscribe(req, res, next) {
   }
 }
 
-module.exports = { listPlans, listMyPolicies, subscribe };
+async function cancelPolicy(req, res, next) {
+  try {
+    const existing = await prisma.insurancePolicy.findUnique({ where: { id: req.params.id } });
+    if (!existing || existing.userId !== req.user.id) {
+      return res.status(404).json({ message: "Policy not found" });
+    }
+    if (!["PENDING", "ACTIVE"].includes(existing.status)) {
+      return res.status(400).json({ message: `Cannot cancel a policy that is ${existing.status}` });
+    }
+    const policy = await prisma.insurancePolicy.update({
+      where: { id: req.params.id },
+      data: { status: "CANCELLED" },
+      include: { plan: true },
+    });
+    res.json({ policy });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { listPlans, listMyPolicies, subscribe, cancelPolicy };

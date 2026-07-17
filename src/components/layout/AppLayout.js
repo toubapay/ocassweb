@@ -4,7 +4,15 @@ import BottomNav from "./BottomNav";
 
 // Pages that render their own fixed bottom action bar (add to cart, checkout,
 // place order) hide the global tab bar so the two fixed elements don't overlap.
-const FULL_SCREEN_PREFIXES = ["/auth", "/ecommerce/product", "/ecommerce/cart", "/ecommerce/checkout"];
+const FULL_SCREEN_PREFIXES = [
+  "/auth",
+  "/ecommerce/product",
+  "/ecommerce/cart",
+  "/ecommerce/checkout",
+  // Restaurant detail shows its own fixed "Place order" bar once the cart
+  // has items, which the global bottom nav would otherwise sit on top of.
+  "/restaurant/[slug]",
+];
 
 export default function AppLayout({ children }) {
   const router = useRouter();

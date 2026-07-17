@@ -9,7 +9,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
-import { fetchDeliveryRequests, createDeliveryRequest } from "../../src/api/modules";
+import { fetchDeliveryRequests, createDeliveryRequest, cancelDeliveryRequest } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
 
 export default function Delivery() {
@@ -37,6 +37,14 @@ export default function Delivery() {
       onError: () => toast.error("Could not create request"),
     }
   );
+
+  const cancelMutation = useMutation((id) => cancelDeliveryRequest(id), {
+    onSuccess: () => {
+      toast.success("Request cancelled");
+      queryClient.invalidateQueries("delivery-requests");
+    },
+    onError: (err) => toast.error(err.response?.data?.message || "Could not cancel request"),
+  });
 
   const handleSubmit = () => {
     if (!isAuthenticated) {
@@ -106,9 +114,22 @@ export default function Delivery() {
                   </Typography>
                   <Chip label={r.status} size="small" />
                 </Box>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  Estimate: {formatCfa(r.priceEstimate)}
-                </Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    Estimate: {formatCfa(r.priceEstimate)}
+                  </Typography>
+                  {r.status === "REQUESTED" && (
+                    <Button
+                      size="small"
+                      color="error"
+                      disabled={cancelMutation.isLoading}
+                      onClick={() => cancelMutation.mutate(r.id)}
+                      sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </Box>
               </Box>
             ))}
           </Box>

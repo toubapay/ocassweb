@@ -41,4 +41,23 @@ async function createRequest(req, res, next) {
   }
 }
 
-module.exports = { listMyRequests, createRequest };
+async function cancelRequest(req, res, next) {
+  try {
+    const existing = await prisma.deliveryRequest.findUnique({ where: { id: req.params.id } });
+    if (!existing || existing.userId !== req.user.id) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+    if (existing.status !== "REQUESTED") {
+      return res.status(400).json({ message: `Cannot cancel a request that is ${existing.status}` });
+    }
+    const request = await prisma.deliveryRequest.update({
+      where: { id: req.params.id },
+      data: { status: "CANCELLED" },
+    });
+    res.json({ request });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { listMyRequests, createRequest, cancelRequest };

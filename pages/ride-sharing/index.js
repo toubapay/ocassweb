@@ -9,7 +9,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
-import { fetchMyRides, createRideRequest } from "../../src/api/modules";
+import { fetchMyRides, createRideRequest, cancelRide } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
 
 const VEHICLES = [
@@ -40,6 +40,14 @@ export default function RideSharing() {
       onError: () => toast.error("Could not request ride"),
     }
   );
+
+  const cancelMutation = useMutation((id) => cancelRide(id), {
+    onSuccess: () => {
+      toast.success("Ride cancelled");
+      queryClient.invalidateQueries("my-rides");
+    },
+    onError: (err) => toast.error(err.response?.data?.message || "Could not cancel ride"),
+  });
 
   const handleSubmit = () => {
     if (!isAuthenticated) {
@@ -115,9 +123,22 @@ export default function RideSharing() {
                   </Typography>
                   <Chip label={r.status} size="small" />
                 </Box>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {r.vehicleType} · {formatCfa(r.priceEstimate)}
-                </Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {r.vehicleType} · {formatCfa(r.priceEstimate)}
+                  </Typography>
+                  {r.status === "REQUESTED" && (
+                    <Button
+                      size="small"
+                      color="error"
+                      disabled={cancelMutation.isLoading}
+                      onClick={() => cancelMutation.mutate(r.id)}
+                      sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </Box>
               </Box>
             ))}
           </Box>

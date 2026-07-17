@@ -8,6 +8,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
@@ -35,6 +36,7 @@ export default function Profile() {
 
   const links = [
     { label: "My orders", icon: ReceiptLongRoundedIcon, href: "/ecommerce/orders" },
+    { label: "My food orders", icon: RestaurantRoundedIcon, href: "/restaurant/orders" },
     { label: "My wishlist", icon: FavoriteRoundedIcon, href: "/ecommerce/wishlist" },
     { label: "Delivery requests", icon: LocalShippingRoundedIcon, href: "/delivery" },
     { label: "My rides", icon: TwoWheelerRoundedIcon, href: "/ride-sharing" },

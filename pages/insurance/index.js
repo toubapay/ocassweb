@@ -10,7 +10,12 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
-import { fetchInsurancePlans, fetchInsurancePolicies, subscribeInsurancePlan } from "../../src/api/modules";
+import {
+  fetchInsurancePlans,
+  fetchInsurancePolicies,
+  subscribeInsurancePlan,
+  cancelInsurancePolicy,
+} from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
 
 const CATEGORIES = ["HEALTH", "AUTO", "HOME", "TRAVEL", "LIFE"];
@@ -34,6 +39,14 @@ export default function Insurance() {
       queryClient.invalidateQueries("insurance-policies");
     },
     onError: () => toast.error("Could not subscribe"),
+  });
+
+  const cancelMutation = useMutation((id) => cancelInsurancePolicy(id), {
+    onSuccess: () => {
+      toast.success("Policy cancelled");
+      queryClient.invalidateQueries("insurance-policies");
+    },
+    onError: (err) => toast.error(err.response?.data?.message || "Could not cancel policy"),
   });
 
   const handleSubscribe = (planId) => {
@@ -116,12 +129,25 @@ export default function Insurance() {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
             {policies.map((policy) => (
               <Box key={policy.id} sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1.5 }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {policy.plan.name}
                   </Typography>
                   <Chip label={policy.status} size="small" />
                 </Box>
+                {["PENDING", "ACTIVE"].includes(policy.status) && (
+                  <Box sx={{ textAlign: "right", mt: 0.5 }}>
+                    <Button
+                      size="small"
+                      color="error"
+                      disabled={cancelMutation.isLoading}
+                      onClick={() => cancelMutation.mutate(policy.id)}
+                      sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
+                    >
+                      Cancel
+                    </Button>
+                  </Box>
+                )}
               </Box>
             ))}
           </Box>

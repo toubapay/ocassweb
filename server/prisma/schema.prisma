@@ -35,6 +35,7 @@ model User {
   deliveryRequests DeliveryRequest[]
   insurancePolicies InsurancePolicy[]
   rideRequests     RideRequest[]
+  restaurantOrders RestaurantOrder[]
 }
 
 model OtpCode {
@@ -270,6 +271,7 @@ model Restaurant {
   lng     Float?
 
   menuItems MenuItem[]
+  orders    RestaurantOrder[]
 }
 
 model MenuItem {
@@ -281,7 +283,36 @@ model MenuItem {
   imageUrl     String?
   category     String?
 
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orderItems RestaurantOrderItem[]
+}
+
+// A restaurant order is placed against a single restaurant in one go (no
+// persistent server-side cart, unlike the ecommerce module) - the client
+// builds the item list locally and submits it as one request.
+model RestaurantOrder {
+  id           String      @id @default(uuid())
+  userId       String
+  restaurantId String
+  status       OrderStatus @default(PENDING)
+  total        Decimal     @db.Decimal(10, 2)
+  note         String?
+  createdAt    DateTime    @default(now())
+
+  user       User                  @relation(fields: [userId], references: [id])
+  restaurant Restaurant            @relation(fields: [restaurantId], references: [id])
+  items      RestaurantOrderItem[]
+}
+
+model RestaurantOrderItem {
+  id      String  @id @default(uuid())
+  orderId String
+  menuItemId String
+  quantity Int
+  price   Decimal @db.Decimal(10, 2)
+
+  order    RestaurantOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem        @relation(fields: [menuItemId], references: [id])
 }
 
 // ---------- Ride sharing module (stub) ----------
