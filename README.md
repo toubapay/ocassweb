@@ -1,7 +1,8 @@
 # Ocass
 
 A multi-module "super app" (Ecommerce, Restaurant, Package Delivery, Ride Sharing,
-Insurance) with a Next.js/MUI frontend and a Node/Express/Prisma backend.
+Insurance) with a Next.js/MUI web frontend, a Flutter mobile app, and a
+Node/Express/Prisma backend shared by both.
 
 ## Structure
 
@@ -13,6 +14,10 @@ Insurance) with a Next.js/MUI frontend and a Node/Express/Prisma backend.
 /server          Express + Prisma backend (PostgreSQL)
   prisma/        schema.prisma, migrations, seed.js
   src/modules/   auth, ecommerce, delivery, insurance, restaurant, rideshare
+/mobile          Flutter app (iOS/Android) - same modules, same backend.
+                 See mobile/README.md before running it: it needs one
+                 `flutter create` bootstrap step and its own first
+                 `flutter analyze` pass (see that README for why).
 ```
 
 ## Backend setup
