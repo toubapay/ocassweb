@@ -123,14 +123,48 @@ gcloud run deploy ocass-frontend \
 
 Open the printed URL - that's the live app.
 
-## 5. Ongoing deploys
+## 5. Ongoing deploys via Cloud Build (recommended)
 
-For anything past this first deploy, connect the GitHub repo to Cloud
-Build (Cloud Console → Cloud Build → Triggers → Connect Repository) and
-add a trigger per service pointing at `Dockerfile` / `server/Dockerfile`
-on push to `main`. That way deploys happen through GCP's own GitHub
-integration - no long-lived credentials need to be shared with anyone
-outside the GCP project.
+Sections 0-4 above are a one-time bootstrap - someone with `gcloud` access
+runs them once to create Cloud SQL, the secrets, and each service's first
+revision (which is what attaches `--add-cloudsql-instances` and
+`--set-secrets` to the services). After that, `cloudbuild.yaml` at the repo
+root handles every subsequent deploy automatically on push, without
+sharing any credentials with whoever/whatever triggers it - GCP's own
+GitHub integration handles auth.
+
+**Connect the repo** (Cloud Console → Cloud Build → Triggers → "Connect
+Repository", pick `toubapay/ocassweb`), then create one trigger:
+
+```bash
+gcloud builds triggers create github \
+  --name=ocass-deploy \
+  --repo-name=ocassweb \
+  --repo-owner=toubapay \
+  --branch-pattern="^main$" \
+  --build-config=cloudbuild.yaml
+```
+
+**Grant the Cloud Build service account permission to deploy to Cloud
+Run** (it can push images by default, but needs these two roles to run
+`gcloud run deploy` and act as the Cloud Run runtime service account):
+
+```bash
+export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+export CB_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:$CB_SA" --role="roles/run.admin"
+
+gcloud iam service-accounts add-iam-policy-binding \
+  $PROJECT_NUMBER-compute@developer.gserviceaccount.com \
+  --member="serviceAccount:$CB_SA" --role="roles/iam.serviceAccountUser"
+```
+
+From here, every push to `main` rebuilds both images and rolls out a new
+Cloud Run revision for each service. If you'd rather review before
+deploying, change `--branch-pattern` to target a PR-merge event, or trigger
+manually with `gcloud builds triggers run ocass-deploy --branch=main`.
 
 ## Costs
 
