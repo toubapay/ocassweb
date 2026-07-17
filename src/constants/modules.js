@@ -60,3 +60,14 @@ export const MODULES = [
 ];
 
 export const getModule = (id) => MODULES.find((m) => m.id === id);
+
+// Rebuilds MODULES in a user-customized order (persisted list of ids).
+// Falls back to the default order, and appends any module missing from a
+// stale saved order (e.g. a module added after the user last reordered).
+export const getOrderedModules = (order) => {
+  if (!order || order.length === 0) return MODULES;
+  const byId = new Map(MODULES.map((m) => [m.id, m]));
+  const ordered = order.map((id) => byId.get(id)).filter(Boolean);
+  const missing = MODULES.filter((m) => !order.includes(m.id));
+  return [...ordered, ...missing];
+};

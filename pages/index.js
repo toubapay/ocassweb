@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
@@ -9,10 +10,22 @@ import DevicesOtherRoundedIcon from "@mui/icons-material/DevicesOtherRounded";
 import LocalGroceryStoreRoundedIcon from "@mui/icons-material/LocalGroceryStoreRounded";
 import SpaRoundedIcon from "@mui/icons-material/SpaRounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
+import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import { useQuery } from "react-query";
-import { MODULES } from "../src/constants/modules";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy } from "@dnd-kit/sortable";
+import { getOrderedModules } from "../src/constants/modules";
+import { setModuleOrder } from "../src/redux/slices/layoutSlice";
 import AddressBar from "../src/components/home/AddressBar";
-import ModuleTile from "../src/components/home/ModuleTile";
+import SortableModuleTile from "../src/components/home/SortableModuleTile";
 import HeaderWave from "../src/components/home/HeaderWave";
 import ShortcutCard from "../src/components/home/ShortcutCard";
 import ProductCard from "../src/components/ecommerce/ProductCard";
@@ -27,14 +40,36 @@ const CATEGORY_ICONS = {
 };
 const DEFAULT_CATEGORY_ICON = { icon: StorefrontRoundedIcon, color: "#8B5CF6", bg: "#F2EEFE" };
 
-const topRow = MODULES.slice(0, 2);
-const bottomRow = MODULES.slice(2);
-
 export default function Home() {
   const { user } = useAuth();
+  const dispatch = useDispatch();
+  const savedOrder = useSelector((state) => state.layout.moduleOrder);
   const { data } = useQuery("home-products", () => fetchProducts({ pageSize: 6 }));
   const { data: categories } = useQuery("categories", fetchCategories);
   const firstName = user?.name?.split(" ")[0];
+
+  const orderedModules = useMemo(() => getOrderedModules(savedOrder), [savedOrder]);
+  const topRow = orderedModules.slice(0, 2);
+  const bottomRow = orderedModules.slice(2);
+
+  // Delay-based activation (long-press) rather than distance-based: dnd-kit's
+  // distance constraint calls preventDefault() on pointerdown immediately,
+  // which suppresses the click a plain tap needs to navigate. A delay only
+  // arms the drag if the pointer is held past the threshold, so quick taps
+  // reach the module's Link untouched.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = orderedModules.map((m) => m.id);
+    const oldIndex = ids.indexOf(active.id);
+    const newIndex = ids.indexOf(over.id);
+    dispatch(setModuleOrder(arrayMove(ids, oldIndex, newIndex)));
+  };
 
   return (
     <Box>
@@ -49,15 +84,26 @@ export default function Home() {
       >
         <AddressBar address="Plateau, Abidjan" />
 
-        <Box sx={{ display: "flex", justifyContent: "center", gap: 3.5, mt: 4.5 }}>
-          {topRow.map((module) => (
-            <ModuleTile key={module.id} module={module} />
-          ))}
-        </Box>
-        <Box sx={{ display: "flex", justifyContent: "center", gap: 2.5, mt: 4.5 }}>
-          {bottomRow.map((module) => (
-            <ModuleTile key={module.id} module={module} />
-          ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={orderedModules.map((m) => m.id)} strategy={rectSortingStrategy}>
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 3.5, mt: 4.5 }}>
+              {topRow.map((module) => (
+                <SortableModuleTile key={module.id} module={module} />
+              ))}
+            </Box>
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 2.5, mt: 4.5 }}>
+              {bottomRow.map((module) => (
+                <SortableModuleTile key={module.id} module={module} />
+              ))}
+            </Box>
+          </SortableContext>
+        </DndContext>
+
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, mt: 2 }}>
+          <DragIndicatorRoundedIcon sx={{ fontSize: 14, color: "rgba(255,255,255,0.75)" }} />
+          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
+            Hold and drag an icon to rearrange
+          </Typography>
         </Box>
 
         <HeaderWave />
