@@ -28,7 +28,11 @@ const Map<String, Color> _statusColors = {
 /// transaction history. Operators/billers are fetched from the backend
 /// catalog, never hardcoded here.
 class TopupScreen extends StatefulWidget {
-  const TopupScreen({super.key});
+  const TopupScreen({super.key, this.initialTab});
+
+  /// 'airtime' or 'bill' - set when navigated to from the home screen's
+  /// separate Airtime / Bills tiles so the right tab opens directly.
+  final String? initialTab;
 
   @override
   State<TopupScreen> createState() => _TopupScreenState();
@@ -56,7 +60,11 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab == 'bill' ? 1 : 0,
+    );
     _phoneController.addListener(_onPhoneChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadTransactions());
   }

@@ -49,8 +49,11 @@ export default function Home() {
   const firstName = user?.name?.split(" ")[0];
 
   const orderedModules = useMemo(() => getOrderedModules(savedOrder), [savedOrder]);
-  const topRow = orderedModules.slice(0, 3);
-  const bottomRow = orderedModules.slice(3);
+  // A fixed 4-column grid (rather than two hardcoded 3/4 row slices) scales
+  // to any module count without re-tuning the split by hand; the tile size
+  // shrinks a touch once there are more than 6 so four still fit per row on
+  // narrow phones without overflowing the 480px mobile frame.
+  const tileSize = orderedModules.length > 6 ? 76 : 92;
 
   // Delay-based activation (long-press) rather than distance-based: dnd-kit's
   // distance constraint calls preventDefault() on pointerdown immediately,
@@ -86,14 +89,18 @@ export default function Home() {
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={orderedModules.map((m) => m.id)} strategy={rectSortingStrategy}>
-            <Box sx={{ display: "flex", justifyContent: "center", gap: 2.5, mt: 4.5 }}>
-              {topRow.map((module) => (
-                <SortableModuleTile key={module.id} module={module} />
-              ))}
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "center", gap: 2.5, mt: 4.5 }}>
-              {bottomRow.map((module) => (
-                <SortableModuleTile key={module.id} module={module} />
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                justifyItems: "center",
+                rowGap: 4.5,
+                columnGap: 1,
+                mt: 4.5,
+              }}
+            >
+              {orderedModules.map((module) => (
+                <SortableModuleTile key={module.id} module={module} size={tileSize} />
               ))}
             </Box>
           </SortableContext>

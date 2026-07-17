@@ -78,13 +78,22 @@ const List<AppModule> kModules = [
     bg: AppColors.purpleSoft,
   ),
   AppModule(
-    id: 'topup',
-    label: 'Top Up',
-    fullLabel: 'Airtime & Bills',
-    route: '/topup',
+    id: 'airtime',
+    label: 'Airtime',
+    fullLabel: 'Airtime Top-up',
+    route: '/topup?tab=airtime',
     icon: Icons.sim_card_rounded,
     color: AppColors.teal,
     bg: AppColors.tealSoft,
+  ),
+  AppModule(
+    id: 'bill-payment',
+    label: 'Bills',
+    fullLabel: 'Bill Payment',
+    route: '/topup?tab=bill',
+    icon: Icons.receipt_long_rounded,
+    color: AppColors.orange,
+    bg: AppColors.orangeSoft,
   ),
 ];
 

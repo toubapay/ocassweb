@@ -51,6 +51,14 @@ export default function TopUp() {
     );
   }, []);
 
+  // Deep-link support for the home screen's separate Airtime / Bills tiles
+  // (?tab=airtime|bill) so each opens straight to the right tab.
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query.tab === "bill") setTab(1);
+    else if (router.query.tab === "airtime") setTab(0);
+  }, [router.isReady, router.query.tab]);
+
   const { data: operators } = useQuery("mobile-services-airtime", () =>
     fetchMobileServices("AIRTIME")
   );
@@ -174,7 +182,7 @@ export default function TopUp() {
           </Box>
           {!contactsSupported && (
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: -1.5, mb: 2 }}>
-              "Choose from contacts" is available on supported mobile browsers (e.g. Chrome for Android).
+              &ldquo;Choose from contacts&rdquo; is available on supported mobile browsers (e.g. Chrome for Android).
             </Typography>
           )}
 

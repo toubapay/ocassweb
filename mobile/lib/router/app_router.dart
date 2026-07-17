@@ -48,7 +48,11 @@ final GoRouter appRouter = GoRouter(
         GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
         GoRoute(path: '/insurance', builder: (context, state) => const InsuranceScreen()),
         GoRoute(path: '/ride-sharing', builder: (context, state) => const RideSharingScreen()),
-        GoRoute(path: '/topup', builder: (context, state) => const TopupScreen()),
+        GoRoute(
+          path: '/topup',
+          builder: (context, state) =>
+              TopupScreen(initialTab: state.uri.queryParameters['tab']),
+        ),
 
         // Static /ecommerce/* siblings must come before the dynamic
         // /ecommerce/:categorySlug catch-all below, or the catch-all would

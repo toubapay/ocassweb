@@ -4,6 +4,7 @@ import HealthAndSafetyRoundedIcon from "@mui/icons-material/HealthAndSafetyRound
 import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
 import SimCardRoundedIcon from "@mui/icons-material/SimCardRounded";
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 
 // Central registry of the super-app's modules. Adding a module means adding
 // one entry here plus its /pages/<id> route and (optionally) bottom nav entry.
@@ -59,14 +60,24 @@ export const MODULES = [
     description: "Health, auto, home & travel plans",
   },
   {
-    id: "topup",
-    label: "Top Up",
-    fullLabel: "Airtime & Bills",
-    href: "/topup",
+    id: "airtime",
+    label: "Airtime",
+    fullLabel: "Airtime Top-up",
+    href: "/topup?tab=airtime",
     icon: SimCardRoundedIcon,
     color: "#0D9488",
     bg: "#E6FBF8",
-    description: "Airtime top-up, data & bill payments",
+    description: "Top up mobile airtime & data",
+  },
+  {
+    id: "bill-payment",
+    label: "Bills",
+    fullLabel: "Bill Payment",
+    href: "/topup?tab=bill",
+    icon: ReceiptLongRoundedIcon,
+    color: "#F97316",
+    bg: "#FFF1E6",
+    description: "Pay electricity, water & TV bills",
   },
 ];
 

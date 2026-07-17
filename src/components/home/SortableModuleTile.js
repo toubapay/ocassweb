@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import ModuleTile from "./ModuleTile";
 
-export default function SortableModuleTile({ module }) {
+export default function SortableModuleTile({ module, size }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: module.id,
   });
@@ -21,7 +21,7 @@ export default function SortableModuleTile({ module }) {
 
   return (
     <Box ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <ModuleTile module={module} />
+      <ModuleTile module={module} size={size} />
     </Box>
   );
 }
