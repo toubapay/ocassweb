@@ -3,8 +3,10 @@ import Cookies from "js-cookie";
 
 export const TOKEN_COOKIE = "ocass-token";
 
+// Same-origin by default - next.config.js rewrites /api/* to the backend
+// server-side, so the browser never needs the backend's real URL.
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000/api",
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL || "/api",
 });
 
 apiClient.interceptors.request.use((config) => {
