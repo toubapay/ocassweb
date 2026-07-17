@@ -13,6 +13,7 @@ import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
 import HealthAndSafetyRoundedIcon from "@mui/icons-material/HealthAndSafetyRounded";
+import SimCardRoundedIcon from "@mui/icons-material/SimCardRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import TopBar from "../src/components/layout/TopBar";
 import useAuth from "../src/hooks/useAuth";
@@ -41,6 +42,7 @@ export default function Profile() {
     { label: "Delivery requests", icon: LocalShippingRoundedIcon, href: "/delivery" },
     { label: "My rides", icon: TwoWheelerRoundedIcon, href: "/ride-sharing" },
     { label: "My insurance policies", icon: HealthAndSafetyRoundedIcon, href: "/insurance" },
+    { label: "Top-ups & bills", icon: SimCardRoundedIcon, href: "/topup" },
   ];
 
   return (

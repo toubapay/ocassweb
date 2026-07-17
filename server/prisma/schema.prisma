@@ -36,6 +36,7 @@ model User {
   insurancePolicies InsurancePolicy[]
   rideRequests     RideRequest[]
   restaurantOrders RestaurantOrder[]
+  mobileTransactions MobileTransaction[]
 }
 
 model OtpCode {
@@ -346,4 +347,62 @@ model RideRequest {
   createdAt      DateTime    @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Mobile top-up / bill payment module ----------
+
+enum MobileServiceType {
+  AIRTIME
+  DATA_BUNDLE
+  BILL
+}
+
+enum BillCategory {
+  ELECTRICITY
+  WATER
+  TV
+  INTERNET
+  OTHER
+}
+
+// Catalog of top-up operators and billers - managed from the backend
+// (seeded here, editable via direct DB/admin access), not hardcoded in
+// either client, per the request that "mobile services will be added from
+// backend".
+model MobileService {
+  id            String            @id @default(uuid())
+  name          String
+  logoUrl       String?
+  type          MobileServiceType
+  billCategory  BillCategory?
+  // Phone prefixes used to auto-detect the operator from a typed number in
+  // the airtime flow (e.g. Orange CI: "07", "08", "09"). Empty for billers.
+  phonePrefixes String[]          @default([])
+  minAmount     Decimal?          @db.Decimal(10, 2)
+  maxAmount     Decimal?          @db.Decimal(10, 2)
+  isActive      Boolean           @default(true)
+
+  transactions MobileTransaction[]
+}
+
+enum MobileTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model MobileTransaction {
+  id            String                  @id @default(uuid())
+  userId        String
+  serviceId     String
+  type          MobileServiceType
+  phoneNumber   String?
+  accountNumber String?
+  amount        Decimal                 @db.Decimal(10, 2)
+  status        MobileTransactionStatus @default(SUCCESS)
+  reference     String                  @unique
+  createdAt     DateTime                @default(now())
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service MobileService @relation(fields: [serviceId], references: [id])
 }

@@ -12,6 +12,8 @@ import '../models/delivery_request.dart';
 import '../models/insurance.dart';
 import '../models/restaurant.dart';
 import '../models/ride_request.dart';
+import '../models/mobile_service.dart';
+import '../models/mobile_transaction.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -266,6 +268,56 @@ class ApiClient {
   Future<RideRequest> cancelRide(String id) async {
     final res = await _dio.patch('/rideshare/rides/$id/cancel');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
+  // ---------------- Mobile top-up / bill payment ----------------
+
+  Future<List<MobileService>> fetchMobileServices({String? type}) async {
+    final res = await _dio.get('/mobile/services', queryParameters: {
+      if (type != null) 'type': type,
+    });
+    return (_data(res)['services'] as List<dynamic>)
+        .map((s) => MobileService.fromJson(s as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<MobileService?> detectOperator(String phone) async {
+    final res = await _dio.get('/mobile/detect-operator', queryParameters: {'phone': phone});
+    final service = _data(res)['service'];
+    return service == null ? null : MobileService.fromJson(service as Map<String, dynamic>);
+  }
+
+  Future<MobileTransaction> createTopup({
+    required String serviceId,
+    required String phoneNumber,
+    required double amount,
+  }) async {
+    final res = await _dio.post('/mobile/topup', data: {
+      'serviceId': serviceId,
+      'phoneNumber': phoneNumber,
+      'amount': amount,
+    });
+    return MobileTransaction.fromJson(_data(res)['transaction'] as Map<String, dynamic>);
+  }
+
+  Future<MobileTransaction> createBillPayment({
+    required String serviceId,
+    required String accountNumber,
+    required double amount,
+  }) async {
+    final res = await _dio.post('/mobile/bill-payment', data: {
+      'serviceId': serviceId,
+      'accountNumber': accountNumber,
+      'amount': amount,
+    });
+    return MobileTransaction.fromJson(_data(res)['transaction'] as Map<String, dynamic>);
+  }
+
+  Future<List<MobileTransaction>> fetchMyMobileTransactions() async {
+    final res = await _dio.get('/mobile/transactions');
+    return (_data(res)['transactions'] as List<dynamic>)
+        .map((t) => MobileTransaction.fromJson(t as Map<String, dynamic>))
+        .toList();
   }
 }
 

@@ -1,8 +1,9 @@
 # Ocass Mobile (Flutter)
 
-Native iOS/Android client for the Ocass super app, covering the same 5
+Native iOS/Android client for the Ocass super app, covering the same 6
 modules as the web app (Ecommerce, Restaurant, Delivery, Ride Sharing,
-Insurance) against the same backend (`/server`).
+Insurance, Airtime Top-up & Bill Payment) against the same backend
+(`/server`).
 
 ## ⚠️ Before you start: this code has not been compiled
 
@@ -17,9 +18,13 @@ fixing whatever it finds** - most likely spots, in rough order of risk:
 
 1. `lib/screens/home/home_screen.dart` - `ReorderableGridView.count(...)`
    is the least-common widget used here.
-2. Anywhere using Dart 3 records (`(a, b, c)` / `.$1` field access) -
+2. `lib/screens/topup/topup_screen.dart` - `FlutterContacts.native.showPicker(...)`.
+   This method name and its "no permission needed" behavior came from a
+   single pub.dev doc fetch, not from experience with the package; if it's
+   wrong, that function is small and isolated to fix.
+3. Anywhere using Dart 3 records (`(a, b, c)` / `.$1` field access) -
    straightforward but easy to typo by hand.
-3. Minor Flutter-version drift (a Material 3 API renamed between the
+4. Minor Flutter-version drift (a Material 3 API renamed between the
    version this assumes and whatever you have installed).
 
 ## First-time setup
@@ -42,6 +47,19 @@ skips files that already exist). Then:
 flutter pub get
 flutter analyze     # fix whatever it flags - see above
 ```
+
+For the contact picker in the Top Up module (`flutter_contacts`), add the
+native permission entries once the above has generated the files:
+
+- **Android** (`android/app/src/main/AndroidManifest.xml`), inside `<manifest>`:
+  ```xml
+  <uses-permission android:name="android.permission.READ_CONTACTS"/>
+  ```
+- **iOS** (`ios/Runner/Info.plist`), inside the top-level `<dict>`:
+  ```xml
+  <key>NSContactsUsageDescription</key>
+  <string>Ocass uses your contacts to let you pick a phone number to top up.</string>
+  ```
 
 ## Running against the backend
 
@@ -78,9 +96,11 @@ lib/
 ## What's implemented
 
 Same scope as the web app: full-depth Ecommerce (browse, product detail,
-cart, checkout, orders, wishlist), phone+OTP auth, and request-form shells
-for Delivery/Ride Sharing/Insurance plus a Restaurant browse/menu screen
-(ordering not wired up yet, matches the web app).
+cart, checkout, orders, wishlist) and Restaurant (per-restaurant cart,
+place order, order history); request forms with cancel for Delivery/Ride
+Sharing, and subscribe/cancel for Insurance; Airtime Top-up & Bill Payment
+(manual or device-contacts phone entry, operator auto-detected, backend-
+managed catalog); phone+OTP auth.
 
 The home screen's module icons are drag-to-reorder (long-press then drag,
 via `reorderable_grid_view`), persisted locally with `shared_preferences` -

@@ -10,6 +10,7 @@ const deliveryRoutes = require("./modules/delivery/delivery.routes");
 const insuranceRoutes = require("./modules/insurance/insurance.routes");
 const restaurantRoutes = require("./modules/restaurant/restaurant.routes");
 const rideshareRoutes = require("./modules/rideshare/rideshare.routes");
+const mobileRoutes = require("./modules/mobile/mobile.routes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -33,6 +34,7 @@ app.use("/api/delivery", deliveryRoutes);
 app.use("/api/insurance", insuranceRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/rideshare", rideshareRoutes);
+app.use("/api/mobile", mobileRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -17,6 +17,7 @@ import '../screens/restaurant/restaurant_list_screen.dart';
 import '../screens/restaurant/restaurant_detail_screen.dart';
 import '../screens/restaurant/restaurant_orders_screen.dart';
 import '../screens/rideshare/ride_sharing_screen.dart';
+import '../screens/topup/topup_screen.dart';
 import '../screens/profile/profile_screen.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -47,6 +48,7 @@ final GoRouter appRouter = GoRouter(
         GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
         GoRoute(path: '/insurance', builder: (context, state) => const InsuranceScreen()),
         GoRoute(path: '/ride-sharing', builder: (context, state) => const RideSharingScreen()),
+        GoRoute(path: '/topup', builder: (context, state) => const TopupScreen()),
 
         // Static /ecommerce/* siblings must come before the dynamic
         // /ecommerce/:categorySlug catch-all below, or the catch-all would

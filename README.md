@@ -1,19 +1,21 @@
 # Ocass
 
 A multi-module "super app" (Ecommerce, Restaurant, Package Delivery, Ride Sharing,
-Insurance) with a Next.js/MUI web frontend, a Flutter mobile app, and a
-Node/Express/Prisma backend shared by both.
+Insurance, Airtime Top-up & Bill Payment) with a Next.js/MUI web frontend, a
+Flutter mobile app, and a Node/Express/Prisma backend shared by both. Seed
+data models a Senegal market (CFA pricing, Dakar addresses, Orange/Free/
+Expresso as mobile operators, SENELEC/SEN'EAU as billers).
 
 ## Structure
 
 ```
 /                Next.js frontend (Pages Router)
   pages/         Routes: /, /auth/*, /ecommerce/*, /delivery, /insurance,
-                 /restaurant/*, /ride-sharing, /profile
+                 /restaurant/*, /ride-sharing, /topup, /profile
   src/           theme, redux store, api clients, components, hooks
 /server          Express + Prisma backend (PostgreSQL)
   prisma/        schema.prisma, migrations, seed.js
-  src/modules/   auth, ecommerce, delivery, insurance, restaurant, rideshare
+  src/modules/   auth, ecommerce, delivery, insurance, restaurant, rideshare, mobile
 /mobile          Flutter app (iOS/Android) - same modules, same backend.
                  See mobile/README.md before running it: it needs one
                  `flutter create` bootstrap step and its own first
@@ -57,6 +59,12 @@ yarn dev                    # http://localhost:3000
   history list, and cancelling a still-pending request/ride.
 - **Insurance** — browse plans by category, subscribe, view policies, cancel
   a pending/active one.
+- **Airtime Top-up & Bill Payment** — operators/billers are a backend-managed
+  catalog (never hardcoded client-side); phone entry is manual or via the
+  browser's Contact Picker API (feature-detected — Chrome for Android only,
+  falls back to manual gracefully elsewhere) with operator auto-detected
+  from the number; bill payment by account/meter number; shared transaction
+  history.
 - **Auth** — phone + OTP, JWT session, protected routes via `middleware.js`.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage
   against the same backend (see `mobile/README.md`).

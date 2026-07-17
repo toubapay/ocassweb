@@ -15,6 +15,7 @@ const _links = [
   ('Delivery requests', Icons.local_shipping_rounded, '/delivery'),
   ('My rides', Icons.two_wheeler_rounded, '/ride-sharing'),
   ('My insurance policies', Icons.health_and_safety_rounded, '/insurance'),
+  ('Top-ups & bills', Icons.sim_card_rounded, '/topup'),
 ];
 
 class ProfileScreen extends StatelessWidget {

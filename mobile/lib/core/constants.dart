@@ -77,6 +77,15 @@ const List<AppModule> kModules = [
     color: AppColors.purple,
     bg: AppColors.purpleSoft,
   ),
+  AppModule(
+    id: 'topup',
+    label: 'Top Up',
+    fullLabel: 'Airtime & Bills',
+    route: '/topup',
+    icon: Icons.sim_card_rounded,
+    color: AppColors.teal,
+    bg: AppColors.tealSoft,
+  ),
 ];
 
 AppModule moduleById(String id) => kModules.firstWhere((m) => m.id == id);

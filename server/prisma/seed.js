@@ -62,9 +62,9 @@ async function main() {
       name: "Shoes Fashion",
       slug: "shoes-fashion",
       logoUrl: img("shoes-fashion-logo", 100, 100),
-      address: "Plateau, Abidjan",
-      lat: 5.3197,
-      lng: -4.0221,
+      address: "Plateau, Dakar",
+      lat: 14.6708,
+      lng: -17.4313,
       rating: 4.4,
     },
   });
@@ -75,9 +75,9 @@ async function main() {
       name: "Ocass Electronics",
       slug: "ocass-electronics",
       logoUrl: img("ocass-electronics-logo", 100, 100),
-      address: "Cocody, Abidjan",
-      lat: 5.3599,
-      lng: -3.9877,
+      address: "Sacré-Coeur, Dakar",
+      lat: 14.7180,
+      lng: -17.4640,
       rating: 4.1,
     },
   });
@@ -88,9 +88,9 @@ async function main() {
       name: "Fresh Mart",
       slug: "fresh-mart",
       logoUrl: img("fresh-mart-logo", 100, 100),
-      address: "Marcory, Abidjan",
-      lat: 5.2893,
-      lng: -3.9997,
+      address: "Parcelles Assainies, Dakar",
+      lat: 14.7645,
+      lng: -17.4114,
       rating: 4.6,
     },
   });
@@ -298,29 +298,29 @@ async function main() {
   // ---------- Restaurants ----------
   const restaurants = [
     {
-      name: "Maquis Chez Tantie",
-      slug: "maquis-chez-tantie",
-      logoUrl: img("maquis-1", 200, 200),
-      cuisine: "Ivorian",
+      name: "Keur Tantie",
+      slug: "keur-tantie",
+      logoUrl: img("keur-tantie-1", 200, 200),
+      cuisine: "Senegalese",
       rating: 4.6,
-      address: "Yopougon, Abidjan",
-      lat: 5.3453,
-      lng: -4.0864,
+      address: "Médina, Dakar",
+      lat: 14.6789,
+      lng: -17.4498,
       menuItems: [
-        { name: "Attieke Poisson", price: 2000, category: "Main", imageUrl: img("attieke-1") },
-        { name: "Garba", price: 1000, category: "Main", imageUrl: img("garba-1") },
-        { name: "Alloco", price: 1500, category: "Side", imageUrl: img("alloco-1") },
+        { name: "Thieboudienne", price: 2000, category: "Main", imageUrl: img("thieboudienne-1") },
+        { name: "Yassa Poulet", price: 1800, category: "Main", imageUrl: img("yassa-1") },
+        { name: "Fataya", price: 1000, category: "Side", imageUrl: img("fataya-1") },
       ],
     },
     {
-      name: "Le Grill Cocody",
-      slug: "le-grill-cocody",
+      name: "Le Grill Almadies",
+      slug: "le-grill-almadies",
       logoUrl: img("grill-1", 200, 200),
       cuisine: "Grill & BBQ",
       rating: 4.3,
-      address: "Cocody, Abidjan",
-      lat: 5.3639,
-      lng: -3.9865,
+      address: "Almadies, Dakar",
+      lat: 14.7444,
+      lng: -17.5133,
       menuItems: [
         { name: "Grilled Chicken Half", price: 3500, category: "Main", imageUrl: img("chicken-1") },
         { name: "Beef Brochette (5pcs)", price: 2500, category: "Main", imageUrl: img("brochette-1") },
@@ -342,6 +342,64 @@ async function main() {
         await prisma.menuItem.create({ data: { ...item, restaurantId: restaurant.id } });
       }
     }
+  }
+
+  // ---------- Mobile top-up / bill payment ----------
+  // Senegal's three mobile operators - Orange, Free (formerly Tigo), and
+  // Expresso - each with their real network prefixes.
+  const mobileServices = [
+    {
+      name: "Orange Sénégal",
+      logoUrl: img("orange-sn-logo", 200, 200),
+      type: "AIRTIME",
+      phonePrefixes: ["77", "78"],
+      minAmount: 100,
+      maxAmount: 100000,
+    },
+    {
+      name: "Free Sénégal",
+      logoUrl: img("free-sn-logo", 200, 200),
+      type: "AIRTIME",
+      phonePrefixes: ["76"],
+      minAmount: 100,
+      maxAmount: 100000,
+    },
+    {
+      name: "Expresso Sénégal",
+      logoUrl: img("expresso-sn-logo", 200, 200),
+      type: "AIRTIME",
+      phonePrefixes: ["70", "75"],
+      minAmount: 100,
+      maxAmount: 100000,
+    },
+    {
+      name: "SENELEC - Electricity",
+      logoUrl: img("senelec-logo", 200, 200),
+      type: "BILL",
+      billCategory: "ELECTRICITY",
+      minAmount: 500,
+      maxAmount: 500000,
+    },
+    {
+      name: "SEN'EAU - Water",
+      logoUrl: img("seneau-logo", 200, 200),
+      type: "BILL",
+      billCategory: "WATER",
+      minAmount: 500,
+      maxAmount: 500000,
+    },
+    {
+      name: "Canal+ - TV",
+      logoUrl: img("canalplus-logo", 200, 200),
+      type: "BILL",
+      billCategory: "TV",
+      minAmount: 1000,
+      maxAmount: 200000,
+    },
+  ];
+  for (const service of mobileServices) {
+    const existing = await prisma.mobileService.findFirst({ where: { name: service.name } });
+    if (!existing) await prisma.mobileService.create({ data: service });
   }
 
   console.log("Seed complete.");

@@ -49,8 +49,8 @@ export default function Home() {
   const firstName = user?.name?.split(" ")[0];
 
   const orderedModules = useMemo(() => getOrderedModules(savedOrder), [savedOrder]);
-  const topRow = orderedModules.slice(0, 2);
-  const bottomRow = orderedModules.slice(2);
+  const topRow = orderedModules.slice(0, 3);
+  const bottomRow = orderedModules.slice(3);
 
   // Delay-based activation (long-press) rather than distance-based: dnd-kit's
   // distance constraint calls preventDefault() on pointerdown immediately,
@@ -82,11 +82,11 @@ export default function Home() {
           px: 2.5,
         }}
       >
-        <AddressBar address="Plateau, Abidjan" />
+        <AddressBar address="Plateau, Dakar" />
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={orderedModules.map((m) => m.id)} strategy={rectSortingStrategy}>
-            <Box sx={{ display: "flex", justifyContent: "center", gap: 3.5, mt: 4.5 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 2.5, mt: 4.5 }}>
               {topRow.map((module) => (
                 <SortableModuleTile key={module.id} module={module} />
               ))}

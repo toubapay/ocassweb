@@ -70,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const AddressBar(address: 'Plateau, Abidjan'),
+                    const AddressBar(address: 'Plateau, Dakar'),
                     const SizedBox(height: 28),
                     ReorderableGridView.count(
                       shrinkWrap: true,

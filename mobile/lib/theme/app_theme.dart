@@ -15,6 +15,8 @@ class AppColors {
   static const blueSoft = Color(0xFFEAF2FE);
   static const purple = Color(0xFF8B5CF6);
   static const purpleSoft = Color(0xFFF2EEFE);
+  static const teal = Color(0xFF0D9488);
+  static const tealSoft = Color(0xFFE6FBF8);
 
   static const textPrimary = Color(0xFF1A1A1A);
   static const textSecondary = Color(0xFF6B7280);

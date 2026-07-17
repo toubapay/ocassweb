@@ -48,7 +48,7 @@ export default function Login() {
 
       <Box sx={{ mb: 3 }}>
         <PhoneInput
-          country="ci"
+          country="sn"
           value={phone}
           onChange={setPhone}
           inputStyle={{ width: "100%", height: 52, borderRadius: 10 }}

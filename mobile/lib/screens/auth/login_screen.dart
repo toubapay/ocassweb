@@ -12,7 +12,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _controller = TextEditingController(text: '+225');
+  final _controller = TextEditingController(text: '+221');
   bool _loading = false;
 
   @override
