@@ -61,14 +61,12 @@ export default function Orders() {
                 Order #{order.id.slice(0, 8)}
               </Typography>
               <Box sx={{ display: "flex", gap: 0.5 }}>
-                {order.paymentId && (
-                  <Chip
-                    label={order.paid ? "Paid" : "Unpaid"}
-                    size="small"
-                    color={order.paid ? "success" : "warning"}
-                    variant="outlined"
-                  />
-                )}
+                <Chip
+                  label={order.paid ? "Paid" : "Unpaid"}
+                  size="small"
+                  color={order.paid ? "success" : "warning"}
+                  variant="outlined"
+                />
                 <Chip
                   label={order.status.replace(/_/g, " ")}
                   size="small"

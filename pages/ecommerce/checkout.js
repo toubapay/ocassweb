@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useRouter } from "next/router";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import toast from "react-hot-toast";
@@ -5,22 +6,32 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Radio from "@mui/material/Radio";
+import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import { fetchCart, createOrder } from "../../src/api/ecommerce";
+import { fetchWallet } from "../../src/api/wallet";
 import useAuth from "../../src/hooks/useAuth";
 import { formatCfa } from "../../src/utils/currency";
 
 export default function Checkout() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const [paymentMethod, setPaymentMethod] = useState("paydunya");
 
   const { data: items, isLoading } = useQuery("cart", fetchCart);
+  const { data: wallet } = useQuery("wallet", fetchWallet, { enabled: isAuthenticated });
 
-  const orderMutation = useMutation(() => createOrder(), {
+  const orderMutation = useMutation((method) => createOrder(undefined, method), {
     onSuccess: ({ paymentUrl }) => {
       queryClient.invalidateQueries("cart");
       queryClient.invalidateQueries("orders");
+      queryClient.invalidateQueries("wallet");
+      queryClient.invalidateQueries("wallet-transactions");
       if (paymentUrl) {
         window.location.href = paymentUrl;
       } else {
@@ -99,6 +110,50 @@ export default function Checkout() {
             {formatCfa(total)}
           </Typography>
         </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
+          Pay with
+        </Typography>
+        <RadioGroup value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+          <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1, mb: 1 }}>
+            <FormControlLabel
+              value="paydunya"
+              control={<Radio />}
+              sx={{ width: "100%", m: 0 }}
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
+                  <CreditCardRoundedIcon sx={{ color: "primary.main" }} />
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    PayDunya (mobile money, card)
+                  </Typography>
+                </Box>
+              }
+            />
+          </Box>
+          <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1 }}>
+            <FormControlLabel
+              value="wallet"
+              control={<Radio />}
+              disabled={!wallet || Number(wallet.balance) < total}
+              sx={{ width: "100%", m: 0 }}
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", py: 0.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <AccountBalanceWalletRoundedIcon sx={{ color: "primary.main" }} />
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      Ocass Wallet
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {wallet ? `Balance: ${formatCfa(wallet.balance)}` : "..."}
+                  </Typography>
+                </Box>
+              }
+            />
+          </Box>
+        </RadioGroup>
       </Box>
 
       <Box
@@ -119,7 +174,7 @@ export default function Checkout() {
           fullWidth
           size="large"
           disabled={orderMutation.isLoading || (items || []).length === 0}
-          onClick={() => orderMutation.mutate()}
+          onClick={() => orderMutation.mutate(paymentMethod)}
           sx={{ fontWeight: 800, py: 1.25 }}
         >
           {orderMutation.isLoading ? "Placing order..." : `Place order · ${formatCfa(total)}`}

@@ -14,11 +14,21 @@ import { fetchPaymentStatus } from "../../src/api/payments";
 // trust the redirect alone (the customer could land here without paying),
 // so this page re-confirms the payment's real status with our backend,
 // which in turn re-confirms with PayDunya's API before trusting it.
+// This return page is shared by every PayDunya-backed flow (ecommerce
+// checkout, wallet top-up, ...) since PayDunya only takes one return_url per
+// invoice. The confirmed payment's `purpose` decides the wording and where
+// "done" sends the customer next.
+const DESTINATIONS = {
+  WALLET_TOPUP: { label: "View my wallet", href: "/wallet", confirmedText: "Your wallet has been credited." },
+};
+const DEFAULT_DESTINATION = { label: "View my orders", href: "/ecommerce/orders", confirmedText: "Your order has been confirmed." };
+
 export default function PaymentReturn() {
   const router = useRouter();
   const { token } = router.query;
   const [status, setStatus] = useState("checking");
   const [attempts, setAttempts] = useState(0);
+  const [payment, setPayment] = useState(null);
 
   useEffect(() => {
     if (!token) return;
@@ -26,11 +36,12 @@ export default function PaymentReturn() {
 
     async function poll() {
       try {
-        const payment = await fetchPaymentStatus(token);
+        const result = await fetchPaymentStatus(token);
         if (cancelled) return;
-        if (payment.status === "COMPLETED") {
+        setPayment(result);
+        if (result.status === "COMPLETED") {
           setStatus("completed");
-        } else if (payment.status === "CANCELLED" || payment.status === "FAILED") {
+        } else if (result.status === "CANCELLED" || result.status === "FAILED") {
           setStatus("failed");
         } else if (attempts < 4) {
           // PayDunya's IPN can lag behind the customer's browser redirect -
@@ -50,6 +61,8 @@ export default function PaymentReturn() {
     };
   }, [token, attempts]);
 
+  const destination = DESTINATIONS[payment?.purpose] || DEFAULT_DESTINATION;
+
   return (
     <Box>
       <TopBar title="Payment" showCart={false} showSearch={false} />
@@ -67,10 +80,10 @@ export default function PaymentReturn() {
               Payment successful
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Your order has been confirmed.
+              {destination.confirmedText}
             </Typography>
-            <Button variant="contained" onClick={() => router.replace("/ecommerce/orders")}>
-              View my orders
+            <Button variant="contained" onClick={() => router.replace(destination.href)}>
+              {destination.label}
             </Button>
           </>
         )}
@@ -81,10 +94,10 @@ export default function PaymentReturn() {
               Payment still processing
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              We haven&apos;t received confirmation yet. Check your orders in a few minutes.
+              We haven&apos;t received confirmation yet. Check back in a few minutes.
             </Typography>
-            <Button variant="contained" onClick={() => router.replace("/ecommerce/orders")}>
-              View my orders
+            <Button variant="contained" onClick={() => router.replace(destination.href)}>
+              {destination.label}
             </Button>
           </>
         )}
@@ -95,10 +108,13 @@ export default function PaymentReturn() {
               Payment not completed
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Your payment could not be confirmed. You can try again from your cart.
+              Your payment could not be confirmed. You can try again.
             </Typography>
-            <Button variant="contained" onClick={() => router.replace("/ecommerce/cart")}>
-              Back to cart
+            <Button
+              variant="contained"
+              onClick={() => router.replace(payment?.purpose === "WALLET_TOPUP" ? "/wallet" : "/ecommerce/cart")}
+            >
+              {payment?.purpose === "WALLET_TOPUP" ? "Back to wallet" : "Back to cart"}
             </Button>
           </>
         )}

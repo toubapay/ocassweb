@@ -14,6 +14,7 @@ import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
 import HealthAndSafetyRoundedIcon from "@mui/icons-material/HealthAndSafetyRounded";
 import SimCardRoundedIcon from "@mui/icons-material/SimCardRounded";
+import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import TopBar from "../src/components/layout/TopBar";
 import useAuth from "../src/hooks/useAuth";
@@ -26,7 +27,7 @@ export default function Profile() {
     return (
       <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", px: 3, gap: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 800 }}>
-          You're not signed in
+          You&apos;re not signed in
         </Typography>
         <Button variant="contained" onClick={() => router.push("/auth/login")} sx={{ fontWeight: 700, px: 4 }}>
           Log in
@@ -36,6 +37,7 @@ export default function Profile() {
   }
 
   const links = [
+    { label: "Wallet", icon: AccountBalanceWalletRoundedIcon, href: "/wallet" },
     { label: "My orders", icon: ReceiptLongRoundedIcon, href: "/ecommerce/orders" },
     { label: "My food orders", icon: RestaurantRoundedIcon, href: "/restaurant/orders" },
     { label: "My wishlist", icon: FavoriteRoundedIcon, href: "/ecommerce/wishlist" },

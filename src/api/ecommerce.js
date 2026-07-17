@@ -23,8 +23,8 @@ export const removeCartItem = (id) => apiClient.delete(`/ecommerce/cart/${id}`);
 export const fetchOrders = () =>
   apiClient.get("/ecommerce/orders").then((res) => res.data.orders);
 
-export const createOrder = (deliveryAddressId) =>
-  apiClient.post("/ecommerce/orders", { deliveryAddressId }).then((res) => res.data);
+export const createOrder = (deliveryAddressId, paymentMethod = "paydunya") =>
+  apiClient.post("/ecommerce/orders", { deliveryAddressId, paymentMethod }).then((res) => res.data);
 
 export const fetchWishlist = () =>
   apiClient.get("/ecommerce/wishlist").then((res) => res.data.items);

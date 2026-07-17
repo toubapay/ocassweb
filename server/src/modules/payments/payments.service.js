@@ -1,5 +1,6 @@
 const prisma = require("../../lib/prisma");
 const paydunya = require("./paydunya.service");
+const walletService = require("../wallet/wallet.service");
 
 /**
  * Creates a Payment record and a matching PayDunya invoice for it. Callers
@@ -69,6 +70,16 @@ async function applyPaymentSideEffects(payment) {
       await prisma.order.updateMany({
         where: { paymentId: payment.id },
         data: { paid: true, status: "CONFIRMED" },
+      });
+      break;
+    case "WALLET_TOPUP":
+      await walletService.credit({
+        userId: payment.userId,
+        amount: Number(payment.amount),
+        type: "TOPUP",
+        purpose: "WALLET_TOPUP",
+        purposeId: payment.id,
+        description: "PayDunya top-up",
       });
       break;
     default:

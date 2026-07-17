@@ -12,6 +12,7 @@ const restaurantRoutes = require("./modules/restaurant/restaurant.routes");
 const rideshareRoutes = require("./modules/rideshare/rideshare.routes");
 const mobileRoutes = require("./modules/mobile/mobile.routes");
 const paymentsRoutes = require("./modules/payments/payments.routes");
+const walletRoutes = require("./modules/wallet/wallet.routes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -39,6 +40,7 @@ app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/rideshare", rideshareRoutes);
 app.use("/api/mobile", mobileRoutes);
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/wallet", walletRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

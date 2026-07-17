@@ -72,12 +72,47 @@ yarn dev                    # http://localhost:3000
   lands back on `/payments/return` (or `/payments/cancel`), which re-confirms
   the payment's real status against PayDunya's API before marking the order
   paid - see "Payments (PayDunya)" below for setup and what's unverified.
+- **Wallet** — every user (customer, vendor, delivery man - same model for
+  all three, `role` doesn't change the wallet) gets a balance funded by
+  topping up through PayDunya, spendable as a checkout payment method
+  alongside PayDunya itself (ecommerce checkout first). See "Wallet" below.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage
   against the same backend (see `mobile/README.md`).
 
 Richer delivery/ride dispatch (live pricing, maps, driver assignment) is
 intentionally left as the next milestone — the current build gives each
 module a real API + UI, not just a shell.
+
+## Wallet
+
+Every user has exactly one `Wallet` (`server/prisma/schema.prisma`),
+regardless of role - the same balance/top-up/spend model serves customers,
+vendors and delivery men. Scope decisions made while building this (no
+vendor-store ownership link or delivery/ride-agent assignment exists yet in
+the schema, so these were the lower-risk defaults rather than a guess):
+
+- **Funding**: top-up only, via a PayDunya invoice (`purpose: WALLET_TOPUP`).
+  Nothing auto-credits a vendor or delivery agent's wallet from sales or
+  completed deliveries - that would need a `Store.ownerId` and a
+  `DeliveryRequest`/`RideRequest` assignee field first, neither of which
+  exists today.
+- **Spending**: usable as a checkout payment method - `POST
+  /api/ecommerce/orders` accepts `paymentMethod: "wallet" | "paydunya"`. A
+  wallet debit settles synchronously (no redirect/IPN round trip): balance
+  and order status update in the same request, guarded against
+  overdraft/concurrent-debit races by a conditional `balance >= amount`
+  update (`server/src/modules/wallet/wallet.service.js`). Only ecommerce
+  checkout offers the choice so far; wiring it into restaurant/topup/
+  insurance/delivery/ride checkouts follows the same pattern.
+- **UI**: one wallet screen (`/wallet`: balance, top-up, transaction
+  history) reachable from every user's profile - no separate vendor or
+  delivery-agent dashboards were built, since that's a materially larger
+  feature (order-to-vendor routing, job assignment) than "add a wallet."
+
+Both a PayDunya top-up and a wallet order-payment go through the same
+rollback discipline as ecommerce/PayDunya checkout: if a debit fails
+(insufficient balance) or a topup invoice can't be created, the order is
+deleted and the customer's cart is left untouched rather than orphaned.
 
 ## Payments (PayDunya)
 
@@ -113,11 +148,15 @@ but not exercised against a real PayDunya call. Test against their sandbox
 (`PAYDUNYA_MODE=test`) before going live, and check `ipn`'s request logging
 if the callback doesn't parse correctly the first time.
 
-Only ecommerce checkout uses PayDunya so far. `payments.service.js`'s
-`applyPaymentSideEffects` is a switch keyed on `PaymentPurpose` - add a case
-there (and an `initiatePayment` call in the relevant controller) to wire
-PayDunya into restaurant orders, mobile top-up/bills, insurance, delivery, or
-ride requests.
+Ecommerce checkout and wallet top-up (see "Wallet" above) use PayDunya so
+far. `payments.service.js`'s `applyPaymentSideEffects` is a switch keyed on
+`PaymentPurpose` - add a case there (and an `initiatePayment` call in the
+relevant controller) to wire PayDunya into restaurant orders, mobile
+top-up/bills, insurance, delivery, or ride requests. Since PayDunya only
+takes one `return_url` per invoice, `/payments/return` is shared across
+every purpose and picks its message/destination off the confirmed
+payment's `purpose` field (`DESTINATIONS` map in `pages/payments/return.js`)
+- add an entry there for any new purpose that needs its own landing copy.
 
 ## Deploying
 

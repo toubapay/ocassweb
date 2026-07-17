@@ -1,9 +1,11 @@
 const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const paymentsService = require("../payments/payments.service");
+const walletService = require("../wallet/wallet.service");
 
 const createOrderSchema = z.object({
   deliveryAddressId: z.string().uuid().optional(),
+  paymentMethod: z.enum(["paydunya", "wallet"]).default("paydunya"),
 });
 
 async function listOrders(req, res, next) {
@@ -21,7 +23,7 @@ async function listOrders(req, res, next) {
 
 async function createOrder(req, res, next) {
   try {
-    const { deliveryAddressId } = createOrderSchema.parse(req.body);
+    const { deliveryAddressId, paymentMethod } = createOrderSchema.parse(req.body);
 
     const cartItems = await prisma.cartItem.findMany({
       where: { userId: req.user.id },
@@ -56,6 +58,36 @@ async function createOrder(req, res, next) {
       },
       include: { items: { include: { product: true } } },
     });
+
+    if (paymentMethod === "wallet") {
+      try {
+        await walletService.debit({
+          userId: req.user.id,
+          amount: total,
+          purpose: "ECOMMERCE_ORDER",
+          purposeId: order.id,
+          description: `Ocass order #${order.id.slice(0, 8)}`,
+        });
+      } catch (debitErr) {
+        await prisma.order.delete({ where: { id: order.id } });
+        if (debitErr instanceof walletService.InsufficientBalanceError) {
+          return res.status(400).json({ message: "Insufficient wallet balance" });
+        }
+        return res.status(502).json({ message: "Could not complete wallet payment. Please try again." });
+      }
+
+      // Wallet debits settle synchronously - no redirect/IPN round trip needed.
+      const [, updatedOrder] = await prisma.$transaction([
+        prisma.cartItem.deleteMany({ where: { userId: req.user.id } }),
+        prisma.order.update({
+          where: { id: order.id },
+          data: { paid: true, status: "CONFIRMED" },
+          include: { items: { include: { product: true } } },
+        }),
+      ]);
+
+      return res.status(201).json({ order: updatedOrder, paymentUrl: null });
+    }
 
     let payment;
     try {
