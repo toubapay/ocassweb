@@ -66,12 +66,58 @@ yarn dev                    # http://localhost:3000
   from the number; bill payment by account/meter number; shared transaction
   history.
 - **Auth** — phone + OTP, JWT session, protected routes via `middleware.js`.
+- **Payments** — [PayDunya](https://www.paydunya.com) (Senegalese payment
+  gateway) is wired into ecommerce checkout: placing an order creates a
+  `Payment` record, redirects to PayDunya's hosted checkout, and the customer
+  lands back on `/payments/return` (or `/payments/cancel`), which re-confirms
+  the payment's real status against PayDunya's API before marking the order
+  paid - see "Payments (PayDunya)" below for setup and what's unverified.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage
   against the same backend (see `mobile/README.md`).
 
 Richer delivery/ride dispatch (live pricing, maps, driver assignment) is
 intentionally left as the next milestone — the current build gives each
 module a real API + UI, not just a shell.
+
+## Payments (PayDunya)
+
+Ecommerce checkout is wired to [PayDunya](https://www.paydunya.com), a
+Senegalese payment gateway, using their Checkout Invoice API:
+
+1. `POST /ecommerce/orders` creates the order, then creates a `Payment` row
+   and a PayDunya invoice (`server/src/modules/payments/paydunya.service.js`),
+   and returns `{ order, paymentUrl }`.
+2. The web app redirects the browser to `paymentUrl` (PayDunya's hosted
+   checkout page).
+3. After paying, PayDunya redirects the customer back to
+   `${APP_FRONTEND_URL}/payments/return?token=...` (or `/payments/cancel` if
+   they cancel), and separately calls
+   `${APP_BASE_URL}/api/payments/paydunya/ipn` server-to-server.
+4. Both paths re-confirm the payment with `GET /checkout-invoice/confirm/:token`
+   before trusting it (PayDunya's own recommendation - never trust the
+   redirect or IPN body alone). On confirmed completion, the linked order is
+   marked `paid: true` and `status: CONFIRMED`.
+
+**Setup**: get your Master/Private/Public keys and token from the PayDunya
+dashboard and set them in `server/.env` (see `.env.example`). `APP_BASE_URL`
+must be publicly reachable for PayDunya's IPN to reach you - in local dev
+that means tunneling it (e.g. `ngrok http 5000`) and setting `APP_BASE_URL`
+to the tunnel URL.
+
+**What's unverified**: this was built without live network access to
+paydunya.com (blocked in the build sandbox), so the invoice-create request/
+response shape, the IPN payload shape (`payments.controller.js`'s `ipn`
+handler tries a few likely shapes for the `token` field), and the exact
+`checkoutUrl` format are all implemented from PayDunya's published API docs
+but not exercised against a real PayDunya call. Test against their sandbox
+(`PAYDUNYA_MODE=test`) before going live, and check `ipn`'s request logging
+if the callback doesn't parse correctly the first time.
+
+Only ecommerce checkout uses PayDunya so far. `payments.service.js`'s
+`applyPaymentSideEffects` is a switch keyed on `PaymentPurpose` - add a case
+there (and an `initiatePayment` call in the relevant controller) to wire
+PayDunya into restaurant orders, mobile top-up/bills, insurance, delivery, or
+ride requests.
 
 ## Deploying
 

@@ -24,7 +24,7 @@ export const fetchOrders = () =>
   apiClient.get("/ecommerce/orders").then((res) => res.data.orders);
 
 export const createOrder = (deliveryAddressId) =>
-  apiClient.post("/ecommerce/orders", { deliveryAddressId }).then((res) => res.data.order);
+  apiClient.post("/ecommerce/orders", { deliveryAddressId }).then((res) => res.data);
 
 export const fetchWishlist = () =>
   apiClient.get("/ecommerce/wishlist").then((res) => res.data.items);

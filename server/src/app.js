@@ -11,6 +11,7 @@ const insuranceRoutes = require("./modules/insurance/insurance.routes");
 const restaurantRoutes = require("./modules/restaurant/restaurant.routes");
 const rideshareRoutes = require("./modules/rideshare/rideshare.routes");
 const mobileRoutes = require("./modules/mobile/mobile.routes");
+const paymentsRoutes = require("./modules/payments/payments.routes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -23,6 +24,8 @@ app.use(
   })
 );
 app.use(express.json());
+// PayDunya's IPN callback is form-encoded, not JSON.
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
@@ -35,6 +38,7 @@ app.use("/api/insurance", insuranceRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/rideshare", rideshareRoutes);
 app.use("/api/mobile", mobileRoutes);
+app.use("/api/payments", paymentsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -60,11 +60,21 @@ export default function Orders() {
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 Order #{order.id.slice(0, 8)}
               </Typography>
-              <Chip
-                label={order.status.replace(/_/g, " ")}
-                size="small"
-                color={STATUS_COLOR[order.status] || "default"}
-              />
+              <Box sx={{ display: "flex", gap: 0.5 }}>
+                {order.paymentId && (
+                  <Chip
+                    label={order.paid ? "Paid" : "Unpaid"}
+                    size="small"
+                    color={order.paid ? "success" : "warning"}
+                    variant="outlined"
+                  />
+                )}
+                <Chip
+                  label={order.status.replace(/_/g, " ")}
+                  size="small"
+                  color={STATUS_COLOR[order.status] || "default"}
+                />
+              </Box>
             </Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
               {new Date(order.createdAt).toLocaleString()}

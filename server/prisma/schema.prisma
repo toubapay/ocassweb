@@ -37,6 +37,7 @@ model User {
   rideRequests     RideRequest[]
   restaurantOrders RestaurantOrder[]
   mobileTransactions MobileTransaction[]
+  payments Payment[]
 }
 
 model OtpCode {
@@ -147,10 +148,16 @@ model Order {
   deliveryAddressId String?
   status            OrderStatus @default(PENDING)
   total             Decimal     @db.Decimal(10, 2)
+  // Payment is tracked separately from fulfillment status above - `paid`
+  // only flips true once the PayDunya IPN webhook confirms the invoice,
+  // never optimistically on order creation.
+  paid              Boolean     @default(false)
+  paymentId         String?     @unique
   createdAt         DateTime    @default(now())
 
   user            User        @relation(fields: [userId], references: [id])
   deliveryAddress Address?    @relation(fields: [deliveryAddressId], references: [id])
+  payment         Payment?    @relation(fields: [paymentId], references: [id])
   items           OrderItem[]
 }
 
@@ -405,4 +412,51 @@ model MobileTransaction {
 
   user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   service MobileService @relation(fields: [serviceId], references: [id])
+}
+
+// ---------- Payments (PayDunya) ----------
+
+enum PaymentProvider {
+  PAYDUNYA
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+// What a payment is for. A plain string purposeId (not a typed FK) since
+// one Payment can point at rows in any of several unrelated tables -
+// ecommerce orders today, other modules as PayDunya gets wired into them.
+enum PaymentPurpose {
+  ECOMMERCE_ORDER
+  RESTAURANT_ORDER
+  MOBILE_TOPUP
+  MOBILE_BILL
+  INSURANCE_POLICY
+  DELIVERY_REQUEST
+  RIDE_REQUEST
+  WALLET_TOPUP
+}
+
+model Payment {
+  id            String          @id @default(uuid())
+  userId        String
+  provider      PaymentProvider @default(PAYDUNYA)
+  providerToken String?         @unique
+  checkoutUrl   String?
+  status        PaymentStatus   @default(PENDING)
+  amount        Decimal         @db.Decimal(10, 2)
+  currency      String          @default("XOF")
+  purpose       PaymentPurpose
+  purposeId     String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id])
+  order Order?
+
+  @@index([purpose, purposeId])
 }

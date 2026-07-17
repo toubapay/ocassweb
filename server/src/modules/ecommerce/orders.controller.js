@@ -1,5 +1,6 @@
 const { z } = require("zod");
 const prisma = require("../../lib/prisma");
+const paymentsService = require("../payments/payments.service");
 
 const createOrderSchema = z.object({
   deliveryAddressId: z.string().uuid().optional(),
@@ -36,27 +37,50 @@ async function createOrder(req, res, next) {
       return sum + Number(unitPrice) * item.quantity;
     }, 0);
 
-    const order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          userId: req.user.id,
-          deliveryAddressId,
-          total,
-          items: {
-            create: cartItems.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.product.discountPrice ?? item.product.price,
-            })),
-          },
+    // Cart is intentionally left untouched until payment initiation succeeds
+    // below - if PayDunya is unreachable or rejects the request, the order
+    // is rolled back and the customer keeps their cart to retry, instead of
+    // seeing a bare error with an orphaned order and an emptied cart.
+    const order = await prisma.order.create({
+      data: {
+        userId: req.user.id,
+        deliveryAddressId,
+        total,
+        items: {
+          create: cartItems.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.product.discountPrice ?? item.product.price,
+          })),
         },
-        include: { items: { include: { product: true } } },
-      });
-      await tx.cartItem.deleteMany({ where: { userId: req.user.id } });
-      return created;
+      },
+      include: { items: { include: { product: true } } },
     });
 
-    res.status(201).json({ order });
+    let payment;
+    try {
+      payment = await paymentsService.initiatePayment({
+        userId: req.user.id,
+        amount: total,
+        purpose: "ECOMMERCE_ORDER",
+        purposeId: order.id,
+        description: `Ocass order #${order.id.slice(0, 8)}`,
+      });
+    } catch (paymentErr) {
+      await prisma.order.delete({ where: { id: order.id } });
+      return res.status(502).json({ message: "Could not start payment. Please try again." });
+    }
+
+    const [, updatedOrder] = await prisma.$transaction([
+      prisma.cartItem.deleteMany({ where: { userId: req.user.id } }),
+      prisma.order.update({
+        where: { id: order.id },
+        data: { paymentId: payment.id },
+        include: { items: { include: { product: true } } },
+      }),
+    ]);
+
+    res.status(201).json({ order: updatedOrder, paymentUrl: payment.checkoutUrl });
   } catch (err) {
     next(err);
   }

@@ -18,11 +18,15 @@ export default function Checkout() {
   const { data: items, isLoading } = useQuery("cart", fetchCart);
 
   const orderMutation = useMutation(() => createOrder(), {
-    onSuccess: (order) => {
-      toast.success("Order placed!");
+    onSuccess: ({ paymentUrl }) => {
       queryClient.invalidateQueries("cart");
       queryClient.invalidateQueries("orders");
-      router.push(`/ecommerce/orders`);
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+      } else {
+        toast.success("Order placed!");
+        router.push(`/ecommerce/orders`);
+      }
     },
     onError: (err) => toast.error(err.response?.data?.message || "Could not place order"),
   });
