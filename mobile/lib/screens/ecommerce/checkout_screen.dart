@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../models/wallet.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../theme/app_theme.dart';
@@ -18,16 +20,45 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _placing = false;
+  String _paymentMethod = 'paydunya';
+  Wallet? _wallet;
   static const double _deliveryFee = 500;
 
-  Future<void> _placeOrder() async {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadWallet());
+  }
+
+  Future<void> _loadWallet() async {
+    try {
+      final wallet = await apiClient.fetchWallet();
+      if (mounted) setState(() => _wallet = wallet);
+    } catch (_) {
+      // Balance stays null - the wallet radio just shows "..." and (since
+      // walletInsufficient only trips when _wallet is non-null) remains
+      // selectable; the backend still enforces the real balance check.
+    }
+  }
+
+  Future<void> _placeOrder(num total) async {
     setState(() => _placing = true);
     try {
-      await apiClient.createOrder();
+      final (_, paymentUrl) = await apiClient.createOrder(paymentMethod: _paymentMethod);
       if (!mounted) return;
       await context.read<CartProvider>().fetch();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed!')));
+
+      if (paymentUrl != null) {
+        // PayDunya's hosted checkout is a web page with no way back into
+        // this app (no custom URL scheme registered for its return_url),
+        // so this opens it in the device's browser rather than in-app -
+        // the customer completes payment there and the order settles via
+        // PayDunya's IPN webhook same as on the web app.
+        await launchUrl(Uri.parse(paymentUrl), mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed!')));
+      }
       context.go('/ecommerce/orders');
     } catch (_) {
       if (!mounted) return;
@@ -45,6 +76,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final subtotal = cart.subtotal;
     final deliveryFee = cart.items.isEmpty ? 0 : _deliveryFee;
     final total = subtotal + deliveryFee;
+    final walletInsufficient = _wallet != null && _wallet!.balance < total;
 
     return Scaffold(
       appBar: const TopBar(title: 'Checkout', showCart: false, showSearch: false),
@@ -110,13 +142,45 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Text(formatCfa(total), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             ],
           ),
+          const Divider(height: 32),
+          const Text('Pay with', style: TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.divider),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: RadioListTile<String>(
+              value: 'paydunya',
+              groupValue: _paymentMethod,
+              onChanged: (v) => setState(() => _paymentMethod = v!),
+              title: const Text('PayDunya (mobile money, card)',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              secondary: const Icon(Icons.credit_card_rounded, color: AppColors.green),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.divider),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: RadioListTile<String>(
+              value: 'wallet',
+              groupValue: _paymentMethod,
+              onChanged: walletInsufficient ? null : (v) => setState(() => _paymentMethod = v!),
+              title: const Text('Ocass Wallet', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              subtitle: Text(_wallet != null ? 'Balance: ${formatCfa(_wallet!.balance)}' : '...'),
+              secondary: const Icon(Icons.account_balance_wallet_rounded, color: AppColors.green),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
-            onPressed: (_placing || cart.items.isEmpty) ? null : _placeOrder,
+            onPressed: (_placing || cart.items.isEmpty) ? null : () => _placeOrder(total),
             child: Text(_placing ? 'Placing order...' : 'Place order · ${formatCfa(total)}'),
           ),
         ),

@@ -100,7 +100,17 @@ cart, checkout, orders, wishlist) and Restaurant (per-restaurant cart,
 place order, order history); request forms with cancel for Delivery/Ride
 Sharing, and subscribe/cancel for Insurance; Airtime Top-up & Bill Payment
 (manual or device-contacts phone entry, operator auto-detected, backend-
-managed catalog); phone+OTP auth.
+managed catalog); a Wallet (balance, top-up, transaction history) reachable
+from the profile screen, usable at ecommerce checkout as an alternative to
+PayDunya; phone+OTP auth.
+
+PayDunya's hosted checkout (used by both ecommerce checkout and wallet
+top-up) opens in the device's external browser via `url_launcher` rather
+than in-app - there's no custom URL scheme registered for PayDunya's
+return_url to hand control back to the app, so after paying the customer
+finishes on the web app's `/payments/return` page and returns to the app
+manually. A real deep link back into the app is the natural follow-up if
+this becomes the primary flow.
 
 The home screen's module icons are drag-to-reorder (long-press then drag,
 via `reorderable_grid_view`), persisted locally with `shared_preferences` -

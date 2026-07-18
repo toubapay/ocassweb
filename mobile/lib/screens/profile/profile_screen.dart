@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
 const _links = [
+  ('Wallet', Icons.account_balance_wallet_rounded, '/wallet'),
   ('My orders', Icons.receipt_long_rounded, '/ecommerce/orders'),
   ('My food orders', Icons.restaurant_rounded, '/restaurant/orders'),
   ('My wishlist', Icons.favorite_rounded, '/ecommerce/wishlist'),
