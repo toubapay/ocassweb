@@ -14,6 +14,7 @@ import '../models/restaurant.dart';
 import '../models/ride_request.dart';
 import '../models/mobile_service.dart';
 import '../models/mobile_transaction.dart';
+import '../models/wallet.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -132,11 +133,42 @@ class ApiClient {
         .toList();
   }
 
-  Future<Order> createOrder({String? deliveryAddressId}) async {
+  /// Returns the created order and, for `paymentMethod: 'paydunya'`, the
+  /// PayDunya checkout URL to redirect the customer to (null for
+  /// `'wallet'`, which settles synchronously - no redirect needed).
+  Future<(Order, String?)> createOrder({
+    String? deliveryAddressId,
+    String paymentMethod = 'paydunya',
+  }) async {
     final res = await _dio.post('/ecommerce/orders', data: {
       if (deliveryAddressId != null) 'deliveryAddressId': deliveryAddressId,
+      'paymentMethod': paymentMethod,
     });
-    return Order.fromJson(_data(res)['order'] as Map<String, dynamic>);
+    final data = _data(res);
+    return (
+      Order.fromJson(data['order'] as Map<String, dynamic>),
+      data['paymentUrl'] as String?,
+    );
+  }
+
+  Future<Wallet> fetchWallet() async {
+    final res = await _dio.get('/wallet');
+    return Wallet.fromJson(_data(res)['wallet'] as Map<String, dynamic>);
+  }
+
+  Future<List<WalletTransaction>> fetchWalletTransactions() async {
+    final res = await _dio.get('/wallet/transactions');
+    return (_data(res)['transactions'] as List<dynamic>)
+        .map((t) => WalletTransaction.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Starts a PayDunya top-up invoice; returns the checkout URL to open.
+  /// The wallet is credited once the payment confirms (IPN or a status
+  /// poll), same as an ecommerce order paid via PayDunya.
+  Future<String?> topUpWallet(double amount) async {
+    final res = await _dio.post('/wallet/topup', data: {'amount': amount});
+    return _data(res)['paymentUrl'] as String?;
   }
 
   Future<List<WishlistItem>> fetchWishlist() async {
