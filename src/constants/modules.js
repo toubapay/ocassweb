@@ -3,7 +3,7 @@ import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import HealthAndSafetyRoundedIcon from "@mui/icons-material/HealthAndSafetyRounded";
 import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
-import SimCardRoundedIcon from "@mui/icons-material/SimCardRounded";
+import PhoneAndroidRoundedIcon from "@mui/icons-material/PhoneAndroidRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 
 // Central registry of the super-app's modules. Adding a module means adding
@@ -64,7 +64,7 @@ export const MODULES = [
     label: "Airtime",
     fullLabel: "Airtime Top-up",
     href: "/topup?tab=airtime",
-    icon: SimCardRoundedIcon,
+    icon: PhoneAndroidRoundedIcon,
     color: "#0D9488",
     bg: "#E6FBF8",
     description: "Top up mobile airtime & data",

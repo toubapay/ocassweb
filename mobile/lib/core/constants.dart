@@ -82,7 +82,7 @@ const List<AppModule> kModules = [
     label: 'Airtime',
     fullLabel: 'Airtime Top-up',
     route: '/topup?tab=airtime',
-    icon: Icons.sim_card_rounded,
+    icon: Icons.phone_android_rounded,
     color: AppColors.teal,
     bg: AppColors.tealSoft,
   ),
