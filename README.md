@@ -204,6 +204,8 @@ payment's `purpose` field (`DESTINATIONS` map in `pages/payments/return.js`)
 
 - [DEPLOY_GCP.md](./DEPLOY_GCP.md) — Cloud Run + Cloud SQL
 - [DEPLOY_RAILWAY.md](./DEPLOY_RAILWAY.md) — Railway + Railway Postgres
+- [DEPLOY_SCALE.md](./DEPLOY_SCALE.md) — infrastructure and monthly cost
+  estimates for scaling from 100K to 1M users on either platform
 
 Neither has been run from this environment — both were prepared and
 documented but not executed, since this sandbox has no credentials for
