@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -16,6 +17,7 @@ import { formatCfa } from "../../src/utils/currency";
 
 export default function RestaurantDetail() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { slug } = router.query;
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
@@ -48,18 +50,18 @@ export default function RestaurantDetail() {
       ),
     {
       onSuccess: () => {
-        toast.success("Order placed!");
+        toast.success(t("restaurant.detail.orderPlaced"));
         queryClient.invalidateQueries("restaurant-orders");
         setQuantities({});
         router.push("/restaurant/orders");
       },
-      onError: (err) => toast.error(err.response?.data?.message || "Could not place order"),
+      onError: (err) => toast.error(err.response?.data?.message || t("restaurant.detail.couldNotPlaceOrder")),
     }
   );
 
   const setQuantity = (itemId, qty) => {
     if (!isAuthenticated) {
-      toast("Log in to order");
+      toast(t("restaurant.detail.loginToOrder"));
       router.push("/auth/login");
       return;
     }
@@ -69,9 +71,9 @@ export default function RestaurantDetail() {
   if (isLoading || !restaurant) {
     return (
       <Box>
-        <TopBar title="Restaurant" showCart={false} />
+        <TopBar title={t("restaurant.detail.title")} showCart={false} />
         <Typography variant="body2" sx={{ color: "text.secondary", p: 2 }}>
-          Loading...
+          {t("restaurant.detail.loading")}
         </Typography>
       </Box>
     );
@@ -113,7 +115,7 @@ export default function RestaurantDetail() {
                   onClick={() => setQuantity(item.id, 1)}
                   sx={{ fontWeight: 800 }}
                 >
-                  ADD
+                  {t("restaurant.detail.add")}
                 </Button>
               ) : (
                 <Box sx={{ display: "flex", alignItems: "center", border: "1px solid #EEEEEE", borderRadius: 2 }}>
@@ -154,8 +156,8 @@ export default function RestaurantDetail() {
             sx={{ fontWeight: 800, py: 1.25 }}
           >
             {orderMutation.isLoading
-              ? "Placing order..."
-              : `Place order · ${itemCount} item${itemCount > 1 ? "s" : ""} · ${formatCfa(total)}`}
+              ? t("restaurant.detail.placingOrder")
+              : t("restaurant.detail.placeOrder", { count: itemCount, total: formatCfa(total) })}
           </Button>
         </Box>
       )}

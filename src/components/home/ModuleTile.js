@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
 export default function ModuleTile({ module, size = 92 }) {
+  const { t } = useTranslation();
   const Icon = module.icon;
   return (
     <Link href={module.href} style={{ textDecoration: "none" }}>
@@ -49,7 +51,7 @@ export default function ModuleTile({ module, size = 92 }) {
             }}
           >
             <Typography variant="caption" sx={{ fontWeight: 800, color: "#1A1A1A", fontSize: 11.5 }}>
-              {module.label}
+              {t(`modules.${module.id}.label`)}
             </Typography>
           </Box>
         </Box>

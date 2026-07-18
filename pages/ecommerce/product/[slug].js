@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient, useMutation } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -18,6 +19,7 @@ import { formatCfa } from "../../../src/utils/currency";
 
 export default function ProductDetail() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { slug } = router.query;
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
@@ -30,19 +32,19 @@ export default function ProductDetail() {
 
   const addMutation = useMutation(() => addToCart(product.id, quantity), {
     onSuccess: () => {
-      toast.success("Added to cart");
+      toast.success(t("ecommerce.product.addedToCart"));
       queryClient.invalidateQueries("cart");
     },
-    onError: () => toast.error("Could not add to cart"),
+    onError: () => toast.error(t("ecommerce.product.couldNotAddToCart")),
   });
 
   if (isLoading || !product) {
     return (
       <Box>
-        <TopBar title="Product" />
+        <TopBar title={t("ecommerce.product.title")} />
         <Box sx={{ p: 3 }}>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Loading product...
+            {t("ecommerce.product.loading")}
           </Typography>
         </Box>
       </Box>
@@ -54,7 +56,7 @@ export default function ProductDetail() {
 
   const handleAdd = () => {
     if (!isAuthenticated) {
-      toast("Log in to continue");
+      toast(t("common.logInToContinue"));
       router.push("/auth/login");
       return;
     }
@@ -63,7 +65,7 @@ export default function ProductDetail() {
 
   return (
     <Box sx={{ pb: 10 }}>
-      <TopBar title={product.category?.name || "Product"} />
+      <TopBar title={product.category?.name || t("ecommerce.product.title")} />
 
       <Box
         component="img"
@@ -116,39 +118,46 @@ export default function ProductDetail() {
               <Typography variant="body2" sx={{ color: "text.secondary", textDecoration: "line-through" }}>
                 {formatCfa(product.price)}
               </Typography>
-              <Chip label={`${product.discountPercent}% OFF`} size="small" color="primary" sx={{ fontWeight: 700 }} />
+              <Chip
+                label={t("ecommerce.product.percentOff", { percent: product.discountPercent })}
+                size="small"
+                color="primary"
+                sx={{ fontWeight: 700 }}
+              />
             </>
           )}
         </Box>
 
         <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-          {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+          {product.stock > 0
+            ? t("ecommerce.product.inStock", { count: product.stock })
+            : t("ecommerce.product.outOfStock")}
         </Typography>
 
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-          Description
+          {t("ecommerce.product.description")}
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          {product.description || "No description available."}
+          {product.description || t("ecommerce.product.noDescription")}
         </Typography>
 
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-          Reviews ({product.reviews?.length || 0})
+          {t("ecommerce.product.reviews", { count: product.reviews?.length || 0 })}
         </Typography>
         {(product.reviews || []).length === 0 && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            No reviews yet.
+            {t("ecommerce.product.noReviews")}
           </Typography>
         )}
         {(product.reviews || []).map((review) => (
           <Box key={review.id} sx={{ mb: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {review.user?.name || "Anonymous"}
+                {review.user?.name || t("ecommerce.product.anonymous")}
               </Typography>
               <Rating value={review.rating} size="small" readOnly />
             </Box>
@@ -194,7 +203,7 @@ export default function ProductDetail() {
           onClick={handleAdd}
           sx={{ fontWeight: 800, py: 1.25 }}
         >
-          Add to cart
+          {t("ecommerce.product.addToCart")}
         </Button>
       </Box>
     </Box>

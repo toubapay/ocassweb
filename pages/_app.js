@@ -12,6 +12,8 @@ import theme from "../src/theme";
 import createEmotionCache from "../src/theme/createEmotionCache";
 import { store, persistor } from "../src/redux/store";
 import AppLayout from "../src/components/layout/AppLayout";
+import "../src/i18n";
+import I18nSync from "../src/i18n/I18nSync";
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -36,6 +38,7 @@ export default function App(props) {
       </Head>
       <ReduxProvider store={store}>
         <PersistGate loading={null} persistor={persistor}>
+          <I18nSync />
           <QueryClientProvider client={queryClient}>
             <ThemeProvider theme={theme}>
               <CssBaseline />

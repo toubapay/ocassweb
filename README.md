@@ -76,12 +76,54 @@ yarn dev                    # http://localhost:3000
   all three, `role` doesn't change the wallet) gets a balance funded by
   topping up through PayDunya, spendable as a checkout payment method
   alongside PayDunya itself (ecommerce checkout first). See "Wallet" below.
+- **French / English** — the whole web app is translated (`src/i18n/`,
+  `react-i18next`), French by default. A toggle on the profile page switches
+  languages instantly and the choice persists (redux-persist) across
+  reloads. See "Internationalization" below for how to add new strings.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage
-  against the same backend (see `mobile/README.md`).
+  against the same backend (see `mobile/README.md`). Not yet translated -
+  the i18n work above is web-only so far.
 
 Richer delivery/ride dispatch (live pricing, maps, driver assignment) is
 intentionally left as the next milestone — the current build gives each
 module a real API + UI, not just a shell.
+
+## Internationalization
+
+The web app is fully translated into French and English (`react-i18next`),
+with French as the default. Setup:
+
+- `src/i18n/index.js` initializes `i18next` synchronously with both locale
+  JSON files inlined as resources (no lazy-loading/backend - the whole
+  translation set is a few KB) and `lng: "fr"`.
+- `src/i18n/locales/en.json` / `fr.json` hold every string, namespaced by
+  page/feature (`ecommerce.checkout.*`, `wallet.*`, `payments.*`, ...). Keep
+  the two files' key sets in sync - a missing French key silently falls
+  back to the English string via i18next's `fallbackLng`.
+- The chosen language is redux-persisted (`src/redux/slices/i18nSlice.js`,
+  whitelisted in `src/redux/store.js`) and synced into the live `i18next`
+  instance by `src/i18n/I18nSync.js`, mounted inside `PersistGate` in
+  `pages/_app.js` so it only runs once the persisted choice (if any) has
+  rehydrated.
+- `src/components/settings/LanguageSwitcher.js` is the toggle UI, currently
+  only placed on the profile page (`pages/profile.js`, both the signed-in
+  and signed-out states).
+- Module registry labels (`src/constants/modules.js`) don't store text
+  directly anymore - `ModuleTile.js` looks up `modules.<id>.label` by the
+  module's `id`, so adding a module means adding a `modules.<id>` entry to
+  both locale files, not a hardcoded label.
+- Real-world proper nouns (the "Ocass" brand name, the "Plateau, Dakar"
+  address, operator/biller names from the backend catalog) are deliberately
+  left untranslated - only actual UI copy is a translation key.
+- Not yet done: the Flutter app (`/mobile`) - it has its own, separate
+  i18n system (Flutter's `intl`/ARB files, not `react-i18next`) and hasn't
+  been touched by this pass.
+
+**Adding a new string**: add the key to both `en.json` and `fr.json` (same
+path), then `const { t } = useTranslation();` and use `t("your.new.key")`.
+For interpolation, use `{{placeholder}}` in the JSON value and pass
+`t("key", { placeholder: value })`; for pluralization, add `_one`/`_other`
+suffixed keys and pass `{ count }`.
 
 ## Wallet
 

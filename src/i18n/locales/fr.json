@@ -1,0 +1,375 @@
+{
+  "common": {
+    "appName": "Ocass",
+    "loading": "Chargement...",
+    "cancel": "Annuler",
+    "logIn": "Se connecter",
+    "logInToContinue": "Connectez-vous pour continuer",
+    "backToCart": "Retour au panier",
+    "startShopping": "Commencer les achats",
+    "note": "Remarque",
+    "setDeliveryAddress": "Définissez votre adresse de livraison",
+    "language": "Langue",
+    "french": "Français",
+    "english": "English"
+  },
+  "nav": {
+    "home": "Accueil",
+    "discover": "Découvrir",
+    "orders": "Commandes",
+    "profile": "Profil"
+  },
+  "modules": {
+    "ecommerce": { "label": "Boutique", "fullLabel": "E-commerce", "description": "Mode, électronique, épicerie et plus" },
+    "restaurant": { "label": "Repas", "fullLabel": "Restaurant", "description": "Commandez auprès des restaurants près de vous" },
+    "delivery": { "label": "Livraison", "fullLabel": "Livraison de colis", "description": "Envoyez un colis à travers la ville" },
+    "ride-sharing": { "label": "Courses", "fullLabel": "Covoiturage", "description": "Réservez une moto, une course économique ou confort" },
+    "insurance": { "label": "Assurance", "fullLabel": "Assurance", "description": "Formules santé, auto, habitation et voyage" },
+    "airtime": { "label": "Crédit", "fullLabel": "Recharge crédit", "description": "Rechargez du crédit et des données mobiles" },
+    "bill-payment": { "label": "Factures", "fullLabel": "Paiement de factures", "description": "Payez l'électricité, l'eau et la télé" }
+  },
+  "categories": {
+    "footwear": "Chaussures",
+    "electronics": "Électronique",
+    "groceries": "Épicerie",
+    "beauty": "Beauté"
+  },
+  "topBar": {
+    "chooseFromContacts": "Choisir dans les contacts"
+  },
+  "bottomNav": {
+    "home": "Accueil",
+    "discover": "Découvrir",
+    "orders": "Commandes",
+    "profile": "Profil"
+  },
+  "home": {
+    "dragHint": "Maintenez et faites glisser une icône pour la réorganiser",
+    "greeting": "{{name}}, voici pour vous",
+    "exploreOcass": "Explorer Ocass",
+    "popularRightNow": "Populaire en ce moment",
+    "freeDeliveryTitle": "Livraison gratuite pour votre première commande",
+    "freeDeliverySubtitle": "Offre appliquée automatiquement lors du paiement."
+  },
+  "auth": {
+    "login": {
+      "welcome": "Bienvenue sur Ocass",
+      "subtitle": "Entrez votre numéro de téléphone pour vous connecter ou créer un compte.",
+      "invalidPhone": "Entrez un numéro de téléphone valide",
+      "devOtp": "Code OTP (dev) : {{code}}",
+      "codeSent": "Code envoyé",
+      "couldNotSendCode": "Impossible d'envoyer le code",
+      "sending": "Envoi...",
+      "sendCode": "Envoyer le code"
+    },
+    "verify": {
+      "title": "Vérifiez votre numéro",
+      "subtitle": "Nous avons envoyé un code à 6 chiffres au {{phone}}",
+      "enterCode": "Entrez le code à 6 chiffres",
+      "welcome": "Bienvenue{{name}} !",
+      "invalidCode": "Code invalide",
+      "couldNotResend": "Impossible de renvoyer le code",
+      "devOtp": "Code OTP (dev) : {{code}}",
+      "codeResent": "Code renvoyé",
+      "nameLabel": "Votre nom (première fois uniquement)",
+      "verifying": "Vérification...",
+      "verify": "Vérifier",
+      "resendCode": "Renvoyer le code"
+    }
+  },
+  "profile": {
+    "notSignedIn": "Vous n'êtes pas connecté",
+    "defaultName": "Utilisateur Ocass",
+    "links": {
+      "wallet": "Portefeuille",
+      "myOrders": "Mes commandes",
+      "myFoodOrders": "Mes commandes de repas",
+      "myWishlist": "Ma liste de souhaits",
+      "deliveryRequests": "Demandes de livraison",
+      "myRides": "Mes courses",
+      "myInsurancePolicies": "Mes polices d'assurance",
+      "topupsAndBills": "Recharges et factures"
+    },
+    "logOut": "Se déconnecter",
+    "languageSectionTitle": "Langue"
+  },
+  "ecommerce": {
+    "discover": {
+      "title": "Boutique",
+      "browseCategories": "Parcourir les catégories",
+      "subcategoriesCount_one": "{{count}} sous-catégorie",
+      "subcategoriesCount_other": "{{count}} sous-catégories",
+      "shopNow": "Acheter maintenant"
+    },
+    "category": {
+      "title": "Boutique",
+      "all": "Tous",
+      "articleTab": "Articles",
+      "storesTab": "Magasins",
+      "loadingProducts": "Chargement des produits...",
+      "noProducts": "Aucun produit dans cette catégorie pour l'instant.",
+      "noStores": "Aucun magasin trouvé pour cette catégorie."
+    },
+    "product": {
+      "title": "Produit",
+      "loading": "Chargement du produit...",
+      "addedToCart": "Ajouté au panier",
+      "couldNotAddToCart": "Impossible d'ajouter au panier",
+      "inStock_one": "{{count}} en stock",
+      "inStock_other": "{{count}} en stock",
+      "outOfStock": "Rupture de stock",
+      "description": "Description",
+      "noDescription": "Aucune description disponible.",
+      "reviews": "Avis ({{count}})",
+      "noReviews": "Aucun avis pour l'instant.",
+      "anonymous": "Anonyme",
+      "addToCart": "Ajouter au panier",
+      "percentOff": "-{{percent}} %"
+    },
+    "productCard": {
+      "addedToCart": "{{name}} ajouté au panier",
+      "couldNotAddToCart": "Impossible d'ajouter au panier",
+      "add": "AJOUTER"
+    },
+    "cart": {
+      "title": "Votre panier",
+      "loginToView": "Connectez-vous pour voir votre panier.",
+      "loading": "Chargement du panier...",
+      "empty": "Votre panier est vide.",
+      "subtotal": "Sous-total",
+      "checkout": "Passer la commande"
+    },
+    "checkout": {
+      "title": "Paiement",
+      "deliveryTo": "Livraison à",
+      "you": "Vous",
+      "addAddressHint": "Ajoutez une adresse enregistrée pour accélérer vos prochaines commandes.",
+      "orderSummary": "Récapitulatif de la commande",
+      "loading": "Chargement...",
+      "subtotal": "Sous-total",
+      "deliveryFee": "Frais de livraison",
+      "total": "Total",
+      "payWith": "Payer avec",
+      "payDunya": "PayDunya (mobile money, carte)",
+      "wallet": "Portefeuille Ocass",
+      "walletBalance": "Solde : {{amount}}",
+      "orderPlaced": "Commande passée !",
+      "couldNotPlaceOrder": "Impossible de passer la commande",
+      "placingOrder": "Passage de la commande...",
+      "placeOrder": "Passer la commande · {{total}}"
+    },
+    "orders": {
+      "title": "Vos commandes",
+      "loginToView": "Connectez-vous pour voir vos commandes.",
+      "loading": "Chargement des commandes...",
+      "empty": "Aucune commande pour l'instant.",
+      "orderNumber": "Commande n°{{id}}",
+      "paid": "Payée",
+      "unpaid": "Non payée",
+      "total": "Total : {{amount}}",
+      "status": {
+        "PENDING": "En attente",
+        "CONFIRMED": "Confirmée",
+        "PREPARING": "En préparation",
+        "OUT_FOR_DELIVERY": "En livraison",
+        "DELIVERED": "Livrée",
+        "CANCELLED": "Annulée"
+      }
+    },
+    "wishlist": {
+      "title": "Liste de souhaits",
+      "loginToView": "Connectez-vous pour voir votre liste de souhaits.",
+      "loading": "Chargement...",
+      "empty": "Votre liste de souhaits est vide.",
+      "browseProducts": "Parcourir les produits"
+    }
+  },
+  "delivery": {
+    "title": "Livraison de colis",
+    "heading": "Envoyez un colis à travers la ville",
+    "pickupAddress": "Adresse de retrait",
+    "dropoffAddress": "Adresse de livraison",
+    "packageNote": "Que envoyez-vous ? (facultatif)",
+    "requesting": "Demande en cours...",
+    "getEstimate": "Obtenir une estimation de prix",
+    "loginToRequest": "Connectez-vous pour demander une livraison",
+    "enterAddresses": "Entrez les adresses de retrait et de livraison",
+    "requestCreated": "Demande créée · estimation {{amount}}",
+    "couldNotCreate": "Impossible de créer la demande",
+    "requestCancelled": "Demande annulée",
+    "couldNotCancel": "Impossible d'annuler la demande",
+    "yourRequests": "Vos demandes",
+    "estimate": "Estimation : {{amount}}",
+    "cancel": "Annuler",
+    "status": {
+      "REQUESTED": "Demandée",
+      "ACCEPTED": "Acceptée",
+      "PICKED_UP": "Récupérée",
+      "DELIVERED": "Livrée",
+      "CANCELLED": "Annulée"
+    }
+  },
+  "insurance": {
+    "title": "Assurance",
+    "categories": {
+      "HEALTH": "Santé",
+      "AUTO": "Auto",
+      "HOME": "Habitation",
+      "TRAVEL": "Voyage",
+      "LIFE": "Vie"
+    },
+    "loadingPlans": "Chargement des formules...",
+    "noPlans": "Aucune formule dans cette catégorie pour l'instant.",
+    "perMonth": "{{amount}}/mois",
+    "coverageUpTo": "Couverture jusqu'à {{amount}}",
+    "subscribe": "Souscrire",
+    "loginToSubscribe": "Connectez-vous pour souscrire",
+    "subscribed": "Souscrit ! Votre police est en attente d'activation.",
+    "couldNotSubscribe": "Impossible de souscrire",
+    "policyCancelled": "Police annulée",
+    "couldNotCancel": "Impossible d'annuler la police",
+    "myPolicies": "Mes polices",
+    "cancel": "Annuler",
+    "policyStatus": {
+      "ACTIVE": "Active",
+      "PENDING": "En attente",
+      "EXPIRED": "Expirée",
+      "CANCELLED": "Annulée"
+    }
+  },
+  "restaurant": {
+    "list": {
+      "title": "Restaurants",
+      "loading": "Chargement des restaurants..."
+    },
+    "detail": {
+      "title": "Restaurant",
+      "loading": "Chargement...",
+      "add": "AJOUTER",
+      "orderPlaced": "Commande passée !",
+      "couldNotPlaceOrder": "Impossible de passer la commande",
+      "loginToOrder": "Connectez-vous pour commander",
+      "placingOrder": "Passage de la commande...",
+      "placeOrder_one": "Passer la commande · {{count}} article · {{total}}",
+      "placeOrder_other": "Passer la commande · {{count}} articles · {{total}}"
+    },
+    "orders": {
+      "title": "Vos commandes de repas",
+      "loginToView": "Connectez-vous pour voir vos commandes de repas.",
+      "loading": "Chargement des commandes...",
+      "empty": "Aucune commande de repas pour l'instant.",
+      "browseRestaurants": "Parcourir les restaurants",
+      "note": "Remarque : {{note}}",
+      "total": "Total : {{amount}}"
+    }
+  },
+  "rideSharing": {
+    "title": "Covoiturage",
+    "heading": "Où allez-vous ?",
+    "pickupLocation": "Lieu de prise en charge",
+    "dropoffLocation": "Lieu de dépose",
+    "vehicles": {
+      "MOTO": "Moto",
+      "ECONOMY": "Économique",
+      "COMFORT": "Confort"
+    },
+    "requesting": "Demande en cours...",
+    "requestRide": "Demander une course",
+    "loginToBook": "Connectez-vous pour réserver une course",
+    "enterAddresses": "Entrez les adresses de prise en charge et de dépose",
+    "rideRequested": "Course demandée · estimation {{amount}}",
+    "couldNotRequest": "Impossible de demander la course",
+    "rideCancelled": "Course annulée",
+    "couldNotCancel": "Impossible d'annuler la course",
+    "yourRides": "Vos courses",
+    "cancel": "Annuler",
+    "status": {
+      "REQUESTED": "Demandée",
+      "ACCEPTED": "Acceptée",
+      "IN_PROGRESS": "En cours",
+      "COMPLETED": "Terminée",
+      "CANCELLED": "Annulée"
+    }
+  },
+  "topup": {
+    "title": "Recharge et factures",
+    "airtimeTab": "Crédit",
+    "billTab": "Factures",
+    "airtime": {
+      "heading": "Rechargez n'importe quel téléphone",
+      "phoneNumber": "Numéro de téléphone",
+      "chooseFromContacts": "Choisir dans les contacts",
+      "contactsNotSupported": "« Choisir dans les contacts » est disponible sur les navigateurs mobiles compatibles (ex. Chrome pour Android).",
+      "couldNotAccessContacts": "Impossible d'accéder aux contacts",
+      "operator": "OPÉRATEUR",
+      "amount": "MONTANT (CFA)",
+      "amountLabel": "Montant",
+      "processing": "Traitement...",
+      "topUp": "Recharger",
+      "selectOperator": "Sélectionnez un opérateur mobile",
+      "invalidPhone": "Entrez un numéro de téléphone valide",
+      "enterAmount": "Entrez un montant",
+      "success": "Recharge réussie · {{reference}}",
+      "failed": "Échec de la recharge"
+    },
+    "bill": {
+      "heading": "Payer une facture",
+      "biller": "FOURNISSEUR",
+      "accountNumber": "Numéro de compte / compteur",
+      "amount": "MONTANT (CFA)",
+      "amountLabel": "Montant",
+      "processing": "Traitement...",
+      "payBill": "Payer la facture",
+      "selectBiller": "Sélectionnez un fournisseur",
+      "enterAccountNumber": "Entrez votre numéro de compte/compteur",
+      "enterAmount": "Entrez un montant",
+      "success": "Paiement réussi · {{reference}}",
+      "failed": "Échec du paiement"
+    },
+    "recentTransactions": "Transactions récentes",
+    "loginToContinue": "Connectez-vous pour continuer",
+    "transactionStatus": {
+      "PENDING": "En attente",
+      "SUCCESS": "Réussie",
+      "FAILED": "Échouée"
+    }
+  },
+  "wallet": {
+    "title": "Portefeuille",
+    "loginToView": "Connectez-vous pour voir votre portefeuille.",
+    "balance": "Solde du portefeuille",
+    "topUpWallet": "Recharger le portefeuille",
+    "transactionHistory": "Historique des transactions",
+    "loading": "Chargement...",
+    "empty": "Aucune transaction pour l'instant.",
+    "type": {
+      "TOPUP": "Recharge",
+      "PAYMENT": "Paiement",
+      "REFUND": "Remboursement",
+      "ADJUSTMENT": "Ajustement"
+    },
+    "amountLabel": "Montant (CFA)",
+    "cancel": "Annuler",
+    "starting": "Démarrage...",
+    "continueToPayment": "Continuer vers le paiement",
+    "enterValidAmount": "Entrez un montant valide",
+    "couldNotStartTopUp": "Impossible de démarrer la recharge"
+  },
+  "payments": {
+    "title": "Paiement",
+    "confirming": "Confirmation de votre paiement...",
+    "successful": "Paiement réussi",
+    "viewOrders": "Voir mes commandes",
+    "viewWallet": "Voir mon portefeuille",
+    "walletCredited": "Votre portefeuille a été crédité.",
+    "orderConfirmed": "Votre commande a été confirmée.",
+    "stillProcessing": "Paiement en cours de traitement",
+    "notReceivedYet": "Nous n'avons pas encore reçu de confirmation. Revenez vérifier dans quelques minutes.",
+    "notCompleted": "Paiement non abouti",
+    "notCompletedSubtitle": "Votre paiement n'a pas pu être confirmé. Vous pouvez réessayer.",
+    "backToWallet": "Retour au portefeuille",
+    "backToCart": "Retour au panier",
+    "cancelled": "Paiement annulé",
+    "cancelledSubtitle": "Vous avez annulé le paiement. Votre panier est toujours sauvegardé."
+  }
+}

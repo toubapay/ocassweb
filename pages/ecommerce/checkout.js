@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -19,6 +20,7 @@ import { formatCfa } from "../../src/utils/currency";
 
 export default function Checkout() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [paymentMethod, setPaymentMethod] = useState("paydunya");
@@ -35,11 +37,11 @@ export default function Checkout() {
       if (paymentUrl) {
         window.location.href = paymentUrl;
       } else {
-        toast.success("Order placed!");
+        toast.success(t("ecommerce.checkout.orderPlaced"));
         router.push(`/ecommerce/orders`);
       }
     },
-    onError: (err) => toast.error(err.response?.data?.message || "Could not place order"),
+    onError: (err) => toast.error(err.response?.data?.message || t("ecommerce.checkout.couldNotPlaceOrder")),
   });
 
   const subtotal = (items || []).reduce((sum, item) => {
@@ -51,30 +53,30 @@ export default function Checkout() {
 
   return (
     <Box sx={{ pb: 12 }}>
-      <TopBar title="Checkout" showCart={false} showSearch={false} />
+      <TopBar title={t("ecommerce.checkout.title")} showCart={false} showSearch={false} />
 
       <Box sx={{ p: 2 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
-          Delivery to
+          {t("ecommerce.checkout.deliveryTo")}
         </Typography>
         <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 2, mb: 3 }}>
           <Typography variant="body2" sx={{ fontWeight: 700 }}>
-            {user?.name || "You"}
+            {user?.name || t("ecommerce.checkout.you")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {user?.phone}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Add a saved address to speed up future orders.
+            {t("ecommerce.checkout.addAddressHint")}
           </Typography>
         </Box>
 
         <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
-          Order summary
+          {t("ecommerce.checkout.orderSummary")}
         </Typography>
         {isLoading && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Loading...
+            {t("ecommerce.checkout.loading")}
           </Typography>
         )}
         {(items || []).map((item) => (
@@ -92,19 +94,19 @@ export default function Checkout() {
 
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Subtotal
+            {t("ecommerce.checkout.subtotal")}
           </Typography>
           <Typography variant="body2">{formatCfa(subtotal)}</Typography>
         </Box>
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Delivery fee
+            {t("ecommerce.checkout.deliveryFee")}
           </Typography>
           <Typography variant="body2">{formatCfa(deliveryFee)}</Typography>
         </Box>
         <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            Total
+            {t("ecommerce.checkout.total")}
           </Typography>
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
             {formatCfa(total)}
@@ -114,7 +116,7 @@ export default function Checkout() {
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
-          Pay with
+          {t("ecommerce.checkout.payWith")}
         </Typography>
         <RadioGroup value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
           <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1, mb: 1 }}>
@@ -126,7 +128,7 @@ export default function Checkout() {
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
                   <CreditCardRoundedIcon sx={{ color: "primary.main" }} />
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    PayDunya (mobile money, card)
+                    {t("ecommerce.checkout.payDunya")}
                   </Typography>
                 </Box>
               }
@@ -143,11 +145,11 @@ export default function Checkout() {
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <AccountBalanceWalletRoundedIcon sx={{ color: "primary.main" }} />
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      Ocass Wallet
+                      {t("ecommerce.checkout.wallet")}
                     </Typography>
                   </Box>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {wallet ? `Balance: ${formatCfa(wallet.balance)}` : "..."}
+                    {wallet ? t("ecommerce.checkout.walletBalance", { amount: formatCfa(wallet.balance) }) : "..."}
                   </Typography>
                 </Box>
               }
@@ -177,7 +179,9 @@ export default function Checkout() {
           onClick={() => orderMutation.mutate(paymentMethod)}
           sx={{ fontWeight: 800, py: 1.25 }}
         >
-          {orderMutation.isLoading ? "Placing order..." : `Place order · ${formatCfa(total)}`}
+          {orderMutation.isLoading
+            ? t("ecommerce.checkout.placingOrder")
+            : t("ecommerce.checkout.placeOrder", { total: formatCfa(total) })}
         </Button>
       </Box>
     </Box>

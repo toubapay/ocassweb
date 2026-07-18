@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -12,14 +13,11 @@ import useAuth from "../../src/hooks/useAuth";
 import { fetchMyRides, createRideRequest, cancelRide } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
 
-const VEHICLES = [
-  { value: "MOTO", label: "Moto" },
-  { value: "ECONOMY", label: "Economy" },
-  { value: "COMFORT", label: "Comfort" },
-];
+const VEHICLES = ["MOTO", "ECONOMY", "COMFORT"];
 
 export default function RideSharing() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [pickupAddress, setPickupAddress] = useState("");
@@ -32,31 +30,31 @@ export default function RideSharing() {
     () => createRideRequest({ pickupAddress, dropoffAddress, vehicleType }),
     {
       onSuccess: (ride) => {
-        toast.success(`Ride requested · estimate ${formatCfa(ride.priceEstimate)}`);
+        toast.success(t("rideSharing.rideRequested", { amount: formatCfa(ride.priceEstimate) }));
         queryClient.invalidateQueries("my-rides");
         setPickupAddress("");
         setDropoffAddress("");
       },
-      onError: () => toast.error("Could not request ride"),
+      onError: () => toast.error(t("rideSharing.couldNotRequest")),
     }
   );
 
   const cancelMutation = useMutation((id) => cancelRide(id), {
     onSuccess: () => {
-      toast.success("Ride cancelled");
+      toast.success(t("rideSharing.rideCancelled"));
       queryClient.invalidateQueries("my-rides");
     },
-    onError: (err) => toast.error(err.response?.data?.message || "Could not cancel ride"),
+    onError: (err) => toast.error(err.response?.data?.message || t("rideSharing.couldNotCancel")),
   });
 
   const handleSubmit = () => {
     if (!isAuthenticated) {
-      toast("Log in to book a ride");
+      toast(t("rideSharing.loginToBook"));
       router.push("/auth/login");
       return;
     }
     if (!pickupAddress || !dropoffAddress) {
-      toast.error("Enter pickup and dropoff addresses");
+      toast.error(t("rideSharing.enterAddresses"));
       return;
     }
     mutation.mutate();
@@ -64,21 +62,21 @@ export default function RideSharing() {
 
   return (
     <Box sx={{ pb: 4 }}>
-      <TopBar title="Ride Sharing" showBack={false} showSearch={false} showCart={false} />
+      <TopBar title={t("rideSharing.title")} showBack={false} showSearch={false} showCart={false} />
 
       <Box sx={{ p: 2.5, background: "linear-gradient(180deg, #EAF2FE 0%, #FFFFFF 100%)" }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
-          Where are you headed?
+          {t("rideSharing.heading")}
         </Typography>
         <TextField
-          label="Pickup location"
+          label={t("rideSharing.pickupLocation")}
           fullWidth
           value={pickupAddress}
           onChange={(e) => setPickupAddress(e.target.value)}
           sx={{ mb: 2, bgcolor: "background.paper" }}
         />
         <TextField
-          label="Dropoff location"
+          label={t("rideSharing.dropoffLocation")}
           fullWidth
           value={dropoffAddress}
           onChange={(e) => setDropoffAddress(e.target.value)}
@@ -88,10 +86,10 @@ export default function RideSharing() {
         <Box sx={{ display: "flex", gap: 1, mb: 2.5 }}>
           {VEHICLES.map((v) => (
             <Chip
-              key={v.value}
-              label={v.label}
-              onClick={() => setVehicleType(v.value)}
-              color={vehicleType === v.value ? "primary" : "default"}
+              key={v}
+              label={t(`rideSharing.vehicles.${v}`)}
+              onClick={() => setVehicleType(v)}
+              color={vehicleType === v ? "primary" : "default"}
               sx={{ fontWeight: 700 }}
             />
           ))}
@@ -105,14 +103,14 @@ export default function RideSharing() {
           onClick={handleSubmit}
           sx={{ fontWeight: 800, py: 1.25, bgcolor: "#3B82F6", "&:hover": { bgcolor: "#2f6fd6" } }}
         >
-          {mutation.isLoading ? "Requesting..." : "Request ride"}
+          {mutation.isLoading ? t("rideSharing.requesting") : t("rideSharing.requestRide")}
         </Button>
       </Box>
 
       {isAuthenticated && (rides || []).length > 0 && (
         <Box sx={{ p: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>
-            Your rides
+            {t("rideSharing.yourRides")}
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
             {rides.map((r) => (
@@ -121,11 +119,11 @@ export default function RideSharing() {
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {r.pickupAddress} → {r.dropoffAddress}
                   </Typography>
-                  <Chip label={r.status} size="small" />
+                  <Chip label={t(`rideSharing.status.${r.status}`, { defaultValue: r.status })} size="small" />
                 </Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {r.vehicleType} · {formatCfa(r.priceEstimate)}
+                    {t(`rideSharing.vehicles.${r.vehicleType}`, { defaultValue: r.vehicleType })} · {formatCfa(r.priceEstimate)}
                   </Typography>
                   {r.status === "REQUESTED" && (
                     <Button
@@ -135,7 +133,7 @@ export default function RideSharing() {
                       onClick={() => cancelMutation.mutate(r.id)}
                       sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
                     >
-                      Cancel
+                      {t("rideSharing.cancel")}
                     </Button>
                   )}
                 </Box>

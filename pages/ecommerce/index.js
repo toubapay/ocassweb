@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -10,19 +11,20 @@ const ICON_BG = ["#E7F7EE", "#EAF2FE", "#FFF6E5", "#FDECEC", "#F2EEFE"];
 
 export default function EcommerceDiscover() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data: categories, isLoading } = useQuery("categories", fetchCategories);
 
   return (
     <Box>
-      <TopBar title="Shop" showBack={false} />
+      <TopBar title={t("ecommerce.discover.title")} showBack={false} />
       <Box sx={{ p: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
-          Browse categories
+          {t("ecommerce.discover.browseCategories")}
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
           {isLoading && (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Loading...
+              {t("common.loading")}
             </Typography>
           )}
           {(categories || []).map((cat, i) => (
@@ -43,10 +45,12 @@ export default function EcommerceDiscover() {
               }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                {cat.name}
+                {t(`categories.${cat.slug}`, { defaultValue: cat.name })}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {cat.children?.length ? `${cat.children.length} subcategories` : "Shop now"}
+                {cat.children?.length
+                  ? t("ecommerce.discover.subcategoriesCount", { count: cat.children.length })
+                  : t("ecommerce.discover.shopNow")}
               </Typography>
             </Paper>
           ))}

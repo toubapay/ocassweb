@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -14,6 +15,7 @@ import { formatCfa } from "../../src/utils/currency";
 
 export default function Delivery() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [pickupAddress, setPickupAddress] = useState("");
@@ -28,32 +30,32 @@ export default function Delivery() {
     () => createDeliveryRequest({ pickupAddress, dropoffAddress, packageNote }),
     {
       onSuccess: (request) => {
-        toast.success(`Request created · estimate ${formatCfa(request.priceEstimate)}`);
+        toast.success(t("delivery.requestCreated", { amount: formatCfa(request.priceEstimate) }));
         queryClient.invalidateQueries("delivery-requests");
         setPickupAddress("");
         setDropoffAddress("");
         setPackageNote("");
       },
-      onError: () => toast.error("Could not create request"),
+      onError: () => toast.error(t("delivery.couldNotCreate")),
     }
   );
 
   const cancelMutation = useMutation((id) => cancelDeliveryRequest(id), {
     onSuccess: () => {
-      toast.success("Request cancelled");
+      toast.success(t("delivery.requestCancelled"));
       queryClient.invalidateQueries("delivery-requests");
     },
-    onError: (err) => toast.error(err.response?.data?.message || "Could not cancel request"),
+    onError: (err) => toast.error(err.response?.data?.message || t("delivery.couldNotCancel")),
   });
 
   const handleSubmit = () => {
     if (!isAuthenticated) {
-      toast("Log in to request a delivery");
+      toast(t("delivery.loginToRequest"));
       router.push("/auth/login");
       return;
     }
     if (!pickupAddress || !dropoffAddress) {
-      toast.error("Enter pickup and dropoff addresses");
+      toast.error(t("delivery.enterAddresses"));
       return;
     }
     mutation.mutate();
@@ -61,28 +63,28 @@ export default function Delivery() {
 
   return (
     <Box sx={{ pb: 4 }}>
-      <TopBar title="Package Delivery" showBack={false} showSearch={false} showCart={false} />
+      <TopBar title={t("delivery.title")} showBack={false} showSearch={false} showCart={false} />
 
       <Box sx={{ p: 2.5, background: "linear-gradient(180deg, #FFF6E5 0%, #FFFFFF 100%)" }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
-          Send a package across town
+          {t("delivery.heading")}
         </Typography>
         <TextField
-          label="Pickup address"
+          label={t("delivery.pickupAddress")}
           fullWidth
           value={pickupAddress}
           onChange={(e) => setPickupAddress(e.target.value)}
           sx={{ mb: 2, bgcolor: "background.paper" }}
         />
         <TextField
-          label="Dropoff address"
+          label={t("delivery.dropoffAddress")}
           fullWidth
           value={dropoffAddress}
           onChange={(e) => setDropoffAddress(e.target.value)}
           sx={{ mb: 2, bgcolor: "background.paper" }}
         />
         <TextField
-          label="What are you sending? (optional)"
+          label={t("delivery.packageNote")}
           fullWidth
           value={packageNote}
           onChange={(e) => setPackageNote(e.target.value)}
@@ -96,14 +98,14 @@ export default function Delivery() {
           onClick={handleSubmit}
           sx={{ fontWeight: 800, py: 1.25, bgcolor: "#FFB020", "&:hover": { bgcolor: "#E89D14" } }}
         >
-          {mutation.isLoading ? "Requesting..." : "Get a price estimate"}
+          {mutation.isLoading ? t("delivery.requesting") : t("delivery.getEstimate")}
         </Button>
       </Box>
 
       {isAuthenticated && (requests || []).length > 0 && (
         <Box sx={{ p: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>
-            Your requests
+            {t("delivery.yourRequests")}
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
             {requests.map((r) => (
@@ -112,11 +114,11 @@ export default function Delivery() {
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {r.pickupAddress} → {r.dropoffAddress}
                   </Typography>
-                  <Chip label={r.status} size="small" />
+                  <Chip label={t(`delivery.status.${r.status}`, { defaultValue: r.status })} size="small" />
                 </Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Estimate: {formatCfa(r.priceEstimate)}
+                    {t("delivery.estimate", { amount: formatCfa(r.priceEstimate) })}
                   </Typography>
                   {r.status === "REQUESTED" && (
                     <Button
@@ -126,7 +128,7 @@ export default function Delivery() {
                       onClick={() => cancelMutation.mutate(r.id)}
                       sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
                     >
-                      Cancel
+                      {t("delivery.cancel")}
                     </Button>
                   )}
                 </Box>

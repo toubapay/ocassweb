@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -9,15 +10,16 @@ import { fetchRestaurants } from "../../src/api/modules";
 
 export default function RestaurantList() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data: restaurants, isLoading } = useQuery("restaurants", () => fetchRestaurants());
 
   return (
     <Box sx={{ pb: 4 }}>
-      <TopBar title="Restaurants" showBack={false} showCart={false} />
+      <TopBar title={t("restaurant.list.title")} showBack={false} showCart={false} />
       <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
         {isLoading && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Loading restaurants...
+            {t("restaurant.list.loading")}
           </Typography>
         )}
         {(restaurants || []).map((restaurant) => (

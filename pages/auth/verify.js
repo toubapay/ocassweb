@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -10,6 +11,7 @@ import useAuth from "../../src/hooks/useAuth";
 
 export default function Verify() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { phone } = router.query;
   const { verifyOtp, requestOtp } = useAuth();
   const [code, setCode] = useState("");
@@ -18,16 +20,16 @@ export default function Verify() {
 
   const handleVerify = async () => {
     if (code.length !== 6) {
-      toast.error("Enter the 6-digit code");
+      toast.error(t("auth.verify.enterCode"));
       return;
     }
     setLoading(true);
     try {
       const user = await verifyOtp(phone, code, name || undefined);
-      toast.success(`Welcome${user.name ? `, ${user.name}` : ""}!`);
+      toast.success(t("auth.verify.welcome", { name: user.name ? `, ${user.name}` : "" }));
       router.push("/");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid code");
+      toast.error(err.response?.data?.message || t("auth.verify.invalidCode"));
     } finally {
       setLoading(false);
     }
@@ -36,19 +38,19 @@ export default function Verify() {
   const handleResend = async () => {
     try {
       const res = await requestOtp(phone);
-      toast.success(res.devCode ? `Dev OTP: ${res.devCode}` : "Code resent");
+      toast.success(res.devCode ? t("auth.verify.devOtp", { code: res.devCode }) : t("auth.verify.codeResent"));
     } catch {
-      toast.error("Could not resend code");
+      toast.error(t("auth.verify.couldNotResend"));
     }
   };
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", px: 3 }}>
       <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
-        Verify your number
+        {t("auth.verify.title")}
       </Typography>
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 4 }}>
-        We sent a 6-digit code to {phone}
+        {t("auth.verify.subtitle", { phone })}
       </Typography>
 
       <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
@@ -75,7 +77,7 @@ export default function Verify() {
       </Box>
 
       <TextField
-        label="Your name (first time only)"
+        label={t("auth.verify.nameLabel")}
         fullWidth
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -90,10 +92,10 @@ export default function Verify() {
         onClick={handleVerify}
         sx={{ py: 1.5, fontWeight: 700, mb: 1.5 }}
       >
-        {loading ? "Verifying..." : "Verify"}
+        {loading ? t("auth.verify.verifying") : t("auth.verify.verify")}
       </Button>
       <Button variant="text" fullWidth onClick={handleResend}>
-        Resend code
+        {t("auth.verify.resendCode")}
       </Button>
     </Box>
   );

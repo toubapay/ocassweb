@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import Paper from "@mui/material/Paper";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
@@ -8,24 +9,25 @@ import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 
 const TABS = [
-  { label: "Home", href: "/", icon: HomeRoundedIcon, match: (p) => p === "/" },
+  { labelKey: "bottomNav.home", href: "/", icon: HomeRoundedIcon, match: (p) => p === "/" },
   {
-    label: "Discover",
+    labelKey: "bottomNav.discover",
     href: "/ecommerce",
     icon: ExploreRoundedIcon,
     match: (p) => p.startsWith("/ecommerce") && !p.includes("orders") && !p.includes("cart"),
   },
   {
-    label: "Orders",
+    labelKey: "bottomNav.orders",
     href: "/ecommerce/orders",
     icon: ReceiptLongRoundedIcon,
     match: (p) => p.includes("orders"),
   },
-  { label: "Profile", href: "/profile", icon: PersonRoundedIcon, match: (p) => p === "/profile" },
+  { labelKey: "bottomNav.profile", href: "/profile", icon: PersonRoundedIcon, match: (p) => p === "/profile" },
 ];
 
 export default function BottomNav() {
   const router = useRouter();
+  const { t } = useTranslation();
   const currentIndex = TABS.findIndex((tab) => tab.match(router.pathname));
 
   return (
@@ -51,7 +53,7 @@ export default function BottomNav() {
         {TABS.map((tab) => (
           <BottomNavigationAction
             key={tab.href}
-            label={tab.label}
+            label={t(tab.labelKey)}
             icon={<tab.icon fontSize="small" />}
             sx={{
               "&.Mui-selected": { color: "primary.main" },

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -15,6 +16,7 @@ import useAuth from "../../src/hooks/useAuth";
 
 export default function CategoryBrowse() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { categorySlug } = router.query;
   const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState(0);
@@ -46,7 +48,7 @@ export default function CategoryBrowse() {
   }, [data]);
 
   const sidebarItems = [
-    { slug: "all", name: "Tous" },
+    { slug: "all", name: t("ecommerce.category.all") },
     ...((current?.children?.length ? current.children : [current]).filter(Boolean) || []).map(
       (c) => ({ slug: c.slug, name: c.name })
     ),
@@ -54,7 +56,7 @@ export default function CategoryBrowse() {
 
   return (
     <Box>
-      <TopBar title={current?.name || "Shop"} />
+      <TopBar title={current?.name || t("ecommerce.category.title")} />
 
       <Box sx={{ px: 2, pt: 1.5 }}>
         <Tabs
@@ -64,8 +66,8 @@ export default function CategoryBrowse() {
           indicatorColor="primary"
           sx={{ minHeight: 36, "& .MuiTab-root": { minHeight: 36, fontWeight: 700 } }}
         >
-          <Tab label="Article" sx={{ textTransform: "none" }} />
-          <Tab label="Magasins" sx={{ textTransform: "none" }} />
+          <Tab label={t("ecommerce.category.articleTab")} sx={{ textTransform: "none" }} />
+          <Tab label={t("ecommerce.category.storesTab")} sx={{ textTransform: "none" }} />
         </Tabs>
       </Box>
 
@@ -77,12 +79,12 @@ export default function CategoryBrowse() {
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.25 }}>
               {isLoading && (
                 <Typography variant="body2" sx={{ color: "text.secondary", gridColumn: "1 / -1" }}>
-                  Loading products...
+                  {t("ecommerce.category.loadingProducts")}
                 </Typography>
               )}
               {!isLoading && (data?.items || []).length === 0 && (
                 <Typography variant="body2" sx={{ color: "text.secondary", gridColumn: "1 / -1" }}>
-                  No products in this category yet.
+                  {t("ecommerce.category.noProducts")}
                 </Typography>
               )}
               {(data?.items || []).map((product) => (
@@ -99,7 +101,7 @@ export default function CategoryBrowse() {
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {stores.length === 0 && (
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  No stores found for this category.
+                  {t("ecommerce.category.noStores")}
                 </Typography>
               )}
               {stores.map((store) => (

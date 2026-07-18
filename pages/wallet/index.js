@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -21,15 +22,9 @@ import { formatCfa } from "../../src/utils/currency";
 
 const QUICK_AMOUNTS = [1000, 5000, 10000, 25000];
 
-const TYPE_LABEL = {
-  TOPUP: "Top-up",
-  PAYMENT: "Payment",
-  REFUND: "Refund",
-  ADJUSTMENT: "Adjustment",
-};
-
 export default function Wallet() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -49,17 +44,17 @@ export default function Wallet() {
         window.location.href = paymentUrl;
       }
     },
-    onError: (err) => toast.error(err.response?.data?.message || "Could not start top-up"),
+    onError: (err) => toast.error(err.response?.data?.message || t("wallet.couldNotStartTopUp")),
   });
 
   if (!isAuthenticated) {
     return (
       <Box>
-        <TopBar title="Wallet" showCart={false} showSearch={false} />
+        <TopBar title={t("wallet.title")} showCart={false} showSearch={false} />
         <Box sx={{ p: 4, textAlign: "center" }}>
-          <Typography sx={{ mb: 2 }}>Log in to see your wallet.</Typography>
+          <Typography sx={{ mb: 2 }}>{t("wallet.loginToView")}</Typography>
           <Button variant="contained" onClick={() => router.push("/auth/login")}>
-            Log in
+            {t("common.logIn")}
           </Button>
         </Box>
       </Box>
@@ -69,7 +64,7 @@ export default function Wallet() {
   const handleTopUp = () => {
     const value = Number(amount);
     if (!value || value <= 0) {
-      toast.error("Enter a valid amount");
+      toast.error(t("wallet.enterValidAmount"));
       return;
     }
     topUpMutation.mutate(value);
@@ -77,7 +72,7 @@ export default function Wallet() {
 
   return (
     <Box sx={{ pb: 4 }}>
-      <TopBar title="Wallet" showCart={false} showSearch={false} />
+      <TopBar title={t("wallet.title")} showCart={false} showSearch={false} />
 
       <Box sx={{ p: 2.5 }}>
         <Box
@@ -91,7 +86,7 @@ export default function Wallet() {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
             <AccountBalanceWalletRoundedIcon />
             <Typography variant="body2" sx={{ opacity: 0.85, fontWeight: 600 }}>
-              Wallet balance
+              {t("wallet.balance")}
             </Typography>
           </Box>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>
@@ -102,23 +97,23 @@ export default function Wallet() {
             sx={{ mt: 2.5, bgcolor: "#fff", color: "primary.main", fontWeight: 800, "&:hover": { bgcolor: "#fff" } }}
             onClick={() => setTopUpOpen(true)}
           >
-            Top up wallet
+            {t("wallet.topUpWallet")}
           </Button>
         </Box>
       </Box>
 
       <Box sx={{ px: 2.5 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
-          Transaction history
+          {t("wallet.transactionHistory")}
         </Typography>
         {txLoading && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Loading...
+            {t("wallet.loading")}
           </Typography>
         )}
         {!txLoading && (transactions || []).length === 0 && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            No transactions yet.
+            {t("wallet.empty")}
           </Typography>
         )}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -156,7 +151,7 @@ export default function Wallet() {
                   </Box>
                   <Box>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {tx.description || TYPE_LABEL[tx.type] || tx.type}
+                      {tx.description || t(`wallet.type.${tx.type}`, { defaultValue: tx.type })}
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
                       {new Date(tx.createdAt).toLocaleString()}
@@ -177,7 +172,7 @@ export default function Wallet() {
       </Box>
 
       <Dialog open={topUpOpen} onClose={() => setTopUpOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 800 }}>Top up wallet</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{t("wallet.topUpWallet")}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2, mt: 1 }}>
             {QUICK_AMOUNTS.map((amt) => (
@@ -191,7 +186,7 @@ export default function Wallet() {
             ))}
           </Box>
           <TextField
-            label="Amount (CFA)"
+            label={t("wallet.amountLabel")}
             type="number"
             fullWidth
             value={amount}
@@ -199,14 +194,14 @@ export default function Wallet() {
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setTopUpOpen(false)}>Cancel</Button>
+          <Button onClick={() => setTopUpOpen(false)}>{t("wallet.cancel")}</Button>
           <Button
             variant="contained"
             disabled={topUpMutation.isLoading}
             onClick={handleTopUp}
             sx={{ fontWeight: 700 }}
           >
-            {topUpMutation.isLoading ? "Starting..." : "Continue to payment"}
+            {topUpMutation.isLoading ? t("wallet.starting") : t("wallet.continueToPayment")}
           </Button>
         </DialogActions>
       </Dialog>

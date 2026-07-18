@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 
-export default function AddressBar({ address = "Set your delivery address" }) {
+export default function AddressBar({ address }) {
+  const { t } = useTranslation();
   return (
     <Box
       sx={{
@@ -20,7 +22,7 @@ export default function AddressBar({ address = "Set your delivery address" }) {
     >
       <HomeRoundedIcon fontSize="small" />
       <Typography variant="body2" sx={{ fontWeight: 700, maxWidth: 220 }} noWrap>
-        {address}
+        {address || t("common.setDeliveryAddress")}
       </Typography>
       <KeyboardArrowDownRoundedIcon fontSize="small" />
     </Box>

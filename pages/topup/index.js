@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -30,6 +31,7 @@ const STATUS_COLOR = { SUCCESS: "success", PENDING: "warning", FAILED: "error" }
 
 export default function TopUp() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState(0);
@@ -88,7 +90,7 @@ export default function TopUp() {
         setPhone(contacts[0].tel[0]);
       }
     } catch (err) {
-      toast.error("Could not access contacts");
+      toast.error(t("topup.airtime.couldNotAccessContacts"));
     }
   };
 
@@ -96,11 +98,11 @@ export default function TopUp() {
     () => createTopup(airtimeServiceId, phone, Number(airtimeAmount)),
     {
       onSuccess: (transaction) => {
-        toast.success(`Top-up successful · ${transaction.reference}`);
+        toast.success(t("topup.airtime.success", { reference: transaction.reference }));
         queryClient.invalidateQueries("mobile-transactions");
         setAirtimeAmount("");
       },
-      onError: (err) => toast.error(err.response?.data?.message || "Top-up failed"),
+      onError: (err) => toast.error(err.response?.data?.message || t("topup.airtime.failed")),
     }
   );
 
@@ -108,18 +110,18 @@ export default function TopUp() {
     () => createBillPayment(billServiceId, accountNumber, Number(billAmount)),
     {
       onSuccess: (transaction) => {
-        toast.success(`Payment successful · ${transaction.reference}`);
+        toast.success(t("topup.bill.success", { reference: transaction.reference }));
         queryClient.invalidateQueries("mobile-transactions");
         setAccountNumber("");
         setBillAmount("");
       },
-      onError: (err) => toast.error(err.response?.data?.message || "Payment failed"),
+      onError: (err) => toast.error(err.response?.data?.message || t("topup.bill.failed")),
     }
   );
 
   const requireLogin = (action) => {
     if (!isAuthenticated) {
-      toast("Log in to continue");
+      toast(t("topup.loginToContinue"));
       router.push("/auth/login");
       return;
     }
@@ -127,22 +129,22 @@ export default function TopUp() {
   };
 
   const handleTopup = () => {
-    if (!airtimeServiceId) return toast.error("Select a mobile operator");
-    if (!phone || phone.replace(/[^0-9]/g, "").length < 8) return toast.error("Enter a valid phone number");
-    if (!airtimeAmount || Number(airtimeAmount) <= 0) return toast.error("Enter an amount");
+    if (!airtimeServiceId) return toast.error(t("topup.airtime.selectOperator"));
+    if (!phone || phone.replace(/[^0-9]/g, "").length < 8) return toast.error(t("topup.airtime.invalidPhone"));
+    if (!airtimeAmount || Number(airtimeAmount) <= 0) return toast.error(t("topup.airtime.enterAmount"));
     requireLogin(() => topupMutation.mutate());
   };
 
   const handleBillPayment = () => {
-    if (!billServiceId) return toast.error("Select a biller");
-    if (!accountNumber) return toast.error("Enter your account/meter number");
-    if (!billAmount || Number(billAmount) <= 0) return toast.error("Enter an amount");
+    if (!billServiceId) return toast.error(t("topup.bill.selectBiller"));
+    if (!accountNumber) return toast.error(t("topup.bill.enterAccountNumber"));
+    if (!billAmount || Number(billAmount) <= 0) return toast.error(t("topup.bill.enterAmount"));
     requireLogin(() => billMutation.mutate());
   };
 
   return (
     <Box sx={{ pb: 4 }}>
-      <TopBar title="Top Up & Bills" showBack={false} showSearch={false} showCart={false} />
+      <TopBar title={t("topup.title")} showBack={false} showSearch={false} showCart={false} />
 
       <Box sx={{ px: 1 }}>
         <Tabs
@@ -152,20 +154,20 @@ export default function TopUp() {
           indicatorColor="primary"
           sx={{ "& .MuiTab-root": { fontWeight: 700, textTransform: "none" } }}
         >
-          <Tab label="Airtime" />
-          <Tab label="Bill Payment" />
+          <Tab label={t("topup.airtimeTab")} />
+          <Tab label={t("topup.billTab")} />
         </Tabs>
       </Box>
 
       {tab === 0 && (
         <Box sx={{ p: 2.5 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
-            Top up any phone
+            {t("topup.airtime.heading")}
           </Typography>
 
           <Box sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
             <TextField
-              label="Phone number"
+              label={t("topup.airtime.phoneNumber")}
               fullWidth
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -174,7 +176,7 @@ export default function TopUp() {
               <IconButton
                 onClick={pickContact}
                 sx={{ bgcolor: "primary.light", color: "primary.main" }}
-                title="Choose from contacts"
+                title={t("topup.airtime.chooseFromContacts")}
               >
                 <ContactPhoneRoundedIcon />
               </IconButton>
@@ -182,12 +184,12 @@ export default function TopUp() {
           </Box>
           {!contactsSupported && (
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: -1.5, mb: 2 }}>
-              &ldquo;Choose from contacts&rdquo; is available on supported mobile browsers (e.g. Chrome for Android).
+              {t("topup.airtime.contactsNotSupported")}
             </Typography>
           )}
 
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-            OPERATOR
+            {t("topup.airtime.operator")}
           </Typography>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1, mb: 2.5 }}>
             {(operators || []).map((op) => (
@@ -204,7 +206,7 @@ export default function TopUp() {
           </Box>
 
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-            AMOUNT (CFA)
+            {t("topup.airtime.amount")}
           </Typography>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1, mb: 1.5 }}>
             {QUICK_AMOUNTS.map((amt) => (
@@ -218,7 +220,7 @@ export default function TopUp() {
             ))}
           </Box>
           <TextField
-            label="Amount"
+            label={t("topup.airtime.amountLabel")}
             fullWidth
             type="number"
             value={airtimeAmount}
@@ -234,7 +236,7 @@ export default function TopUp() {
             onClick={handleTopup}
             sx={{ fontWeight: 800, py: 1.25 }}
           >
-            {topupMutation.isLoading ? "Processing..." : "Top up"}
+            {topupMutation.isLoading ? t("topup.airtime.processing") : t("topup.airtime.topUp")}
           </Button>
         </Box>
       )}
@@ -242,11 +244,11 @@ export default function TopUp() {
       {tab === 1 && (
         <Box sx={{ p: 2.5 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
-            Pay a bill
+            {t("topup.bill.heading")}
           </Typography>
 
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-            BILLER
+            {t("topup.bill.biller")}
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1, mb: 2.5 }}>
             {(billers || []).map((biller) => (
@@ -282,7 +284,7 @@ export default function TopUp() {
           </Box>
 
           <TextField
-            label="Account / meter number"
+            label={t("topup.bill.accountNumber")}
             fullWidth
             value={accountNumber}
             onChange={(e) => setAccountNumber(e.target.value)}
@@ -290,7 +292,7 @@ export default function TopUp() {
           />
 
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-            AMOUNT (CFA)
+            {t("topup.bill.amount")}
           </Typography>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1, mb: 1.5 }}>
             {[1000, 5000, 10000, 20000].map((amt) => (
@@ -304,7 +306,7 @@ export default function TopUp() {
             ))}
           </Box>
           <TextField
-            label="Amount"
+            label={t("topup.bill.amountLabel")}
             fullWidth
             type="number"
             value={billAmount}
@@ -320,7 +322,7 @@ export default function TopUp() {
             onClick={handleBillPayment}
             sx={{ fontWeight: 800, py: 1.25 }}
           >
-            {billMutation.isLoading ? "Processing..." : "Pay bill"}
+            {billMutation.isLoading ? t("topup.bill.processing") : t("topup.bill.payBill")}
           </Button>
         </Box>
       )}
@@ -328,7 +330,7 @@ export default function TopUp() {
       {isAuthenticated && (transactions || []).length > 0 && (
         <Box sx={{ p: 2.5 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>
-            Recent transactions
+            {t("topup.recentTransactions")}
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
             {transactions.map((tx) => (
@@ -340,7 +342,11 @@ export default function TopUp() {
                       {tx.service.name}
                     </Typography>
                   </Box>
-                  <Chip label={tx.status} size="small" color={STATUS_COLOR[tx.status] || "default"} />
+                  <Chip
+                    label={t(`topup.transactionStatus.${tx.status}`, { defaultValue: tx.status })}
+                    size="small"
+                    color={STATUS_COLOR[tx.status] || "default"}
+                  />
                 </Box>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
                   {tx.phoneNumber || tx.accountNumber} · {formatCfa(tx.amount)} · {tx.reference}

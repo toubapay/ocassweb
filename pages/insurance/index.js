@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -22,6 +23,7 @@ const CATEGORIES = ["HEALTH", "AUTO", "HOME", "TRAVEL", "LIFE"];
 
 export default function Insurance() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [category, setCategory] = useState(0);
@@ -35,23 +37,23 @@ export default function Insurance() {
 
   const subscribeMutation = useMutation((planId) => subscribeInsurancePlan(planId), {
     onSuccess: () => {
-      toast.success("Subscribed! Your policy is pending activation.");
+      toast.success(t("insurance.subscribed"));
       queryClient.invalidateQueries("insurance-policies");
     },
-    onError: () => toast.error("Could not subscribe"),
+    onError: () => toast.error(t("insurance.couldNotSubscribe")),
   });
 
   const cancelMutation = useMutation((id) => cancelInsurancePolicy(id), {
     onSuccess: () => {
-      toast.success("Policy cancelled");
+      toast.success(t("insurance.policyCancelled"));
       queryClient.invalidateQueries("insurance-policies");
     },
-    onError: (err) => toast.error(err.response?.data?.message || "Could not cancel policy"),
+    onError: (err) => toast.error(err.response?.data?.message || t("insurance.couldNotCancel")),
   });
 
   const handleSubscribe = (planId) => {
     if (!isAuthenticated) {
-      toast("Log in to subscribe");
+      toast(t("insurance.loginToSubscribe"));
       router.push("/auth/login");
       return;
     }
@@ -60,7 +62,7 @@ export default function Insurance() {
 
   return (
     <Box sx={{ pb: 4 }}>
-      <TopBar title="Insurance" showBack={false} showSearch={false} showCart={false} />
+      <TopBar title={t("insurance.title")} showBack={false} showSearch={false} showCart={false} />
 
       <Box sx={{ px: 1 }}>
         <Tabs
@@ -72,7 +74,7 @@ export default function Insurance() {
           indicatorColor="primary"
         >
           {CATEGORIES.map((c) => (
-            <Tab key={c} label={c.charAt(0) + c.slice(1).toLowerCase()} sx={{ fontWeight: 700, textTransform: "none" }} />
+            <Tab key={c} label={t(`insurance.categories.${c}`)} sx={{ fontWeight: 700, textTransform: "none" }} />
           ))}
         </Tabs>
       </Box>
@@ -80,12 +82,12 @@ export default function Insurance() {
       <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
         {isLoading && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Loading plans...
+            {t("insurance.loadingPlans")}
           </Typography>
         )}
         {!isLoading && (plans || []).length === 0 && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            No plans in this category yet.
+            {t("insurance.noPlans")}
           </Typography>
         )}
         {(plans || []).map((plan) => (
@@ -102,10 +104,10 @@ export default function Insurance() {
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1.5 }}>
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                  {formatCfa(plan.premiumMonthly)}/mo
+                  {t("insurance.perMonth", { amount: formatCfa(plan.premiumMonthly) })}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  Coverage up to {formatCfa(plan.coverageAmount)}
+                  {t("insurance.coverageUpTo", { amount: formatCfa(plan.coverageAmount) })}
                 </Typography>
               </Box>
               <Button
@@ -114,7 +116,7 @@ export default function Insurance() {
                 onClick={() => handleSubscribe(plan.id)}
                 sx={{ fontWeight: 700 }}
               >
-                Subscribe
+                {t("insurance.subscribe")}
               </Button>
             </Box>
           </Box>
@@ -124,7 +126,7 @@ export default function Insurance() {
       {isAuthenticated && (policies || []).length > 0 && (
         <Box sx={{ p: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>
-            My policies
+            {t("insurance.myPolicies")}
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
             {policies.map((policy) => (
@@ -133,7 +135,7 @@ export default function Insurance() {
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {policy.plan.name}
                   </Typography>
-                  <Chip label={policy.status} size="small" />
+                  <Chip label={t(`insurance.policyStatus.${policy.status}`, { defaultValue: policy.status })} size="small" />
                 </Box>
                 {["PENDING", "ACTIVE"].includes(policy.status) && (
                   <Box sx={{ textAlign: "right", mt: 0.5 }}>
@@ -144,7 +146,7 @@ export default function Insurance() {
                       onClick={() => cancelMutation.mutate(policy.id)}
                       sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
                     >
-                      Cancel
+                      {t("insurance.cancel")}
                     </Button>
                   </Box>
                 )}

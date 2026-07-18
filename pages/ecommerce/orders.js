@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -20,17 +21,18 @@ const STATUS_COLOR = {
 
 export default function Orders() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { data: orders, isLoading } = useQuery("orders", fetchOrders, { enabled: isAuthenticated });
 
   if (!isAuthenticated) {
     return (
       <Box>
-        <TopBar title="Your orders" showCart={false} showSearch={false} />
+        <TopBar title={t("ecommerce.orders.title")} showCart={false} showSearch={false} />
         <Box sx={{ p: 4, textAlign: "center" }}>
-          <Typography sx={{ mb: 2 }}>Log in to see your orders.</Typography>
+          <Typography sx={{ mb: 2 }}>{t("ecommerce.orders.loginToView")}</Typography>
           <Button variant="contained" onClick={() => router.push("/auth/login")}>
-            Log in
+            {t("common.logIn")}
           </Button>
         </Box>
       </Box>
@@ -39,17 +41,17 @@ export default function Orders() {
 
   return (
     <Box>
-      <TopBar title="Your orders" showCart={false} showSearch={false} />
+      <TopBar title={t("ecommerce.orders.title")} showCart={false} showSearch={false} />
       {isLoading && (
         <Typography variant="body2" sx={{ color: "text.secondary", p: 2 }}>
-          Loading orders...
+          {t("ecommerce.orders.loading")}
         </Typography>
       )}
       {!isLoading && (orders || []).length === 0 && (
         <Box sx={{ p: 4, textAlign: "center" }}>
-          <Typography sx={{ mb: 2 }}>No orders yet.</Typography>
+          <Typography sx={{ mb: 2 }}>{t("ecommerce.orders.empty")}</Typography>
           <Button variant="contained" onClick={() => router.push("/ecommerce")}>
-            Start shopping
+            {t("common.startShopping")}
           </Button>
         </Box>
       )}
@@ -58,17 +60,17 @@ export default function Orders() {
           <Box key={order.id} sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 2 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                Order #{order.id.slice(0, 8)}
+                {t("ecommerce.orders.orderNumber", { id: order.id.slice(0, 8) })}
               </Typography>
               <Box sx={{ display: "flex", gap: 0.5 }}>
                 <Chip
-                  label={order.paid ? "Paid" : "Unpaid"}
+                  label={order.paid ? t("ecommerce.orders.paid") : t("ecommerce.orders.unpaid")}
                   size="small"
                   color={order.paid ? "success" : "warning"}
                   variant="outlined"
                 />
                 <Chip
-                  label={order.status.replace(/_/g, " ")}
+                  label={t(`ecommerce.orders.status.${order.status}`, { defaultValue: order.status.replace(/_/g, " ") })}
                   size="small"
                   color={STATUS_COLOR[order.status] || "default"}
                 />
@@ -85,7 +87,7 @@ export default function Orders() {
               ))}
             </Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 1 }}>
-              Total: {formatCfa(order.total)}
+              {t("ecommerce.orders.total", { amount: formatCfa(order.total) })}
             </Typography>
           </Box>
         ))}

@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient, useMutation } from "react-query";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -15,6 +16,7 @@ import { formatCfa } from "../../src/utils/currency";
 
 export default function Cart() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
@@ -30,13 +32,13 @@ export default function Cart() {
   if (!isAuthenticated) {
     return (
       <Box>
-        <TopBar title="Cart" showCart={false} />
+        <TopBar title={t("ecommerce.cart.title")} showCart={false} />
         <Box sx={{ p: 4, textAlign: "center" }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Log in to view your cart.
+            {t("ecommerce.cart.loginToView")}
           </Typography>
           <Button variant="contained" onClick={() => router.push("/auth/login")}>
-            Log in
+            {t("common.logIn")}
           </Button>
         </Box>
       </Box>
@@ -50,21 +52,21 @@ export default function Cart() {
 
   return (
     <Box sx={{ pb: 12 }}>
-      <TopBar title="Your cart" showCart={false} showSearch={false} />
+      <TopBar title={t("ecommerce.cart.title")} showCart={false} showSearch={false} />
 
       {isLoading && (
         <Typography variant="body2" sx={{ color: "text.secondary", p: 2 }}>
-          Loading cart...
+          {t("ecommerce.cart.loading")}
         </Typography>
       )}
 
       {!isLoading && (items || []).length === 0 && (
         <Box sx={{ p: 4, textAlign: "center" }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Your cart is empty.
+            {t("ecommerce.cart.empty")}
           </Typography>
           <Button variant="contained" onClick={() => router.push("/ecommerce")}>
-            Start shopping
+            {t("common.startShopping")}
           </Button>
         </Box>
       )}
@@ -130,7 +132,7 @@ export default function Cart() {
         >
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Subtotal
+              {t("ecommerce.cart.subtotal")}
             </Typography>
             <Typography variant="body1" sx={{ fontWeight: 800 }}>
               {formatCfa(subtotal)}
@@ -143,7 +145,7 @@ export default function Cart() {
             sx={{ fontWeight: 800, py: 1.25 }}
             onClick={() => router.push("/ecommerce/checkout")}
           >
-            Checkout
+            {t("ecommerce.cart.checkout")}
           </Button>
         </Box>
       )}

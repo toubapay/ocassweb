@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -20,6 +21,7 @@ const STATUS_COLOR = {
 
 export default function RestaurantOrders() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { data: orders, isLoading } = useQuery("restaurant-orders", fetchRestaurantOrders, {
     enabled: isAuthenticated,
@@ -28,11 +30,11 @@ export default function RestaurantOrders() {
   if (!isAuthenticated) {
     return (
       <Box>
-        <TopBar title="Your food orders" showCart={false} showSearch={false} />
+        <TopBar title={t("restaurant.orders.title")} showCart={false} showSearch={false} />
         <Box sx={{ p: 4, textAlign: "center" }}>
-          <Typography sx={{ mb: 2 }}>Log in to see your food orders.</Typography>
+          <Typography sx={{ mb: 2 }}>{t("restaurant.orders.loginToView")}</Typography>
           <Button variant="contained" onClick={() => router.push("/auth/login")}>
-            Log in
+            {t("common.logIn")}
           </Button>
         </Box>
       </Box>
@@ -41,17 +43,17 @@ export default function RestaurantOrders() {
 
   return (
     <Box>
-      <TopBar title="Your food orders" showCart={false} showSearch={false} />
+      <TopBar title={t("restaurant.orders.title")} showCart={false} showSearch={false} />
       {isLoading && (
         <Typography variant="body2" sx={{ color: "text.secondary", p: 2 }}>
-          Loading orders...
+          {t("restaurant.orders.loading")}
         </Typography>
       )}
       {!isLoading && (orders || []).length === 0 && (
         <Box sx={{ p: 4, textAlign: "center" }}>
-          <Typography sx={{ mb: 2 }}>No food orders yet.</Typography>
+          <Typography sx={{ mb: 2 }}>{t("restaurant.orders.empty")}</Typography>
           <Button variant="contained" onClick={() => router.push("/restaurant")}>
-            Browse restaurants
+            {t("restaurant.orders.browseRestaurants")}
           </Button>
         </Box>
       )}
@@ -63,7 +65,7 @@ export default function RestaurantOrders() {
                 {order.restaurant.name}
               </Typography>
               <Chip
-                label={order.status.replace(/_/g, " ")}
+                label={t(`ecommerce.orders.status.${order.status}`, { defaultValue: order.status.replace(/_/g, " ") })}
                 size="small"
                 color={STATUS_COLOR[order.status] || "default"}
               />
@@ -80,11 +82,11 @@ export default function RestaurantOrders() {
             </Box>
             {order.note && (
               <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-                Note: {order.note}
+                {t("restaurant.orders.note", { note: order.note })}
               </Typography>
             )}
             <Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 1 }}>
-              Total: {formatCfa(order.total)}
+              {t("restaurant.orders.total", { amount: formatCfa(order.total) })}
             </Typography>
           </Box>
         ))}

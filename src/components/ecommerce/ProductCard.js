@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import { useQueryClient, useMutation } from "react-query";
 import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
@@ -16,15 +17,16 @@ import { formatCfa } from "../../utils/currency";
 
 export default function ProductCard({ product, wishlisted = false }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
 
   const addMutation = useMutation((id) => addToCart(id, 1), {
     onSuccess: () => {
-      toast.success(`${product.name} added to cart`);
+      toast.success(t("ecommerce.productCard.addedToCart", { name: product.name }));
       queryClient.invalidateQueries("cart");
     },
-    onError: () => toast.error("Could not add to cart"),
+    onError: () => toast.error(t("ecommerce.productCard.couldNotAddToCart")),
   });
 
   const wishlistMutation = useMutation((id) => toggleWishlist(id), {
@@ -33,7 +35,7 @@ export default function ProductCard({ product, wishlisted = false }) {
 
   const requireLogin = (action) => {
     if (!isAuthenticated) {
-      toast("Log in to continue");
+      toast(t("common.logInToContinue"));
       router.push("/auth/login");
       return;
     }
@@ -58,7 +60,7 @@ export default function ProductCard({ product, wishlisted = false }) {
         {hasDiscount && (
           <Chip
             icon={<LocalOfferRoundedIcon sx={{ fontSize: 14, color: "#fff !important" }} />}
-            label={`${product.discountPercent}% OFF`}
+            label={t("ecommerce.product.percentOff", { percent: product.discountPercent })}
             size="small"
             sx={{
               position: "absolute",
@@ -125,7 +127,7 @@ export default function ProductCard({ product, wishlisted = false }) {
           onClick={() => requireLogin(() => addMutation.mutate(product.id))}
           sx={{ mt: "auto", fontWeight: 800, letterSpacing: 0.5 }}
         >
-          ADD
+          {t("ecommerce.productCard.add")}
         </Button>
       </Box>
     </Card>

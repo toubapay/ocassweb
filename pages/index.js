@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
@@ -41,6 +42,7 @@ const CATEGORY_ICONS = {
 const DEFAULT_CATEGORY_ICON = { icon: StorefrontRoundedIcon, color: "#8B5CF6", bg: "#F2EEFE" };
 
 export default function Home() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const dispatch = useDispatch();
   const savedOrder = useSelector((state) => state.layout.moduleOrder);
@@ -109,7 +111,7 @@ export default function Home() {
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, mt: 2 }}>
           <DragIndicatorRoundedIcon sx={{ fontSize: 14, color: "rgba(255,255,255,0.75)" }} />
           <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
-            Hold and drag an icon to rearrange
+            {t("home.dragHint")}
           </Typography>
         </Box>
 
@@ -119,7 +121,7 @@ export default function Home() {
       <Box sx={{ px: 2.5, pt: 3, pb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 20 }}>
-            {firstName ? `${firstName}, these are for you` : "Explore Ocass"}
+            {firstName ? t("home.greeting", { name: firstName }) : t("home.exploreOcass")}
           </Typography>
           <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
         </Box>
@@ -134,7 +136,7 @@ export default function Home() {
               icon={conf.icon}
               color={conf.color}
               bg={conf.bg}
-              label={cat.name}
+              label={t(`categories.${cat.slug}`, { defaultValue: cat.name })}
               href={`/ecommerce/${cat.slug}`}
             />
           );
@@ -143,7 +145,7 @@ export default function Home() {
 
       <Box sx={{ px: 2.5, pb: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
-          Popular right now
+          {t("home.popularRightNow")}
         </Typography>
         <Box sx={{ display: "flex", gap: 1.5, overflowX: "auto", pb: 1 }}>
           {(data?.items || []).map((product) => (
@@ -166,10 +168,10 @@ export default function Home() {
           }}
         >
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            Free delivery on your first order
+            {t("home.freeDeliveryTitle")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Offer applied automatically at checkout.
+            {t("home.freeDeliverySubtitle")}
           </Typography>
 
           <Box

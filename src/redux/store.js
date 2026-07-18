@@ -3,16 +3,18 @@ import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import authReducer from "./slices/authSlice";
 import layoutReducer from "./slices/layoutSlice";
+import i18nReducer from "./slices/i18nSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
   layout: layoutReducer,
+  i18n: i18nReducer,
 });
 
 const persistConfig = {
   key: "ocass-root",
   storage,
-  whitelist: ["auth", "layout"],
+  whitelist: ["auth", "layout", "i18n"],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

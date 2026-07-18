@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -17,14 +18,20 @@ import { fetchPaymentStatus } from "../../src/api/payments";
 // This return page is shared by every PayDunya-backed flow (ecommerce
 // checkout, wallet top-up, ...) since PayDunya only takes one return_url per
 // invoice. The confirmed payment's `purpose` decides the wording and where
-// "done" sends the customer next.
+// "done" sends the customer next. Keyed by translation key rather than
+// resolved text, since this table lives outside the component.
 const DESTINATIONS = {
-  WALLET_TOPUP: { label: "View my wallet", href: "/wallet", confirmedText: "Your wallet has been credited." },
+  WALLET_TOPUP: { labelKey: "payments.viewWallet", href: "/wallet", confirmedTextKey: "payments.walletCredited" },
 };
-const DEFAULT_DESTINATION = { label: "View my orders", href: "/ecommerce/orders", confirmedText: "Your order has been confirmed." };
+const DEFAULT_DESTINATION = {
+  labelKey: "payments.viewOrders",
+  href: "/ecommerce/orders",
+  confirmedTextKey: "payments.orderConfirmed",
+};
 
 export default function PaymentReturn() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { token } = router.query;
   const [status, setStatus] = useState("checking");
   const [attempts, setAttempts] = useState(0);
@@ -65,25 +72,25 @@ export default function PaymentReturn() {
 
   return (
     <Box>
-      <TopBar title="Payment" showCart={false} showSearch={false} />
+      <TopBar title={t("payments.title")} showCart={false} showSearch={false} />
       <Box sx={{ p: 4, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
         {status === "checking" && (
           <>
             <CircularProgress />
-            <Typography sx={{ fontWeight: 700 }}>Confirming your payment...</Typography>
+            <Typography sx={{ fontWeight: 700 }}>{t("payments.confirming")}</Typography>
           </>
         )}
         {status === "completed" && (
           <>
             <CheckCircleRoundedIcon sx={{ fontSize: 56, color: "success.main" }} />
             <Typography variant="h6" sx={{ fontWeight: 800 }}>
-              Payment successful
+              {t("payments.successful")}
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {destination.confirmedText}
+              {t(destination.confirmedTextKey)}
             </Typography>
             <Button variant="contained" onClick={() => router.replace(destination.href)}>
-              {destination.label}
+              {t(destination.labelKey)}
             </Button>
           </>
         )}
@@ -91,13 +98,13 @@ export default function PaymentReturn() {
           <>
             <HourglassTopRoundedIcon sx={{ fontSize: 56, color: "warning.main" }} />
             <Typography variant="h6" sx={{ fontWeight: 800 }}>
-              Payment still processing
+              {t("payments.stillProcessing")}
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              We haven&apos;t received confirmation yet. Check back in a few minutes.
+              {t("payments.notReceivedYet")}
             </Typography>
             <Button variant="contained" onClick={() => router.replace(destination.href)}>
-              {destination.label}
+              {t(destination.labelKey)}
             </Button>
           </>
         )}
@@ -105,16 +112,16 @@ export default function PaymentReturn() {
           <>
             <ErrorRoundedIcon sx={{ fontSize: 56, color: "error.main" }} />
             <Typography variant="h6" sx={{ fontWeight: 800 }}>
-              Payment not completed
+              {t("payments.notCompleted")}
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Your payment could not be confirmed. You can try again.
+              {t("payments.notCompletedSubtitle")}
             </Typography>
             <Button
               variant="contained"
               onClick={() => router.replace(payment?.purpose === "WALLET_TOPUP" ? "/wallet" : "/ecommerce/cart")}
             >
-              {payment?.purpose === "WALLET_TOPUP" ? "Back to wallet" : "Back to cart"}
+              {payment?.purpose === "WALLET_TOPUP" ? t("payments.backToWallet") : t("payments.backToCart")}
             </Button>
           </>
         )}

@@ -1,0 +1,375 @@
+{
+  "common": {
+    "appName": "Ocass",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "logIn": "Log in",
+    "logInToContinue": "Log in to continue",
+    "backToCart": "Back to cart",
+    "startShopping": "Start shopping",
+    "note": "Note",
+    "setDeliveryAddress": "Set your delivery address",
+    "language": "Language",
+    "french": "Français",
+    "english": "English"
+  },
+  "nav": {
+    "home": "Home",
+    "discover": "Discover",
+    "orders": "Orders",
+    "profile": "Profile"
+  },
+  "modules": {
+    "ecommerce": { "label": "Shop", "fullLabel": "Ecommerce", "description": "Fashion, electronics, groceries & more" },
+    "restaurant": { "label": "Food", "fullLabel": "Restaurant", "description": "Order from restaurants near you" },
+    "delivery": { "label": "Delivery", "fullLabel": "Package Delivery", "description": "Send a package across town" },
+    "ride-sharing": { "label": "Rides", "fullLabel": "Ride Sharing", "description": "Book a moto, economy or comfort ride" },
+    "insurance": { "label": "Insurance", "fullLabel": "Insurance", "description": "Health, auto, home & travel plans" },
+    "airtime": { "label": "Airtime", "fullLabel": "Airtime Top-up", "description": "Top up mobile airtime & data" },
+    "bill-payment": { "label": "Bills", "fullLabel": "Bill Payment", "description": "Pay electricity, water & TV bills" }
+  },
+  "categories": {
+    "footwear": "Footwear",
+    "electronics": "Electronics",
+    "groceries": "Groceries",
+    "beauty": "Beauty"
+  },
+  "topBar": {
+    "chooseFromContacts": "Choose from contacts"
+  },
+  "bottomNav": {
+    "home": "Home",
+    "discover": "Discover",
+    "orders": "Orders",
+    "profile": "Profile"
+  },
+  "home": {
+    "dragHint": "Hold and drag an icon to rearrange",
+    "greeting": "{{name}}, these are for you",
+    "exploreOcass": "Explore Ocass",
+    "popularRightNow": "Popular right now",
+    "freeDeliveryTitle": "Free delivery on your first order",
+    "freeDeliverySubtitle": "Offer applied automatically at checkout."
+  },
+  "auth": {
+    "login": {
+      "welcome": "Welcome to Ocass",
+      "subtitle": "Enter your phone number to sign in or create an account.",
+      "invalidPhone": "Enter a valid phone number",
+      "devOtp": "Dev OTP: {{code}}",
+      "codeSent": "Code sent",
+      "couldNotSendCode": "Could not send code",
+      "sending": "Sending...",
+      "sendCode": "Send code"
+    },
+    "verify": {
+      "title": "Verify your number",
+      "subtitle": "We sent a 6-digit code to {{phone}}",
+      "enterCode": "Enter the 6-digit code",
+      "welcome": "Welcome{{name}}!",
+      "invalidCode": "Invalid code",
+      "couldNotResend": "Could not resend code",
+      "devOtp": "Dev OTP: {{code}}",
+      "codeResent": "Code resent",
+      "nameLabel": "Your name (first time only)",
+      "verifying": "Verifying...",
+      "verify": "Verify",
+      "resendCode": "Resend code"
+    }
+  },
+  "profile": {
+    "notSignedIn": "You're not signed in",
+    "defaultName": "Ocass user",
+    "links": {
+      "wallet": "Wallet",
+      "myOrders": "My orders",
+      "myFoodOrders": "My food orders",
+      "myWishlist": "My wishlist",
+      "deliveryRequests": "Delivery requests",
+      "myRides": "My rides",
+      "myInsurancePolicies": "My insurance policies",
+      "topupsAndBills": "Top-ups & bills"
+    },
+    "logOut": "Log out",
+    "languageSectionTitle": "Language"
+  },
+  "ecommerce": {
+    "discover": {
+      "title": "Shop",
+      "browseCategories": "Browse categories",
+      "subcategoriesCount_one": "{{count}} subcategory",
+      "subcategoriesCount_other": "{{count}} subcategories",
+      "shopNow": "Shop now"
+    },
+    "category": {
+      "title": "Shop",
+      "all": "All",
+      "articleTab": "Items",
+      "storesTab": "Stores",
+      "loadingProducts": "Loading products...",
+      "noProducts": "No products in this category yet.",
+      "noStores": "No stores found for this category."
+    },
+    "product": {
+      "title": "Product",
+      "loading": "Loading product...",
+      "addedToCart": "Added to cart",
+      "couldNotAddToCart": "Could not add to cart",
+      "inStock_one": "{{count}} in stock",
+      "inStock_other": "{{count}} in stock",
+      "outOfStock": "Out of stock",
+      "description": "Description",
+      "noDescription": "No description available.",
+      "reviews": "Reviews ({{count}})",
+      "noReviews": "No reviews yet.",
+      "anonymous": "Anonymous",
+      "addToCart": "Add to cart",
+      "percentOff": "{{percent}}% OFF"
+    },
+    "productCard": {
+      "addedToCart": "{{name}} added to cart",
+      "couldNotAddToCart": "Could not add to cart",
+      "add": "ADD"
+    },
+    "cart": {
+      "title": "Your cart",
+      "loginToView": "Log in to view your cart.",
+      "loading": "Loading cart...",
+      "empty": "Your cart is empty.",
+      "subtotal": "Subtotal",
+      "checkout": "Checkout"
+    },
+    "checkout": {
+      "title": "Checkout",
+      "deliveryTo": "Delivery to",
+      "you": "You",
+      "addAddressHint": "Add a saved address to speed up future orders.",
+      "orderSummary": "Order summary",
+      "loading": "Loading...",
+      "subtotal": "Subtotal",
+      "deliveryFee": "Delivery fee",
+      "total": "Total",
+      "payWith": "Pay with",
+      "payDunya": "PayDunya (mobile money, card)",
+      "wallet": "Ocass Wallet",
+      "walletBalance": "Balance: {{amount}}",
+      "orderPlaced": "Order placed!",
+      "couldNotPlaceOrder": "Could not place order",
+      "placingOrder": "Placing order...",
+      "placeOrder": "Place order · {{total}}"
+    },
+    "orders": {
+      "title": "Your orders",
+      "loginToView": "Log in to see your orders.",
+      "loading": "Loading orders...",
+      "empty": "No orders yet.",
+      "orderNumber": "Order #{{id}}",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "total": "Total: {{amount}}",
+      "status": {
+        "PENDING": "Pending",
+        "CONFIRMED": "Confirmed",
+        "PREPARING": "Preparing",
+        "OUT_FOR_DELIVERY": "Out for delivery",
+        "DELIVERED": "Delivered",
+        "CANCELLED": "Cancelled"
+      }
+    },
+    "wishlist": {
+      "title": "Wishlist",
+      "loginToView": "Log in to see your wishlist.",
+      "loading": "Loading...",
+      "empty": "Your wishlist is empty.",
+      "browseProducts": "Browse products"
+    }
+  },
+  "delivery": {
+    "title": "Package Delivery",
+    "heading": "Send a package across town",
+    "pickupAddress": "Pickup address",
+    "dropoffAddress": "Dropoff address",
+    "packageNote": "What are you sending? (optional)",
+    "requesting": "Requesting...",
+    "getEstimate": "Get a price estimate",
+    "loginToRequest": "Log in to request a delivery",
+    "enterAddresses": "Enter pickup and dropoff addresses",
+    "requestCreated": "Request created · estimate {{amount}}",
+    "couldNotCreate": "Could not create request",
+    "requestCancelled": "Request cancelled",
+    "couldNotCancel": "Could not cancel request",
+    "yourRequests": "Your requests",
+    "estimate": "Estimate: {{amount}}",
+    "cancel": "Cancel",
+    "status": {
+      "REQUESTED": "Requested",
+      "ACCEPTED": "Accepted",
+      "PICKED_UP": "Picked up",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "insurance": {
+    "title": "Insurance",
+    "categories": {
+      "HEALTH": "Health",
+      "AUTO": "Auto",
+      "HOME": "Home",
+      "TRAVEL": "Travel",
+      "LIFE": "Life"
+    },
+    "loadingPlans": "Loading plans...",
+    "noPlans": "No plans in this category yet.",
+    "perMonth": "{{amount}}/mo",
+    "coverageUpTo": "Coverage up to {{amount}}",
+    "subscribe": "Subscribe",
+    "loginToSubscribe": "Log in to subscribe",
+    "subscribed": "Subscribed! Your policy is pending activation.",
+    "couldNotSubscribe": "Could not subscribe",
+    "policyCancelled": "Policy cancelled",
+    "couldNotCancel": "Could not cancel policy",
+    "myPolicies": "My policies",
+    "cancel": "Cancel",
+    "policyStatus": {
+      "ACTIVE": "Active",
+      "PENDING": "Pending",
+      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "restaurant": {
+    "list": {
+      "title": "Restaurants",
+      "loading": "Loading restaurants..."
+    },
+    "detail": {
+      "title": "Restaurant",
+      "loading": "Loading...",
+      "add": "ADD",
+      "orderPlaced": "Order placed!",
+      "couldNotPlaceOrder": "Could not place order",
+      "loginToOrder": "Log in to order",
+      "placingOrder": "Placing order...",
+      "placeOrder_one": "Place order · {{count}} item · {{total}}",
+      "placeOrder_other": "Place order · {{count}} items · {{total}}"
+    },
+    "orders": {
+      "title": "Your food orders",
+      "loginToView": "Log in to see your food orders.",
+      "loading": "Loading orders...",
+      "empty": "No food orders yet.",
+      "browseRestaurants": "Browse restaurants",
+      "note": "Note: {{note}}",
+      "total": "Total: {{amount}}"
+    }
+  },
+  "rideSharing": {
+    "title": "Ride Sharing",
+    "heading": "Where are you headed?",
+    "pickupLocation": "Pickup location",
+    "dropoffLocation": "Dropoff location",
+    "vehicles": {
+      "MOTO": "Moto",
+      "ECONOMY": "Economy",
+      "COMFORT": "Comfort"
+    },
+    "requesting": "Requesting...",
+    "requestRide": "Request ride",
+    "loginToBook": "Log in to book a ride",
+    "enterAddresses": "Enter pickup and dropoff addresses",
+    "rideRequested": "Ride requested · estimate {{amount}}",
+    "couldNotRequest": "Could not request ride",
+    "rideCancelled": "Ride cancelled",
+    "couldNotCancel": "Could not cancel ride",
+    "yourRides": "Your rides",
+    "cancel": "Cancel",
+    "status": {
+      "REQUESTED": "Requested",
+      "ACCEPTED": "Accepted",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "topup": {
+    "title": "Top Up & Bills",
+    "airtimeTab": "Airtime",
+    "billTab": "Bill Payment",
+    "airtime": {
+      "heading": "Top up any phone",
+      "phoneNumber": "Phone number",
+      "chooseFromContacts": "Choose from contacts",
+      "contactsNotSupported": "\"Choose from contacts\" is available on supported mobile browsers (e.g. Chrome for Android).",
+      "couldNotAccessContacts": "Could not access contacts",
+      "operator": "OPERATOR",
+      "amount": "AMOUNT (CFA)",
+      "amountLabel": "Amount",
+      "processing": "Processing...",
+      "topUp": "Top up",
+      "selectOperator": "Select a mobile operator",
+      "invalidPhone": "Enter a valid phone number",
+      "enterAmount": "Enter an amount",
+      "success": "Top-up successful · {{reference}}",
+      "failed": "Top-up failed"
+    },
+    "bill": {
+      "heading": "Pay a bill",
+      "biller": "BILLER",
+      "accountNumber": "Account / meter number",
+      "amount": "AMOUNT (CFA)",
+      "amountLabel": "Amount",
+      "processing": "Processing...",
+      "payBill": "Pay bill",
+      "selectBiller": "Select a biller",
+      "enterAccountNumber": "Enter your account/meter number",
+      "enterAmount": "Enter an amount",
+      "success": "Payment successful · {{reference}}",
+      "failed": "Payment failed"
+    },
+    "recentTransactions": "Recent transactions",
+    "loginToContinue": "Log in to continue",
+    "transactionStatus": {
+      "PENDING": "Pending",
+      "SUCCESS": "Success",
+      "FAILED": "Failed"
+    }
+  },
+  "wallet": {
+    "title": "Wallet",
+    "loginToView": "Log in to see your wallet.",
+    "balance": "Wallet balance",
+    "topUpWallet": "Top up wallet",
+    "transactionHistory": "Transaction history",
+    "loading": "Loading...",
+    "empty": "No transactions yet.",
+    "type": {
+      "TOPUP": "Top-up",
+      "PAYMENT": "Payment",
+      "REFUND": "Refund",
+      "ADJUSTMENT": "Adjustment"
+    },
+    "amountLabel": "Amount (CFA)",
+    "cancel": "Cancel",
+    "starting": "Starting...",
+    "continueToPayment": "Continue to payment",
+    "enterValidAmount": "Enter a valid amount",
+    "couldNotStartTopUp": "Could not start top-up"
+  },
+  "payments": {
+    "title": "Payment",
+    "confirming": "Confirming your payment...",
+    "successful": "Payment successful",
+    "viewOrders": "View my orders",
+    "viewWallet": "View my wallet",
+    "walletCredited": "Your wallet has been credited.",
+    "orderConfirmed": "Your order has been confirmed.",
+    "stillProcessing": "Payment still processing",
+    "notReceivedYet": "We haven't received confirmation yet. Check back in a few minutes.",
+    "notCompleted": "Payment not completed",
+    "notCompletedSubtitle": "Your payment could not be confirmed. You can try again.",
+    "backToWallet": "Back to wallet",
+    "backToCart": "Back to cart",
+    "cancelled": "Payment cancelled",
+    "cancelledSubtitle": "You cancelled the checkout. Your cart is still saved."
+  }
+}
