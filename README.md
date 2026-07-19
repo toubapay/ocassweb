@@ -91,10 +91,9 @@ yarn dev                    # http://localhost:3000
   languages instantly and the choice persists (redux-persist) across
   reloads. See "Internationalization" below for how to add new strings.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage as
-  the web app *up through the wallet feature* (see `mobile/README.md`).
-  Everything since then - i18n, the dispatch system, and the vendor
-  marketplace below - is web-only; syncing them to Flutter hasn't been done
-  yet.
+  the web app, including French/English i18n and the delivery/ride dispatch
+  system (see `mobile/README.md`). The vendor marketplace below is the one
+  feature still web-only; syncing it to Flutter hasn't been done yet.
 
 ## Delivery & ride dispatch
 
@@ -200,9 +199,12 @@ with French as the default. Setup:
 - Real-world proper nouns (the "Ocass" brand name, the "Plateau, Dakar"
   address, operator/biller names from the backend catalog) are deliberately
   left untranslated - only actual UI copy is a translation key.
-- Not yet done: the Flutter app (`/mobile`) - it has its own, separate
-  i18n system (Flutter's `intl`/ARB files, not `react-i18next`) and hasn't
-  been touched by this pass.
+- The Flutter app (`/mobile`) is translated too, but with its own
+  hand-rolled system (`mobile/lib/l10n/`) rather than `react-i18next` -
+  Dart maps derived from these same two JSON files, with a
+  `context.t()`/`context.tr()` extension mirroring this hook. See
+  `mobile/README.md` for how it differs (build-safe vs. callback-safe
+  lookups).
 
 **Adding a new string**: add the key to both `en.json` and `fr.json` (same
 path), then `const { t } = useTranslation();` and use `t("your.new.key")`.
