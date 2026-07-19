@@ -52,4 +52,25 @@ async function me(req, res) {
   res.json({ user: req.user });
 }
 
-module.exports = { requestOtp, verifyOtpAndLogin, me };
+const SELF_SERVICE_ROLES = ["CUSTOMER", "DELIVERY_AGENT", "RIDER"];
+const updateRoleSchema = z.object({
+  role: z.enum(SELF_SERVICE_ROLES),
+});
+
+/**
+ * Lets a user opt themselves into gig work (delivery agent / rider) or back
+ * out to plain customer - no verification/approval flow yet, this is a
+ * self-serve MVP toggle. VENDOR and ADMIN are intentionally excluded: those
+ * imply a real onboarding/approval process this app doesn't have.
+ */
+async function updateRole(req, res, next) {
+  try {
+    const { role } = updateRoleSchema.parse(req.body);
+    const user = await prisma.user.update({ where: { id: req.user.id }, data: { role } });
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { requestOtp, verifyOtpAndLogin, me, updateRole };

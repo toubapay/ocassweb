@@ -20,4 +20,19 @@ async function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+/**
+ * Gates a route to one or more roles. Must run after requireAuth. req.user
+ * is re-fetched from the DB on every request (not decoded from the JWT), so
+ * a role change via PATCH /api/auth/role takes effect on the next request -
+ * no re-login needed.
+ */
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Not authorized for this action" });
+    }
+    next();
+  };
+}
+
+module.exports = { requireAuth, requireRole };

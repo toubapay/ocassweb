@@ -32,13 +32,19 @@ model User {
   orders           Order[]
   wishlist         Wishlist[]
   reviews          Review[]
-  deliveryRequests DeliveryRequest[]
+  deliveryRequests DeliveryRequest[] @relation("DeliveryRequester")
   insurancePolicies InsurancePolicy[]
-  rideRequests     RideRequest[]
+  rideRequests     RideRequest[]     @relation("RideRequester")
   restaurantOrders RestaurantOrder[]
   mobileTransactions MobileTransaction[]
   payments Payment[]
   wallet   Wallet?
+  // Opt-in gig work: any user can self-serve into role DELIVERY_AGENT or
+  // RIDER (see PATCH /api/auth/role) to see and accept jobs below. role
+  // isn't checked anywhere else in the app, so this doesn't affect their
+  // ability to keep shopping/ordering as a customer too.
+  assignedDeliveries DeliveryRequest[] @relation("DeliveryAgent")
+  assignedRides      RideRequest[]     @relation("AssignedRider")
 }
 
 model OtpCode {
@@ -219,9 +225,13 @@ model DeliveryRequest {
   packageNote    String?
   priceEstimate  Decimal?       @db.Decimal(10, 2)
   status         DeliveryStatus @default(REQUESTED)
+  assignedAgentId String?
   createdAt      DateTime       @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User  @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedAgent User? @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
+
+  @@index([assignedAgentId])
 }
 
 // ---------- Insurance module (stub) ----------
@@ -352,9 +362,13 @@ model RideRequest {
   vehicleType    VehicleType @default(ECONOMY)
   priceEstimate  Decimal?    @db.Decimal(10, 2)
   status         RideStatus  @default(REQUESTED)
+  assignedRiderId String?
   createdAt      DateTime    @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User  @relation("RideRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedRider  User? @relation("AssignedRider", fields: [assignedRiderId], references: [id])
+
+  @@index([assignedRiderId])
 }
 
 // ---------- Mobile top-up / bill payment module ----------
@@ -453,6 +467,7 @@ enum WalletTransactionType {
   PAYMENT
   REFUND
   ADJUSTMENT
+  EARNING
 }
 
 enum WalletTransactionDirection {

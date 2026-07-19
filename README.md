@@ -56,7 +56,13 @@ yarn dev                    # http://localhost:3000
 - **Restaurant** — full ordering flow: per-restaurant quantity cart, place
   order, order history.
 - **Delivery, Ride Sharing** — request forms with a price estimate, a
-  history list, and cancelling a still-pending request/ride.
+  history list, cancelling a still-pending request/ride, and a full dispatch
+  loop: any user can self-serve into the `DELIVERY_AGENT`/`RIDER` role from
+  their profile, see unassigned jobs, accept one (race-safe - a conditional
+  update means two agents tapping "accept" at once can't both win), and walk
+  it through accepted → picked up/in progress → delivered/completed, which
+  auto-credits 80% of the fare to their wallet. See "Delivery & ride
+  dispatch" below for what this does and doesn't cover (there's no map).
 - **Insurance** — browse plans by category, subscribe, view policies, cancel
   a pending/active one.
 - **Airtime Top-up & Bill Payment** — operators/billers are a backend-managed
@@ -80,13 +86,46 @@ yarn dev                    # http://localhost:3000
   `react-i18next`), French by default. A toggle on the profile page switches
   languages instantly and the choice persists (redux-persist) across
   reloads. See "Internationalization" below for how to add new strings.
-- **Mobile** — a Flutter app in `/mobile` with the same module coverage
-  against the same backend (see `mobile/README.md`). Not yet translated -
-  the i18n work above is web-only so far.
+- **Mobile** — a Flutter app in `/mobile` with the same module coverage as
+  the web app *up through the wallet feature* (see `mobile/README.md`).
+  Everything since then - i18n and the dispatch system below - is web-only;
+  syncing them to Flutter hasn't been done yet.
 
-Richer delivery/ride dispatch (live pricing, maps, driver assignment) is
-intentionally left as the next milestone — the current build gives each
-module a real API + UI, not just a shell.
+## Delivery & ride dispatch
+
+Both request flows now go all the way through fulfillment, not just
+request-and-cancel:
+
+1. Any signed-in user can opt into `DELIVERY_AGENT` or `RIDER` from their
+   profile (`PATCH /api/auth/role` - self-service, no approval flow) and get
+   a dashboard (`/delivery/agent`, `/ride-sharing/driver`) listing
+   unassigned jobs.
+2. Accepting a job is race-safe: `acceptRequest`/`acceptRide`
+   (`server/src/modules/{delivery,rideshare}/*.controller.js`) use a
+   conditional `updateMany` (still `REQUESTED` and unassigned) rather than a
+   read-then-write, so two agents tapping "accept" on the same job at the
+   same moment can't both win - the loser gets a clean 409.
+3. Walking a job through accepted → picked up/in progress →
+   delivered/completed auto-credits 80% of the fare to the agent's wallet
+   (`WalletTransactionType.EARNING`) on completion; the other 20% is an
+   implicit platform fee, not tracked as its own ledger anywhere yet.
+
+**Pricing**: real Haversine (straight-line) distance-based pricing when both
+pickup and dropoff coordinates are available, falling back to the original
+simulated estimate otherwise. In practice that means pickup only, via the
+"use my location" button (`navigator.geolocation`) on both request forms -
+**there's no geocoding**, so a typed address alone never has coordinates,
+and dropoff stays text-only. This sandbox's network blocks reaching
+geocoding services (confirmed against OpenStreetMap's free Nominatim API)
+to test one even with a key, so wiring up real geocoding/routing (Google
+Maps, Mapbox, or self-hosted Nominatim) and turn-by-turn distance is left
+as a follow-up requiring a real API key and live network access to build
+against.
+
+**Not built**: any visual map, an approval/verification flow for becoming an
+agent or rider (this is deliberately a self-service MVP toggle), and a
+"don't let someone accept their own request" check - a user with both a
+customer order and an agent role can currently accept their own delivery.
 
 ## Internationalization
 

@@ -8,6 +8,8 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
+import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
 import { fetchMyRides, createRideRequest, cancelRide } from "../../src/api/modules";
@@ -21,18 +23,45 @@ export default function RideSharing() {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [pickupAddress, setPickupAddress] = useState("");
+  const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffAddress, setDropoffAddress] = useState("");
   const [vehicleType, setVehicleType] = useState("ECONOMY");
 
   const { data: rides } = useQuery("my-rides", fetchMyRides, { enabled: isAuthenticated });
 
+  // There's no geocoding/maps integration in this app (no API key
+  // configured), so a typed address never has coordinates on its own -
+  // this is the one way to get a real pickup point for distance-based
+  // pricing. Dropoff stays address-text-only until a map picker exists.
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error(t("rideSharing.locationError"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPickupCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        toast.success(t("rideSharing.locationSet"));
+      },
+      () => toast.error(t("rideSharing.locationError"))
+    );
+  };
+
   const mutation = useMutation(
-    () => createRideRequest({ pickupAddress, dropoffAddress, vehicleType }),
+    () =>
+      createRideRequest({
+        pickupAddress,
+        pickupLat: pickupCoords?.lat,
+        pickupLng: pickupCoords?.lng,
+        dropoffAddress,
+        vehicleType,
+      }),
     {
       onSuccess: (ride) => {
         toast.success(t("rideSharing.rideRequested", { amount: formatCfa(ride.priceEstimate) }));
         queryClient.invalidateQueries("my-rides");
         setPickupAddress("");
+        setPickupCoords(null);
         setDropoffAddress("");
       },
       onError: () => toast.error(t("rideSharing.couldNotRequest")),
@@ -68,13 +97,25 @@ export default function RideSharing() {
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
           {t("rideSharing.heading")}
         </Typography>
-        <TextField
-          label={t("rideSharing.pickupLocation")}
-          fullWidth
-          value={pickupAddress}
-          onChange={(e) => setPickupAddress(e.target.value)}
-          sx={{ mb: 2, bgcolor: "background.paper" }}
-        />
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
+          <TextField
+            label={t("rideSharing.pickupLocation")}
+            fullWidth
+            value={pickupAddress}
+            onChange={(e) => setPickupAddress(e.target.value)}
+            sx={{ bgcolor: "background.paper" }}
+          />
+          <IconButton
+            onClick={useMyLocation}
+            title={t("rideSharing.useMyLocation")}
+            sx={{
+              bgcolor: pickupCoords ? "primary.main" : "primary.light",
+              color: pickupCoords ? "#fff" : "primary.main",
+            }}
+          >
+            <MyLocationRoundedIcon />
+          </IconButton>
+        </Box>
         <TextField
           label={t("rideSharing.dropoffLocation")}
           fullWidth

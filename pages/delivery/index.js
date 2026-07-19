@@ -8,6 +8,8 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
+import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
 import { fetchDeliveryRequests, createDeliveryRequest, cancelDeliveryRequest } from "../../src/api/modules";
@@ -19,6 +21,7 @@ export default function Delivery() {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [pickupAddress, setPickupAddress] = useState("");
+  const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffAddress, setDropoffAddress] = useState("");
   const [packageNote, setPackageNote] = useState("");
 
@@ -26,13 +29,39 @@ export default function Delivery() {
     enabled: isAuthenticated,
   });
 
+  // There's no geocoding/maps integration in this app (no API key
+  // configured), so a typed address never has coordinates on its own -
+  // this is the one way to get a real pickup point for distance-based
+  // pricing. Dropoff stays address-text-only until a map picker exists.
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error(t("delivery.locationError"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPickupCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        toast.success(t("delivery.locationSet"));
+      },
+      () => toast.error(t("delivery.locationError"))
+    );
+  };
+
   const mutation = useMutation(
-    () => createDeliveryRequest({ pickupAddress, dropoffAddress, packageNote }),
+    () =>
+      createDeliveryRequest({
+        pickupAddress,
+        pickupLat: pickupCoords?.lat,
+        pickupLng: pickupCoords?.lng,
+        dropoffAddress,
+        packageNote,
+      }),
     {
       onSuccess: (request) => {
         toast.success(t("delivery.requestCreated", { amount: formatCfa(request.priceEstimate) }));
         queryClient.invalidateQueries("delivery-requests");
         setPickupAddress("");
+        setPickupCoords(null);
         setDropoffAddress("");
         setPackageNote("");
       },
@@ -69,13 +98,25 @@ export default function Delivery() {
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
           {t("delivery.heading")}
         </Typography>
-        <TextField
-          label={t("delivery.pickupAddress")}
-          fullWidth
-          value={pickupAddress}
-          onChange={(e) => setPickupAddress(e.target.value)}
-          sx={{ mb: 2, bgcolor: "background.paper" }}
-        />
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
+          <TextField
+            label={t("delivery.pickupAddress")}
+            fullWidth
+            value={pickupAddress}
+            onChange={(e) => setPickupAddress(e.target.value)}
+            sx={{ bgcolor: "background.paper" }}
+          />
+          <IconButton
+            onClick={useMyLocation}
+            title={t("delivery.useMyLocation")}
+            sx={{
+              bgcolor: pickupCoords ? "primary.main" : "primary.light",
+              color: pickupCoords ? "#fff" : "primary.main",
+            }}
+          >
+            <MyLocationRoundedIcon />
+          </IconButton>
+        </Box>
         <TextField
           label={t("delivery.dropoffAddress")}
           fullWidth

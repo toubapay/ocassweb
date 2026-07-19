@@ -1,7 +1,12 @@
 import { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Cookies from "js-cookie";
-import { fetchMe, requestOtp as requestOtpApi, verifyOtp as verifyOtpApi } from "../api/auth";
+import {
+  fetchMe,
+  requestOtp as requestOtpApi,
+  verifyOtp as verifyOtpApi,
+  updateRole as updateRoleApi,
+} from "../api/auth";
 import { TOKEN_COOKIE } from "../api/client";
 import { setUser, logout as logoutAction } from "../redux/slices/authSlice";
 
@@ -39,5 +44,14 @@ export default function useAuth() {
     dispatch(logoutAction());
   }, [dispatch]);
 
-  return { user, isAuthenticated, requestOtp, verifyOtp, logout };
+  const updateRole = useCallback(
+    async (role) => {
+      const updatedUser = await updateRoleApi(role);
+      dispatch(setUser(updatedUser));
+      return updatedUser;
+    },
+    [dispatch]
+  );
+
+  return { user, isAuthenticated, requestOtp, verifyOtp, logout, updateRole };
 }

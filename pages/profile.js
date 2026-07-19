@@ -1,5 +1,7 @@
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
+import { useMutation } from "react-query";
+import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
@@ -24,7 +26,12 @@ import useAuth from "../src/hooks/useAuth";
 export default function Profile() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, updateRole } = useAuth();
+
+  const roleMutation = useMutation((role) => updateRole(role), {
+    onSuccess: () => toast.success(t("profile.roleUpdated")),
+    onError: () => toast.error(t("profile.couldNotUpdateRole")),
+  });
 
   if (!isAuthenticated) {
     return (
@@ -84,6 +91,74 @@ export default function Profile() {
           <ListItemText primary={t("profile.logOut")} primaryTypographyProps={{ fontWeight: 600, color: "error.main" }} />
         </ListItemButton>
       </List>
+
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1 }}>
+          {t("profile.workSectionTitle")}
+        </Typography>
+        {user?.role === "CUSTOMER" && (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={roleMutation.isLoading}
+              onClick={() => roleMutation.mutate("DELIVERY_AGENT")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.becomeAgent")}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={roleMutation.isLoading}
+              onClick={() => roleMutation.mutate("RIDER")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.becomeRider")}
+            </Button>
+          </Box>
+        )}
+        {user?.role === "DELIVERY_AGENT" && (
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => router.push("/delivery/agent")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.agentDashboard")}
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              disabled={roleMutation.isLoading}
+              onClick={() => roleMutation.mutate("CUSTOMER")}
+            >
+              {t("profile.stopGigWork")}
+            </Button>
+          </Box>
+        )}
+        {user?.role === "RIDER" && (
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => router.push("/ride-sharing/driver")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.driverDashboard")}
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              disabled={roleMutation.isLoading}
+              onClick={() => roleMutation.mutate("CUSTOMER")}
+            >
+              {t("profile.stopGigWork")}
+            </Button>
+          </Box>
+        )}
+      </Box>
 
       <LanguageSwitcher />
     </Box>

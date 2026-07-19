@@ -91,7 +91,15 @@
       "topupsAndBills": "Recharges et factures"
     },
     "logOut": "Se déconnecter",
-    "languageSectionTitle": "Langue"
+    "languageSectionTitle": "Langue",
+    "workSectionTitle": "Travailler avec Ocass",
+    "becomeAgent": "Devenir livreur",
+    "becomeRider": "Devenir chauffeur",
+    "stopGigWork": "Repasser en client",
+    "agentDashboard": "Tableau de bord livreur",
+    "driverDashboard": "Tableau de bord chauffeur",
+    "roleUpdated": "Rôle mis à jour",
+    "couldNotUpdateRole": "Impossible de mettre à jour le rôle"
   },
   "ecommerce": {
     "discover": {
@@ -207,6 +215,23 @@
       "PICKED_UP": "Récupérée",
       "DELIVERED": "Livrée",
       "CANCELLED": "Annulée"
+    },
+    "useMyLocation": "Utiliser ma position",
+    "locationSet": "Position de retrait définie",
+    "locationError": "Impossible d'obtenir votre position",
+    "agent": {
+      "title": "Livreur",
+      "availableTab": "Disponibles",
+      "myJobsTab": "Mes livraisons",
+      "noAvailable": "Aucune livraison disponible pour le moment.",
+      "noMyJobs": "Vous n'avez encore accepté aucune livraison.",
+      "accept": "Accepter",
+      "markPickedUp": "Marquer récupérée",
+      "markDelivered": "Marquer livrée",
+      "accepted": "Livraison acceptée",
+      "alreadyTaken": "Cette livraison a déjà été prise",
+      "pickedUpToast": "Marquée comme récupérée",
+      "deliveredToast": "Marquée comme livrée - gains ajoutés à votre portefeuille"
     }
   },
   "insurance": {
@@ -289,6 +314,23 @@
       "IN_PROGRESS": "En cours",
       "COMPLETED": "Terminée",
       "CANCELLED": "Annulée"
+    },
+    "useMyLocation": "Utiliser ma position",
+    "locationSet": "Position de départ définie",
+    "locationError": "Impossible d'obtenir votre position",
+    "driver": {
+      "title": "Chauffeur",
+      "availableTab": "Disponibles",
+      "myJobsTab": "Mes courses",
+      "noAvailable": "Aucune course disponible pour le moment.",
+      "noMyJobs": "Vous n'avez encore accepté aucune course.",
+      "accept": "Accepter",
+      "start": "Démarrer la course",
+      "complete": "Terminer la course",
+      "accepted": "Course acceptée",
+      "alreadyTaken": "Cette course a déjà été prise",
+      "startedToast": "Course démarrée",
+      "completedToast": "Course terminée - gains ajoutés à votre portefeuille"
     }
   },
   "topup": {

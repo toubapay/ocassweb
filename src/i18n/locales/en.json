@@ -91,7 +91,15 @@
       "topupsAndBills": "Top-ups & bills"
     },
     "logOut": "Log out",
-    "languageSectionTitle": "Language"
+    "languageSectionTitle": "Language",
+    "workSectionTitle": "Work with Ocass",
+    "becomeAgent": "Become a delivery agent",
+    "becomeRider": "Become a rider",
+    "stopGigWork": "Switch back to customer",
+    "agentDashboard": "Delivery agent dashboard",
+    "driverDashboard": "Driver dashboard",
+    "roleUpdated": "Role updated",
+    "couldNotUpdateRole": "Could not update role"
   },
   "ecommerce": {
     "discover": {
@@ -207,6 +215,23 @@
       "PICKED_UP": "Picked up",
       "DELIVERED": "Delivered",
       "CANCELLED": "Cancelled"
+    },
+    "useMyLocation": "Use my location",
+    "locationSet": "Pickup location set",
+    "locationError": "Could not get your location",
+    "agent": {
+      "title": "Delivery agent",
+      "availableTab": "Available",
+      "myJobsTab": "My jobs",
+      "noAvailable": "No jobs available right now.",
+      "noMyJobs": "You haven't accepted any jobs yet.",
+      "accept": "Accept",
+      "markPickedUp": "Mark picked up",
+      "markDelivered": "Mark delivered",
+      "accepted": "Job accepted",
+      "alreadyTaken": "This job was already taken",
+      "pickedUpToast": "Marked as picked up",
+      "deliveredToast": "Marked as delivered - earnings added to your wallet"
     }
   },
   "insurance": {
@@ -289,6 +314,23 @@
       "IN_PROGRESS": "In progress",
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled"
+    },
+    "useMyLocation": "Use my location",
+    "locationSet": "Pickup location set",
+    "locationError": "Could not get your location",
+    "driver": {
+      "title": "Driver",
+      "availableTab": "Available",
+      "myJobsTab": "My rides",
+      "noAvailable": "No rides available right now.",
+      "noMyJobs": "You haven't accepted any rides yet.",
+      "accept": "Accept",
+      "start": "Start ride",
+      "complete": "Complete ride",
+      "accepted": "Ride accepted",
+      "alreadyTaken": "This ride was already taken",
+      "startedToast": "Ride started",
+      "completedToast": "Ride completed - earnings added to your wallet"
     }
   },
   "topup": {
