@@ -52,16 +52,17 @@ async function me(req, res) {
   res.json({ user: req.user });
 }
 
-const SELF_SERVICE_ROLES = ["CUSTOMER", "DELIVERY_AGENT", "RIDER"];
+const SELF_SERVICE_ROLES = ["CUSTOMER", "DELIVERY_AGENT", "RIDER", "VENDOR"];
 const updateRoleSchema = z.object({
   role: z.enum(SELF_SERVICE_ROLES),
 });
 
 /**
- * Lets a user opt themselves into gig work (delivery agent / rider) or back
- * out to plain customer - no verification/approval flow yet, this is a
- * self-serve MVP toggle. VENDOR and ADMIN are intentionally excluded: those
- * imply a real onboarding/approval process this app doesn't have.
+ * Lets a user opt themselves into gig work (delivery agent / rider) or
+ * selling (vendor), or back out to plain customer - no verification/
+ * approval flow for any of these yet, this is a self-serve MVP toggle.
+ * ADMIN is intentionally excluded: that implies a real onboarding process
+ * this app doesn't have.
  */
 async function updateRole(req, res, next) {
   try {

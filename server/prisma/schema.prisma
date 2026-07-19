@@ -39,12 +39,13 @@ model User {
   mobileTransactions MobileTransaction[]
   payments Payment[]
   wallet   Wallet?
-  // Opt-in gig work: any user can self-serve into role DELIVERY_AGENT or
-  // RIDER (see PATCH /api/auth/role) to see and accept jobs below. role
-  // isn't checked anywhere else in the app, so this doesn't affect their
-  // ability to keep shopping/ordering as a customer too.
+  // Opt-in gig work / selling: any user can self-serve into role
+  // DELIVERY_AGENT, RIDER, or VENDOR (see PATCH /api/auth/role). role isn't
+  // checked anywhere else in the app, so this doesn't affect their ability
+  // to keep shopping/ordering as a customer too.
   assignedDeliveries DeliveryRequest[] @relation("DeliveryAgent")
   assignedRides      RideRequest[]     @relation("AssignedRider")
+  store              Store?            @relation("StoreOwner")
 }
 
 model OtpCode {
@@ -97,7 +98,13 @@ model Store {
   lat      Float?
   lng      Float?
   rating   Float     @default(0)
+  // Nullable + unique: null for admin/seed-managed stores (no self-service
+  // owner), unique among non-null values so a vendor can own at most one
+  // store (Postgres unique constraints allow any number of NULLs).
+  ownerId  String?   @unique
   products Product[]
+
+  owner User? @relation("StoreOwner", fields: [ownerId], references: [id])
 }
 
 model Product {
@@ -114,6 +121,11 @@ model Product {
   stock           Int      @default(0)
   rating          Float    @default(0)
   tags            String[]
+  // Soft-delete flag so a vendor "removing" a product doesn't break FK
+  // references from existing CartItem/OrderItem/Wishlist/Review rows.
+  // Public listing/detail endpoints filter this out; the vendor's own
+  // product list does not.
+  isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
 
   store      Store       @relation(fields: [storeId], references: [id])

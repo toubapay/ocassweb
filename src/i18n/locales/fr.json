@@ -20,13 +20,41 @@
     "profile": "Profil"
   },
   "modules": {
-    "ecommerce": { "label": "Boutique", "fullLabel": "E-commerce", "description": "Mode, électronique, épicerie et plus" },
-    "restaurant": { "label": "Repas", "fullLabel": "Restaurant", "description": "Commandez auprès des restaurants près de vous" },
-    "delivery": { "label": "Livraison", "fullLabel": "Livraison de colis", "description": "Envoyez un colis à travers la ville" },
-    "ride-sharing": { "label": "Courses", "fullLabel": "Covoiturage", "description": "Réservez une moto, une course économique ou confort" },
-    "insurance": { "label": "Assurance", "fullLabel": "Assurance", "description": "Formules santé, auto, habitation et voyage" },
-    "airtime": { "label": "Crédit", "fullLabel": "Recharge crédit", "description": "Rechargez du crédit et des données mobiles" },
-    "bill-payment": { "label": "Factures", "fullLabel": "Paiement de factures", "description": "Payez l'électricité, l'eau et la télé" }
+    "ecommerce": {
+      "label": "Boutique",
+      "fullLabel": "E-commerce",
+      "description": "Mode, électronique, épicerie et plus"
+    },
+    "restaurant": {
+      "label": "Repas",
+      "fullLabel": "Restaurant",
+      "description": "Commandez auprès des restaurants près de vous"
+    },
+    "delivery": {
+      "label": "Livraison",
+      "fullLabel": "Livraison de colis",
+      "description": "Envoyez un colis à travers la ville"
+    },
+    "ride-sharing": {
+      "label": "Courses",
+      "fullLabel": "Covoiturage",
+      "description": "Réservez une moto, une course économique ou confort"
+    },
+    "insurance": {
+      "label": "Assurance",
+      "fullLabel": "Assurance",
+      "description": "Formules santé, auto, habitation et voyage"
+    },
+    "airtime": {
+      "label": "Crédit",
+      "fullLabel": "Recharge crédit",
+      "description": "Rechargez du crédit et des données mobiles"
+    },
+    "bill-payment": {
+      "label": "Factures",
+      "fullLabel": "Paiement de factures",
+      "description": "Payez l'électricité, l'eau et la télé"
+    }
   },
   "categories": {
     "footwear": "Chaussures",
@@ -95,9 +123,11 @@
     "workSectionTitle": "Travailler avec Ocass",
     "becomeAgent": "Devenir livreur",
     "becomeRider": "Devenir chauffeur",
+    "becomeVendor": "Devenir vendeur",
     "stopGigWork": "Repasser en client",
     "agentDashboard": "Tableau de bord livreur",
     "driverDashboard": "Tableau de bord chauffeur",
+    "vendorDashboard": "Tableau de bord vendeur",
     "roleUpdated": "Rôle mis à jour",
     "couldNotUpdateRole": "Impossible de mettre à jour le rôle"
   },
@@ -413,5 +443,50 @@
     "backToCart": "Retour au panier",
     "cancelled": "Paiement annulé",
     "cancelledSubtitle": "Vous avez annulé le paiement. Votre panier est toujours sauvegardé."
+  },
+  "vendor": {
+    "title": "Tableau de bord vendeur",
+    "products": "Mes produits",
+    "orders": "Commandes de la boutique",
+    "manageProducts": "Gérer les produits",
+    "viewOrders": "Voir les commandes",
+    "createStoreTitle": "Créez votre boutique",
+    "createStoreSubtitle": "Configurez votre boutique pour commencer à vendre sur Ocass.",
+    "storeName": "Nom de la boutique",
+    "storeAddress": "Adresse de la boutique",
+    "storeLogoUrl": "URL du logo",
+    "createStore": "Créer la boutique",
+    "editStore": "Modifier la boutique",
+    "saveChanges": "Enregistrer",
+    "cancel": "Annuler",
+    "storeCreated": "Boutique créée",
+    "storeUpdated": "Boutique mise à jour",
+    "couldNotSaveStore": "Impossible d'enregistrer la boutique",
+    "noProducts": "Vous n'avez pas encore ajouté de produits",
+    "newProduct": "Nouveau produit",
+    "editProduct": "Modifier le produit",
+    "category": "Catégorie",
+    "productName": "Nom du produit",
+    "productDescription": "Description",
+    "price": "Prix",
+    "discountPrice": "Prix réduit",
+    "stock": "Stock",
+    "stockCount": "{{count}} en stock",
+    "inactive": "Inactif",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "fillRequiredFields": "Veuillez remplir les champs obligatoires",
+    "productCreated": "Produit créé",
+    "productUpdated": "Produit mis à jour",
+    "productDeactivated": "Produit retiré de votre boutique",
+    "couldNotSaveProduct": "Impossible d'enregistrer le produit",
+    "noOrders": "Aucune commande pour le moment",
+    "orderNumber": "Commande n°{{id}}",
+    "orderStatus": {
+      "PENDING": "En attente",
+      "CONFIRMED": "Confirmée",
+      "DELIVERED": "Livrée",
+      "CANCELLED": "Annulée"
+    }
   }
 }

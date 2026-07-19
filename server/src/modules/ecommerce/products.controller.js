@@ -25,6 +25,7 @@ async function listProducts(req, res, next) {
     }
 
     const where = {
+      isActive: true,
       ...(categoryFilter || {}),
       ...(store ? { store: { slug: store } } : {}),
       ...(search
@@ -59,7 +60,7 @@ async function getProduct(req, res, next) {
         reviews: { include: { user: { select: { id: true, name: true } } } },
       },
     });
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product || !product.isActive) return res.status(404).json({ message: "Product not found" });
     res.json({ product });
   } catch (err) {
     next(err);

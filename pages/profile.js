@@ -97,7 +97,7 @@ export default function Profile() {
           {t("profile.workSectionTitle")}
         </Typography>
         {user?.role === "CUSTOMER" && (
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Button
               variant="outlined"
               size="small"
@@ -115,6 +115,15 @@ export default function Profile() {
               sx={{ fontWeight: 700 }}
             >
               {t("profile.becomeRider")}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={roleMutation.isLoading}
+              onClick={() => roleMutation.mutate("VENDOR")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.becomeVendor")}
             </Button>
           </Box>
         )}
@@ -147,6 +156,26 @@ export default function Profile() {
               sx={{ fontWeight: 700 }}
             >
               {t("profile.driverDashboard")}
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              disabled={roleMutation.isLoading}
+              onClick={() => roleMutation.mutate("CUSTOMER")}
+            >
+              {t("profile.stopGigWork")}
+            </Button>
+          </Box>
+        )}
+        {user?.role === "VENDOR" && (
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => router.push("/vendor")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.vendorDashboard")}
             </Button>
             <Button
               variant="text"

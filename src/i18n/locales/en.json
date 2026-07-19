@@ -20,13 +20,41 @@
     "profile": "Profile"
   },
   "modules": {
-    "ecommerce": { "label": "Shop", "fullLabel": "Ecommerce", "description": "Fashion, electronics, groceries & more" },
-    "restaurant": { "label": "Food", "fullLabel": "Restaurant", "description": "Order from restaurants near you" },
-    "delivery": { "label": "Delivery", "fullLabel": "Package Delivery", "description": "Send a package across town" },
-    "ride-sharing": { "label": "Rides", "fullLabel": "Ride Sharing", "description": "Book a moto, economy or comfort ride" },
-    "insurance": { "label": "Insurance", "fullLabel": "Insurance", "description": "Health, auto, home & travel plans" },
-    "airtime": { "label": "Airtime", "fullLabel": "Airtime Top-up", "description": "Top up mobile airtime & data" },
-    "bill-payment": { "label": "Bills", "fullLabel": "Bill Payment", "description": "Pay electricity, water & TV bills" }
+    "ecommerce": {
+      "label": "Shop",
+      "fullLabel": "Ecommerce",
+      "description": "Fashion, electronics, groceries & more"
+    },
+    "restaurant": {
+      "label": "Food",
+      "fullLabel": "Restaurant",
+      "description": "Order from restaurants near you"
+    },
+    "delivery": {
+      "label": "Delivery",
+      "fullLabel": "Package Delivery",
+      "description": "Send a package across town"
+    },
+    "ride-sharing": {
+      "label": "Rides",
+      "fullLabel": "Ride Sharing",
+      "description": "Book a moto, economy or comfort ride"
+    },
+    "insurance": {
+      "label": "Insurance",
+      "fullLabel": "Insurance",
+      "description": "Health, auto, home & travel plans"
+    },
+    "airtime": {
+      "label": "Airtime",
+      "fullLabel": "Airtime Top-up",
+      "description": "Top up mobile airtime & data"
+    },
+    "bill-payment": {
+      "label": "Bills",
+      "fullLabel": "Bill Payment",
+      "description": "Pay electricity, water & TV bills"
+    }
   },
   "categories": {
     "footwear": "Footwear",
@@ -95,9 +123,11 @@
     "workSectionTitle": "Work with Ocass",
     "becomeAgent": "Become a delivery agent",
     "becomeRider": "Become a rider",
+    "becomeVendor": "Become a vendor",
     "stopGigWork": "Switch back to customer",
     "agentDashboard": "Delivery agent dashboard",
     "driverDashboard": "Driver dashboard",
+    "vendorDashboard": "Vendor dashboard",
     "roleUpdated": "Role updated",
     "couldNotUpdateRole": "Could not update role"
   },
@@ -413,5 +443,50 @@
     "backToCart": "Back to cart",
     "cancelled": "Payment cancelled",
     "cancelledSubtitle": "You cancelled the checkout. Your cart is still saved."
+  },
+  "vendor": {
+    "title": "Vendor dashboard",
+    "products": "My products",
+    "orders": "Store orders",
+    "manageProducts": "Manage products",
+    "viewOrders": "View store orders",
+    "createStoreTitle": "Create your store",
+    "createStoreSubtitle": "Set up your storefront to start selling on Ocass.",
+    "storeName": "Store name",
+    "storeAddress": "Store address",
+    "storeLogoUrl": "Logo URL",
+    "createStore": "Create store",
+    "editStore": "Edit store",
+    "saveChanges": "Save changes",
+    "cancel": "Cancel",
+    "storeCreated": "Store created",
+    "storeUpdated": "Store updated",
+    "couldNotSaveStore": "Could not save store",
+    "noProducts": "You haven't added any products yet",
+    "newProduct": "New product",
+    "editProduct": "Edit product",
+    "category": "Category",
+    "productName": "Product name",
+    "productDescription": "Description",
+    "price": "Price",
+    "discountPrice": "Discount price",
+    "stock": "Stock",
+    "stockCount": "{{count}} in stock",
+    "inactive": "Inactive",
+    "save": "Save",
+    "saving": "Saving...",
+    "fillRequiredFields": "Please fill in the required fields",
+    "productCreated": "Product created",
+    "productUpdated": "Product updated",
+    "productDeactivated": "Product removed from your storefront",
+    "couldNotSaveProduct": "Could not save product",
+    "noOrders": "No orders yet",
+    "orderNumber": "Order #{{id}}",
+    "orderStatus": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled"
+    }
   }
 }

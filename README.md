@@ -82,14 +82,19 @@ yarn dev                    # http://localhost:3000
   all three, `role` doesn't change the wallet) gets a balance funded by
   topping up through PayDunya, spendable as a checkout payment method
   alongside PayDunya itself (ecommerce checkout first). See "Wallet" below.
+- **Vendor marketplace** — any user can self-serve into the `VENDOR` role
+  from their profile, create one store, and manage its product catalog
+  (create/edit/soft-delete) and see orders containing their products. See
+  "Vendor marketplace" below.
 - **French / English** — the whole web app is translated (`src/i18n/`,
   `react-i18next`), French by default. A toggle on the profile page switches
   languages instantly and the choice persists (redux-persist) across
   reloads. See "Internationalization" below for how to add new strings.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage as
   the web app *up through the wallet feature* (see `mobile/README.md`).
-  Everything since then - i18n and the dispatch system below - is web-only;
-  syncing them to Flutter hasn't been done yet.
+  Everything since then - i18n, the dispatch system, and the vendor
+  marketplace below - is web-only; syncing them to Flutter hasn't been done
+  yet.
 
 ## Delivery & ride dispatch
 
@@ -126,6 +131,47 @@ against.
 agent or rider (this is deliberately a self-service MVP toggle), and a
 "don't let someone accept their own request" check - a user with both a
 customer order and an agent role can currently accept their own delivery.
+
+## Vendor marketplace
+
+Self-service store ownership, the same opt-in pattern as the delivery/ride
+dispatch roles above:
+
+1. Any signed-in user can opt into the `VENDOR` role from their profile
+   (`PATCH /api/auth/role`, no approval flow) and gets a dashboard
+   (`/vendor`) to create their store.
+2. **One store per vendor**: `Store.ownerId` is a nullable, unique foreign
+   key (`server/prisma/schema.prisma`) - nullable so existing admin-seeded
+   stores with no owner keep working, unique so Postgres itself enforces
+   "at most one store per user." All vendor endpoints
+   (`server/src/modules/vendor/vendor.controller.js`, mounted at
+   `/api/vendor`) are gated by `requireRole("VENDOR")` and resolve "my
+   store" from the authenticated user, never from a client-supplied id.
+3. **Products** (`/vendor/products`): create, edit, and soft-delete
+   (`Product.isActive`, not a hard delete - existing cart/order/wishlist/
+   review rows reference products by id). `discountPercent` is always
+   server-computed from `price`/`discountPrice`, never accepted from the
+   client, so the storefront's "X% OFF" badge can't disagree with what's
+   actually charged; a partial update (e.g. changing only `stock`) merges
+   against the product's existing price fields before recomputing so the
+   discount stays consistent without re-sending both prices every time.
+   Deactivated products disappear from public listings/search
+   (`GET /api/ecommerce/products`) and product detail (404s) but remain
+   visible in the vendor's own product list.
+4. **Orders** (`/vendor/orders`): orders containing at least one of the
+   vendor's products, with each order's `items` filtered down to only that
+   vendor's own line items - an order can in principle span multiple
+   stores, and a vendor should never see another store's items.
+
+**Not built**: an approval/verification flow for becoming a vendor (same
+self-service MVP tradeoff as delivery/ride), payouts/settlement (a vendor's
+sales aren't credited to their wallet automatically - see "Wallet" below),
+storefront pages for browsing a specific vendor's catalog as a shopper
+(products already carry `storeId`/`store`, so `GET
+/api/ecommerce/products?store=<slug>` works today, there's just no
+dedicated `/store/[slug]` page yet), and multi-vendor cart/checkout
+splitting (checkout is unchanged - one cart, one order, regardless of how
+many stores its items come from).
 
 ## Internationalization
 
@@ -168,15 +214,14 @@ suffixed keys and pass `{ count }`.
 
 Every user has exactly one `Wallet` (`server/prisma/schema.prisma`),
 regardless of role - the same balance/top-up/spend model serves customers,
-vendors and delivery men. Scope decisions made while building this (no
-vendor-store ownership link or delivery/ride-agent assignment exists yet in
-the schema, so these were the lower-risk defaults rather than a guess):
+vendors and delivery men.
 
-- **Funding**: top-up only, via a PayDunya invoice (`purpose: WALLET_TOPUP`).
-  Nothing auto-credits a vendor or delivery agent's wallet from sales or
-  completed deliveries - that would need a `Store.ownerId` and a
-  `DeliveryRequest`/`RideRequest` assignee field first, neither of which
-  exists today.
+- **Funding**: top-up only, via a PayDunya invoice (`purpose: WALLET_TOPUP`),
+  plus the automatic delivery/ride earnings credit described in "Delivery &
+  ride dispatch" above. A vendor's wallet is **not** auto-credited from
+  their store's sales - `Store.ownerId` exists now (see "Vendor
+  marketplace" above), but wiring payouts on order completion is still a
+  follow-up, not yet built.
 - **Spending**: usable as a checkout payment method - `POST
   /api/ecommerce/orders` accepts `paymentMethod: "wallet" | "paydunya"`. A
   wallet debit settles synchronously (no redirect/IPN round trip): balance
@@ -186,9 +231,10 @@ the schema, so these were the lower-risk defaults rather than a guess):
   checkout offers the choice so far; wiring it into restaurant/topup/
   insurance/delivery/ride checkouts follows the same pattern.
 - **UI**: one wallet screen (`/wallet`: balance, top-up, transaction
-  history) reachable from every user's profile - no separate vendor or
-  delivery-agent dashboards were built, since that's a materially larger
-  feature (order-to-vendor routing, job assignment) than "add a wallet."
+  history) reachable from every user's profile, shared by every role. It's
+  separate from the role-specific dashboards (`/delivery/agent`,
+  `/ride-sharing/driver`, `/vendor`) built later - the wallet itself has no
+  vendor- or agent-specific view.
 
 Both a PayDunya top-up and a wallet order-payment go through the same
 rollback discipline as ecommerce/PayDunya checkout: if a debit fails
