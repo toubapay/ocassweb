@@ -20,6 +20,11 @@ Expresso as mobile operators, SENELEC/SEN'EAU as billers).
                  See mobile/README.md before running it: it needs one
                  `flutter create` bootstrap step and its own first
                  `flutter analyze` pass (see that README for why).
+/docs/interactive-mock.html
+                 Self-contained, clickable HTML mockup of the whole app
+                 (no backend, no build step - open it directly in a
+                 browser). Mirrors the real screens, copy, and colors of
+                 every module, including Anando and notifications.
 ```
 
 ## Backend setup

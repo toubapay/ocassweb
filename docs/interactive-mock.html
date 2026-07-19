@@ -1,0 +1,1751 @@
+<title>Ocass — aperçu interactif</title>
+<style>
+  /* ============ Backdrop tokens (theme-aware; the phone's own screens are
+     a faithful reproduction of the real Ocass app, which only ships a
+     light UI, so they stay fixed-light by deliberate choice) ============ */
+  :root{
+    --canvas:#EEF3F0;
+    --canvas-2:#E3ECE6;
+    --frame-ink:#0E1A14;
+    --backdrop-text:#33443B;
+    --backdrop-text-dim:#748379;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --canvas:#0B120E;
+      --canvas-2:#111C16;
+      --frame-ink:#050907;
+      --backdrop-text:#DCE7E0;
+      --backdrop-text-dim:#8CA096;
+    }
+  }
+  :root[data-theme="dark"]{
+    --canvas:#0B120E; --canvas-2:#111C16; --frame-ink:#050907;
+    --backdrop-text:#DCE7E0; --backdrop-text-dim:#8CA096;
+  }
+  :root[data-theme="light"]{
+    --canvas:#EEF3F0; --canvas-2:#E3ECE6; --frame-ink:#0E1A14;
+    --backdrop-text:#33443B; --backdrop-text-dim:#748379;
+  }
+
+  /* ============ App tokens — pulled from the real Ocass MUI/Flutter theme ============ */
+  :root{
+    --green:#0FAE58;
+    --green-dark:#0B8A45;
+    --green-soft:#E7F7EE;
+    --amber:#FFB020;
+    --amber-dark:#E89D14;
+    --amber-soft:#FFF6E5;
+    --blue:#3B82F6;
+    --blue-soft:#EAF2FE;
+    --purple:#7C5CFC;
+    --purple-soft:#F0ECFF;
+    --red:#E5484D;
+    --red-soft:#FDECEC;
+    --ink:#152019;
+    --ink-dim:#5B6B62;
+    --line:#E7ECE9;
+    --paper:#FFFFFF;
+    --app-bg:#F7F9F8;
+    --radius-lg:22px;
+    --radius-md:16px;
+    --radius-sm:10px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(720px 420px at 18% -8%, var(--canvas-2), transparent 60%),
+      radial-gradient(640px 480px at 100% 110%, var(--canvas-2), transparent 55%),
+      var(--canvas);
+    font-family:var(--font);
+    color:var(--backdrop-text);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:22px;
+    padding:40px 16px 56px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+  }
+
+  .intro{ max-width:520px; text-align:center; }
+  .intro .eyebrow{
+    font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--green); margin:0 0 8px;
+  }
+  .intro h1{
+    font-family:var(--font);
+    font-size:clamp(22px,4vw,28px); font-weight:800; letter-spacing:-0.01em;
+    color:var(--backdrop-text); margin:0 0 8px; text-wrap:balance;
+  }
+  .intro p{
+    font-size:14.5px; line-height:1.55; color:var(--backdrop-text-dim); margin:0;
+  }
+
+  /* ============ Device frame ============ */
+  .device{
+    position:relative;
+    width:390px; max-width:92vw;
+    padding:14px;
+    border-radius:46px;
+    background:linear-gradient(160deg,#20291F,var(--frame-ink) 60%);
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.45), 0 2px 0 rgba(255,255,255,0.04) inset;
+  }
+  .device::before{
+    /* speaker / camera pill */
+    content:"";
+    position:absolute; top:26px; left:50%; transform:translateX(-50%);
+    width:84px; height:20px; border-radius:12px; background:#000; z-index:5;
+  }
+  .screen-wrap{
+    position:relative;
+    width:100%; height:844px; max-height:80vh;
+    background:var(--app-bg);
+    border-radius:32px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    font-family:var(--font);
+    color:var(--ink);
+  }
+
+  /* ============ Status bar ============ */
+  .statusbar{
+    flex:0 0 auto;
+    height:34px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px;
+    font-size:13px; font-weight:700; letter-spacing:-0.01em;
+    background:var(--statusbar-bg, transparent);
+    color:var(--statusbar-fg, var(--ink));
+    position:relative; z-index:6;
+  }
+  .statusbar .icons{ display:flex; align-items:center; gap:5px; }
+
+  /* ============ Top bar (in-app) ============ */
+  .topbar{
+    flex:0 0 auto;
+    min-height:52px;
+    display:flex; align-items:center; gap:10px;
+    padding:6px 14px;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar h2{
+    flex:1; margin:0; font-size:17px; font-weight:800; letter-spacing:-0.01em;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .icon-btn{
+    all:unset; cursor:pointer;
+    width:36px; height:36px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink); position:relative;
+  }
+  .icon-btn:hover{ background:var(--line); }
+  .icon-btn:focus-visible{ outline:2px solid var(--green); outline-offset:1px; }
+  .cart-badge{
+    position:absolute; top:2px; right:2px;
+    min-width:16px; height:16px; padding:0 3px; border-radius:999px;
+    background:var(--red); color:#fff; font-size:10px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============ Scrollable body ============ */
+  .body{
+    flex:1 1 auto; overflow-y:auto; overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .body::-webkit-scrollbar{ display:none; }
+
+  /* ============ Bottom tab bar ============ */
+  .tabbar{
+    flex:0 0 auto;
+    display:grid; grid-template-columns:repeat(4,1fr);
+    background:var(--paper); border-top:1px solid var(--line);
+    padding:8px 4px calc(10px + env(safe-area-inset-bottom,0px));
+  }
+  .tab{
+    all:unset; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--ink-dim); font-size:11px; font-weight:600;
+    padding:4px 2px; border-radius:12px;
+  }
+  .tab:focus-visible{ outline:2px solid var(--green); outline-offset:-2px; }
+  .tab[aria-current="page"]{ color:var(--green); }
+  .tab svg{ width:22px; height:22px; }
+
+  /* ============ Shared bits ============ */
+  .section{ padding:18px 18px 4px; }
+  .section-title{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    margin:0 0 12px;
+  }
+  .section-title h3{ margin:0; font-size:16px; font-weight:800; letter-spacing:-0.01em; }
+  .section-title .link{ font-size:12.5px; font-weight:700; color:var(--green); }
+
+  .card{
+    background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:14px;
+  }
+
+  .btn{
+    all:unset; box-sizing:border-box; cursor:pointer; text-align:center;
+    font-family:var(--font); font-weight:800; font-size:14.5px;
+    padding:13px 18px; border-radius:999px;
+    transition:transform .12s ease, opacity .12s ease;
+  }
+  .btn:active{ transform:scale(0.97); }
+  .btn:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+  .btn-primary{ background:var(--green); color:#fff; }
+  .btn-primary:hover{ background:var(--green-dark); }
+  .btn-primary[disabled]{ opacity:.45; cursor:default; }
+  .btn-ghost-white{ background:#fff; color:var(--green); }
+  .btn-outline{ background:transparent; color:var(--ink); border:1.5px solid var(--line) !important; box-shadow:0 0 0 1.5px var(--line) inset; }
+  .btn-outline.active{ color:var(--green); box-shadow:0 0 0 1.5px var(--green) inset; }
+  .btn-text{ background:transparent; color:var(--ink-dim); font-weight:700; padding:8px 4px; }
+  .btn-text.danger{ color:var(--red); }
+  .btn-block{ display:block; width:100%; }
+  .btn-sm{ padding:8px 14px; font-size:12.5px; }
+
+  .chip{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:999px;
+  }
+  .chip-pending{ background:var(--amber-soft); color:#8A5A00; }
+  .chip-confirmed, .chip-progress{ background:var(--blue-soft); color:#1D4ED8; }
+  .chip-done{ background:var(--green-soft); color:var(--green-dark); }
+  .chip-cancelled{ background:var(--red-soft); color:#B91C1C; }
+
+  .divider{ height:1px; background:var(--line); margin:14px 0; border:none; }
+
+  /* ============ Hero (home) ============ */
+  .hero{
+    background:linear-gradient(165deg,var(--green) 0%,var(--green-dark) 100%);
+    border-radius:0 0 34px 34px;
+    padding:14px 18px 30px;
+    color:#fff;
+  }
+  .locpill{
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,0.18); border-radius:999px; padding:8px 14px;
+    font-size:13px; font-weight:700; margin-bottom:18px;
+  }
+  .modgrid{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:20px 6px;
+  }
+  .modtile{ all:unset; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .modtile .bubble{
+    width:56px; height:56px; border-radius:50%;
+    background:#fff; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 14px rgba(0,0,0,0.12);
+  }
+  .modtile .lbl{
+    background:#fff; color:var(--ink); font-size:11px; font-weight:700;
+    padding:3px 10px; border-radius:999px; margin-top:-10px;
+  }
+
+  .catgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .cattile{ all:unset; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
+  .cattile .bubble{ width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .cattile .lbl{ font-size:11.5px; font-weight:700; color:var(--ink); }
+
+  .hscroll{ display:flex; gap:12px; overflow-x:auto; padding:2px 18px 10px; scrollbar-width:none; }
+  .hscroll::-webkit-scrollbar{ display:none; }
+  .pcard{
+    all:unset; cursor:pointer;
+    flex:0 0 148px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md);
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .pcard .thumb{ position:relative; height:110px; }
+  .pcard .thumb .badge{
+    position:absolute; top:7px; left:7px; background:var(--green); color:#fff;
+    font-size:10px; font-weight:800; padding:3px 7px; border-radius:999px;
+  }
+  .pcard .thumb .heart{
+    position:absolute; top:7px; right:7px; width:22px; height:22px; border-radius:50%;
+    background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center;
+  }
+  .pcard .meta{ padding:9px 10px 12px; display:flex; flex-direction:column; gap:2px; }
+  .pcard .name{ font-size:12.5px; font-weight:700; line-height:1.25; }
+  .pcard .store{ font-size:10.5px; font-weight:700; color:var(--green); }
+  .pcard .price{ font-size:12.5px; font-weight:800; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .pcard .price s{ color:var(--ink-dim); font-weight:600; margin-left:5px; font-size:11px; }
+
+  .pgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 18px 18px; }
+  .pgrid .pcard{ flex:none; width:100%; }
+
+  .thumb-art{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px;
+  }
+
+  /* ============ Category / product / cart / lists ============ */
+  .catbody{ display:flex; height:100%; }
+  .sidebar{
+    flex:0 0 96px; background:#F1F4F2; border-right:1px solid var(--line);
+    padding:10px 0; overflow-y:auto;
+  }
+  .sidebar button{
+    all:unset; cursor:pointer; display:block; width:100%;
+    padding:12px 10px; font-size:12px; font-weight:700; color:var(--ink-dim);
+    text-align:center; border-left:3px solid transparent;
+  }
+  .sidebar button[aria-current="true"]{ color:var(--green); background:#fff; border-left-color:var(--green); }
+  .catmain{ flex:1; overflow-y:auto; }
+  .tabs2{ display:flex; border-bottom:1px solid var(--line); }
+  .tabs2 button{
+    all:unset; cursor:pointer; flex:1; text-align:center; padding:12px 4px;
+    font-size:13px; font-weight:700; color:var(--ink-dim); border-bottom:2.5px solid transparent;
+  }
+  .tabs2 button[aria-current="true"]{ color:var(--green); border-color:var(--green); }
+
+  .listrow{
+    display:flex; align-items:center; gap:12px; padding:12px 18px;
+    border-bottom:1px solid var(--line);
+  }
+  .listrow .avatar{
+    width:44px; height:44px; border-radius:50%; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .listrow .txt{ flex:1; min-width:0; }
+  .listrow .txt .t1{ font-weight:700; font-size:13.5px; }
+  .listrow .txt .t2{ font-size:12px; color:var(--ink-dim); }
+  .listrow .chevron{ color:var(--ink-dim); }
+
+  /* product detail */
+  .pdimgs{ display:flex; gap:8px; padding:14px 18px 0; }
+  .pdimgs .main{ flex:1; height:230px; border-radius:var(--radius-md); overflow:hidden; }
+  .pdinfo{ padding:16px 18px 0; }
+  .pdinfo .store{ color:var(--green); font-weight:700; font-size:12.5px; }
+  .pdinfo h1{ font-size:20px; font-weight:800; margin:4px 0 8px; letter-spacing:-0.01em; text-wrap:balance; }
+  .stars{ color:var(--amber); font-size:13px; display:flex; align-items:center; gap:5px; }
+  .stars span{ color:var(--ink-dim); font-weight:700; }
+  .priceline{ display:flex; align-items:baseline; gap:8px; margin-top:12px; }
+  .priceline .now{ font-size:21px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .priceline .was{ font-size:13px; color:var(--ink-dim); text-decoration:line-through; font-variant-numeric:tabular-nums; }
+  .priceline .off{ background:var(--green); color:#fff; font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; }
+  .stock{ font-size:12.5px; color:var(--ink-dim); margin-top:6px; }
+  .prose{ font-size:13.5px; line-height:1.6; color:var(--ink); }
+
+  .buybar{
+    flex:0 0 auto; display:flex; align-items:center; gap:10px;
+    padding:12px 18px; border-top:1px solid var(--line); background:var(--paper);
+  }
+  .stepper{ display:flex; align-items:center; gap:0; border:1.5px solid var(--line); border-radius:999px; overflow:hidden; }
+  .stepper button{ all:unset; cursor:pointer; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-weight:800; }
+  .stepper .n{ width:26px; text-align:center; font-weight:800; font-variant-numeric:tabular-nums; }
+
+  .cartrow{ display:flex; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line); }
+  .cartrow .thumb{ width:56px; height:56px; border-radius:var(--radius-sm); flex:0 0 auto; }
+  .cartrow .info{ flex:1; }
+  .cartrow .info .n{ font-weight:700; font-size:13.5px; }
+  .cartrow .info .p{ font-weight:800; font-size:13px; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .cartrow .ctrl{ display:flex; align-items:center; gap:10px; margin-top:8px; }
+  .cartrow .trash{ all:unset; cursor:pointer; color:var(--red); align-self:flex-start; margin-left:auto; }
+
+  .sumrow{ display:flex; justify-content:space-between; align-items:center; padding:12px 18px; }
+  .sumrow .k{ color:var(--ink-dim); font-size:13.5px; }
+  .sumrow .v{ font-weight:800; font-size:15px; font-variant-numeric:tabular-nums; }
+
+  .empty{ text-align:center; padding:60px 30px; color:var(--ink-dim); }
+  .empty .glyph{ font-size:34px; margin-bottom:10px; }
+  .empty p{ font-size:13.5px; line-height:1.5; margin:0 0 16px; }
+
+  /* profile */
+  .pf-head{ display:flex; align-items:center; gap:14px; padding:20px 18px 8px; }
+  .pf-head .av{
+    width:56px; height:56px; border-radius:50%; background:var(--green); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px;
+  }
+  .pf-head .nm{ font-weight:800; font-size:16px; }
+  .pf-head .ph{ color:var(--ink-dim); font-size:13px; }
+
+  .work-title{ font-size:12.5px; font-weight:800; color:var(--ink-dim); letter-spacing:0.02em; text-transform:uppercase; padding:16px 18px 8px; }
+  .rolewrap{ padding:0 18px 6px; display:flex; gap:8px; flex-wrap:wrap; }
+
+  .langwrap{ padding:18px; }
+  .lang-lbl{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--ink-dim); margin-bottom:8px; }
+  .segwrap{ display:flex; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .segwrap button{
+    all:unset; cursor:pointer; flex:1; text-align:center; padding:10px; font-size:13px; font-weight:700; color:var(--ink-dim);
+  }
+  .segwrap button[aria-pressed="true"]{ background:#EFF2F0; color:var(--ink); }
+
+  /* wallet */
+  .walletcard{
+    margin:16px 18px; padding:22px; border-radius:20px; color:#fff;
+    background:linear-gradient(135deg,var(--green) 0%,var(--green-dark) 100%);
+  }
+  .walletcard .lbl{ display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; opacity:.85; }
+  .walletcard .amt{ font-size:30px; font-weight:800; margin:8px 0 18px; font-variant-numeric:tabular-nums; }
+  .txrow{ display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line); }
+  .txrow .ic{ width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .txrow .info{ flex:1; }
+  .txrow .info .n{ font-weight:700; font-size:13px; }
+  .txrow .info .d{ font-size:11.5px; color:var(--ink-dim); }
+  .txrow .amt{ font-weight:800; font-size:13px; font-variant-numeric:tabular-nums; }
+
+  /* vendor / dispatch */
+  .storecard{ margin:16px 18px; padding:16px; border:1px solid var(--line); border-radius:var(--radius-md); display:flex; gap:14px; align-items:center; }
+  .storecard .logo{ width:52px; height:52px; border-radius:50%; background:var(--green-soft); display:flex; align-items:center; justify-content:center; font-size:22px; flex:0 0 auto; }
+  .storecard .n{ font-weight:800; font-size:15px; }
+  .storecard .a{ font-size:12px; color:var(--ink-dim); }
+  .stack{ display:flex; flex-direction:column; gap:10px; padding:0 18px 18px; }
+
+  .jobcard{ margin:0 18px 12px; padding:13px; border:1px solid var(--line); border-radius:var(--radius-md); }
+  .jobcard .route{ font-weight:700; font-size:13px; }
+  .jobcard .row{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+  .jobcard .est{ font-size:12px; color:var(--ink-dim); }
+
+  /* ============ Forms (delivery/ride/anando post/topup) ============ */
+  .formwrap{ padding:18px; }
+  .formwrap.tinted{ background:linear-gradient(180deg,var(--amber-soft) 0%,transparent 100%); }
+  .formwrap.tinted-blue{ background:linear-gradient(180deg,var(--blue-soft) 0%,transparent 100%); }
+  .formwrap.tinted-pink{ background:linear-gradient(180deg,#FDF1F7 0%,transparent 100%); }
+  .formheading{ font-weight:800; font-size:16px; margin:0 0 16px; }
+  .field{ margin-bottom:14px; }
+  .field .rowfield{ display:flex; gap:8px; align-items:flex-end; }
+  .field label{ display:block; font-size:11.5px; font-weight:700; color:var(--ink-dim); margin-bottom:6px; }
+  .field input, .field textarea{
+    width:100%; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px;
+    font-size:14px; font-family:var(--font); color:var(--ink); background:var(--paper); resize:none;
+  }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--green); }
+  .locbtn{
+    all:unset; cursor:pointer; flex:0 0 auto; width:46px; height:46px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center; background:var(--amber-soft); color:var(--amber-dark);
+  }
+  .locbtn[aria-pressed="true"]{ background:var(--amber); color:#fff; }
+  .locbtn.blue{ background:var(--blue-soft); color:#1D4ED8; }
+  .locbtn.blue[aria-pressed="true"]{ background:var(--blue); color:#fff; }
+  .chiprow{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .chipbtn{
+    all:unset; cursor:pointer; padding:9px 15px; border-radius:999px; border:1.5px solid var(--line);
+    font-size:12.5px; font-weight:700; color:var(--ink);
+  }
+  .chipbtn[aria-pressed="true"]{ background:var(--green); border-color:var(--green); color:#fff; }
+  .chipbtn.blue[aria-pressed="true"]{ background:var(--blue); border-color:var(--blue); }
+  .switchrow{ display:flex; align-items:center; justify-content:space-between; padding:6px 0 14px; }
+  .switchrow .lbl2{ font-size:13.5px; font-weight:700; }
+  .switchtoggle{
+    all:unset; cursor:pointer; width:44px; height:26px; border-radius:999px; background:var(--line);
+    position:relative; transition:background .15s; flex:0 0 auto;
+  }
+  .switchtoggle[aria-pressed="true"]{ background:var(--green); }
+  .switchtoggle::after{
+    content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
+    background:#fff; transition:transform .15s; box-shadow:0 1px 3px rgba(0,0,0,0.2);
+  }
+  .switchtoggle[aria-pressed="true"]::after{ transform:translateX(18px); }
+  .reqcard{ margin:0 18px 12px; padding:13px; border:1px solid var(--line); border-radius:var(--radius-md); }
+  .reqcard .route{ font-weight:700; font-size:13px; }
+  .reqcard .row{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+
+  /* ============ Restaurant ============ */
+  .restrow{ display:flex; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .restrow .logo{ width:56px; height:56px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:26px; flex:0 0 auto; }
+  .restrow .info{ flex:1; min-width:0; }
+  .restrow .info .n{ font-weight:800; font-size:14px; }
+  .restrow .info .c{ font-size:12px; color:var(--ink-dim); margin-top:2px; }
+  .menurow{ display:flex; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line); align-items:center; }
+  .menurow .art{ width:50px; height:50px; border-radius:12px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .menurow .info{ flex:1; min-width:0; }
+  .menurow .info .n{ font-weight:700; font-size:13.5px; }
+  .menurow .info .p{ font-size:12.5px; font-weight:800; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .addbtn{
+    all:unset; cursor:pointer; padding:7px 14px; border-radius:999px; border:1.5px solid var(--green);
+    color:var(--green); font-weight:800; font-size:11.5px;
+  }
+
+  /* ============ Insurance ============ */
+  .plancard{ margin:0 18px 12px; padding:15px; border:1px solid var(--line); border-radius:var(--radius-md); }
+  .plancard .n{ font-weight:800; font-size:14px; }
+  .plancard .prov{ font-size:11.5px; color:var(--ink-dim); margin-top:2px; }
+  .plancard .row{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+  .plancard .price{ font-weight:800; font-size:13.5px; }
+  .plancard .cov{ font-size:11px; color:var(--ink-dim); }
+
+  /* ============ Notifications ============ */
+  .notifrow{ display:flex; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line); }
+  .notifrow.unread{ background:#FDF1F7; }
+  .notifrow .ic{ width:40px; height:40px; border-radius:50%; background:#FDF1F7; color:#EC4899; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .notifrow .info{ flex:1; min-width:0; }
+  .notifrow .info .n{ font-weight:700; font-size:13.5px; }
+  .notifrow .info .b{ font-size:12px; color:var(--ink-dim); margin-top:2px; }
+  .notifrow .info .d{ font-size:11px; color:#9AA6A0; margin-top:4px; }
+  .notifrow .dot{ width:8px; height:8px; border-radius:50%; background:#EC4899; flex:0 0 auto; margin-top:6px; }
+  .bell-btn{ position:relative; }
+  .bell-badge{
+    position:absolute; top:-2px; right:-2px; min-width:16px; height:16px; padding:0 3px; border-radius:999px;
+    background:var(--red); color:#fff; font-size:9.5px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--green);
+  }
+
+  /* toast */
+  .toastwrap{ position:absolute; left:0; right:0; bottom:78px; display:flex; justify-content:center; z-index:20; pointer-events:none; }
+  .toast{
+    background:var(--ink); color:#fff; font-size:12.5px; font-weight:700;
+    padding:10px 16px; border-radius:999px; box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    opacity:0; transform:translateY(10px); transition:opacity .22s ease, transform .22s ease;
+    max-width:82%; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+
+  .fade-enter{ animation:fadein .18s ease both; }
+  @keyframes fadein{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
+  .hint{ margin-top:4px; font-size:12.5px; color:var(--backdrop-text-dim); }
+  .hint kbd{ font-family:inherit; }
+</style>
+
+<div class="intro">
+  <p class="eyebrow" data-i18n="intro.eyebrow">Maquette interactive</p>
+  <h1 data-i18n="intro.title">Ocass — l'app en un coup d'œil</h1>
+  <p data-i18n="intro.body">Un aperçu cliquable des écrans réels de l'app : parcourez les modules, ajoutez un article au panier, changez de rôle depuis le profil, ou passez l'app en anglais.</p>
+</div>
+
+<div class="device">
+  <div class="screen-wrap" id="screen">
+    <div class="statusbar">
+      <span id="clock">9:41</span>
+      <span class="icons">
+        <svg width="16" height="11" viewBox="0 0 18 12" fill="none"><rect x="0" y="7" width="3" height="5" rx="0.5" fill="currentColor"/><rect x="5" y="5" width="3" height="7" rx="0.5" fill="currentColor"/><rect x="10" y="2" width="3" height="10" rx="0.5" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="0.5" fill="currentColor"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M8 10.5a1.3 1.3 0 100-2.6 1.3 1.3 0 000 2.6zM4.7 6.9a4.8 4.8 0 016.6 0l-1.3 1.3a2.9 2.9 0 00-4 0L4.7 6.9zM2.2 4.4a8.3 8.3 0 0111.6 0L12.5 5.7a6.4 6.4 0 00-9 0L2.2 4.4z" fill="currentColor"/></svg>
+        <svg width="23" height="11" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="20" height="11" rx="2.5" stroke="currentColor"/><rect x="2" y="2" width="15" height="8" rx="1.3" fill="currentColor"/><rect x="22" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg>
+      </span>
+    </div>
+    <div id="topbar-slot"></div>
+    <div class="body" id="body"></div>
+    <div id="tabbar-slot"></div>
+    <div class="toastwrap"><div class="toast" id="toast"></div></div>
+  </div>
+</div>
+
+<p class="hint" data-i18n="intro.hint">Tout est en local dans la page — rien n'est envoyé à un serveur.</p>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================= i18n ============================= */
+  var STR = {
+    fr: {
+      "intro.eyebrow":"Maquette interactive",
+      "intro.title":"Ocass — l'app en un coup d'œil",
+      "intro.body":"Un aperçu cliquable des écrans réels de l'app : parcourez les modules, ajoutez un article au panier, changez de rôle depuis le profil, ou passez l'app en anglais.",
+      "intro.hint":"Tout est en local dans la page — rien n'est envoyé à un serveur.",
+      "nav.home":"Accueil","nav.discover":"Découvrir","nav.orders":"Commandes","nav.profile":"Profil",
+      "home.location":"Plateau, Dakar",
+      "home.mod.ecommerce":"Boutique","home.mod.restaurant":"Repas","home.mod.delivery":"Livraison","home.mod.ride-sharing":"Courses",
+      "home.mod.insurance":"Assurance","home.mod.airtime":"Crédit","home.mod.bill-payment":"Factures",
+      "home.explore":"Explorer Ocass","home.popular":"Populaire en ce moment",
+      "cat.beauty":"Beauté","cat.electronics":"Électronique","cat.footwear":"Chaussures","cat.groceries":"Épicerie",
+      "discover.title":"Boutique","discover.subtitle":"Choisissez une catégorie",
+      "cat.all":"Tout","cat.articles":"Articles","cat.stores":"Boutiques",
+      "product.title":"Produit","product.desc":"Description","product.reviews":"Avis",
+      "product.addToCart":"Ajouter au panier","product.inStock":"en stock",
+      "toast.added":"Ajouté au panier",
+      "cart.title":"Panier","cart.subtotal":"Sous-total","cart.checkout":"Commander","cart.empty.title":"Votre panier est vide",
+      "cart.empty.body":"Parcourez la boutique pour trouver votre bonheur.","cart.empty.cta":"Découvrir la boutique",
+      "toast.ordered":"Commande passée ! Total : ",
+      "orders.title":"Vos commandes",
+      "orders.o1":"Commande #7b3c1a9","orders.o2":"Commande #55f0ae2","orders.o3":"Commande #a12dd90",
+      "status.pending":"En attente","status.confirmed":"Confirmée","status.delivered":"Livrée","status.cancelled":"Annulée",
+      "profile.notSignedIn":"Vous n'êtes pas connecté","profile.defaultName":"Utilisateur Ocass",
+      "profile.links.wallet":"Portefeuille","profile.links.orders":"Mes commandes","profile.links.food":"Mes commandes de repas",
+      "profile.links.wishlist":"Ma liste de souhaits","profile.links.delivery":"Demandes de livraison","profile.links.rides":"Mes courses",
+      "profile.links.insurance":"Mes polices d'assurance","profile.links.topup":"Recharges et factures",
+      "profile.work":"Travailler avec Ocass",
+      "profile.becomeAgent":"Devenir livreur","profile.becomeRider":"Devenir chauffeur","profile.becomeVendor":"Devenir vendeur",
+      "profile.agentDash":"Tableau de bord livreur","profile.driverDash":"Tableau de bord chauffeur","profile.vendorDash":"Tableau de bord vendeur",
+      "profile.stopGig":"Repasser en client","profile.logout":"Se déconnecter",
+      "lang.title":"Langue","lang.fr":"Français","lang.en":"English",
+      "wallet.title":"Portefeuille","wallet.balance":"Solde du portefeuille","wallet.topup":"Recharger",
+      "wallet.history":"Historique des transactions",
+      "wallet.tx1":"Gains livraison","wallet.tx2":"Commande Ocass #7b3c1a9","wallet.tx3":"Recharge portefeuille",
+      "vendor.title":"Tableau de bord vendeur","vendor.manageProducts":"Gérer les produits","vendor.viewOrders":"Voir les commandes",
+      "vendor.store":"Boutique Awa","vendor.address":"Plateau, Dakar",
+      "agent.title":"Livreur","agent.available":"Disponibles","agent.mine":"Mes courses","agent.accept":"Accepter",
+      "agent.job1":"Plateau, Dakar → Almadies","agent.job2":"Médina → Point E","agent.estimate":"Estimation : ",
+      "driver.title":"Chauffeur","driver.available":"Disponibles","driver.mine":"Mes courses","driver.accept":"Accepter",
+      "driver.job1":"Ngor → Aéroport AIBD","driver.job2":"Plateau → Yoff","driver.estimate":"Estimation : ",
+      "home.mod.anando":"Anando",
+      "restaurant.title":"Restaurants","restaurant.add":"Ajouter","restaurant.order":"Commander",
+      "delivery.title":"Livraison","delivery.formTitle":"Nouvelle demande","delivery.from":"Adresse de départ","delivery.fromPh":"Ex. Plateau, Dakar","delivery.to":"Adresse d'arrivée","delivery.toPh":"Ex. Almadies",
+      "delivery.pkgType":"Type de colis","delivery.pkg.document":"Document","delivery.pkg.package":"Colis","delivery.pkg.food":"Repas",
+      "delivery.submit":"Envoyer la demande","delivery.sent":"Demande envoyée","delivery.myRequests":"Mes demandes",
+      "ride.title":"Courses","ride.formTitle":"Réserver une course","ride.from":"Point de départ","ride.to":"Destination",
+      "ride.vehicleType":"Véhicule","ride.vehicle.moto":"Moto","ride.vehicle.car":"Voiture",
+      "ride.submit":"Rechercher un chauffeur","ride.sent":"Recherche d'un chauffeur…","ride.myRequests":"Mes courses",
+      "insurance.title":"Assurance","insurance.subscribe":"Souscrire","insurance.activated":"Police activée",
+      "topup.title":"Recharge & Factures","topup.tabs.airtime":"Crédit","topup.tabs.bill":"Factures",
+      "topup.phone":"Numéro de téléphone","topup.operator":"Opérateur","topup.amount":"Montant",
+      "topup.submitAirtime":"Recharger","topup.airtimeDone":"Crédit rechargé",
+      "topup.biller":"Fournisseur","topup.account":"Numéro de compte","topup.submitBill":"Payer la facture","topup.billDone":"Facture payée",
+      "topup.biller.senelec":"Senelec (Électricité)","topup.biller.sde":"SDE (Eau)","topup.biller.canal":"Canal+ (TV)",
+      "anando.tabs.available":"Disponibles","anando.tabs.mine":"Mes trajets","anando.tabs.bookings":"Mes réservations",
+      "anando.postRide":"Publier un trajet","anando.postTitle":"Publier un trajet","anando.instant":"Départ immédiat",
+      "anando.origin":"Départ","anando.destination":"Destination","anando.departureAt":"Heure de départ","anando.departureAtPh":"Ex. Aujourd'hui 18h30",
+      "anando.instantSwitch":"Disponibilité immédiate (façon BlaBlaCar)","anando.seats":"Places proposées","anando.price":"Prix par place (CFA)",
+      "anando.note":"Note (optionnel)","anando.notePh":"Ex. Petit coffre, pas d'animaux","anando.publish":"Publier le trajet","anando.published":"Trajet publié",
+      "anando.seatsLeft_one":"place restante","anando.seatsLeft_other":"places restantes",
+      "anando.bookTitle":"Réserver une place","anando.seatsToBook":"Places à réserver","anando.paymentMethod":"Moyen de paiement",
+      "anando.pay.CASH":"Espèces","anando.pay.WALLET":"Portefeuille","anando.pay.PAYDUNYA":"PayDunya",
+      "anando.total":"Total","anando.confirmBooking":"Confirmer la réservation","anando.booked":"Place réservée !",
+      "anando.cancel":"Annuler","anando.driver":"Conducteur",
+      "anando.status.OPEN":"Ouvert","anando.status.FULL":"Complet","anando.status.CANCELLED":"Annulé","anando.status.DEPARTED":"Parti",
+      "anando.empty":"Aucun trajet pour le moment.",
+      "notifications.title":"Notifications","notifications.markAllRead":"Tout marquer comme lu","notifications.empty":"Aucune notification",
+      "back":"Retour"
+    },
+    en: {
+      "intro.eyebrow":"Interactive mock",
+      "intro.title":"Ocass — the app at a glance",
+      "intro.body":"A clickable preview of the real app's screens: browse modules, add something to your cart, switch roles from the profile page, or flip the app to French.",
+      "intro.hint":"Everything runs locally on this page — nothing is sent to a server.",
+      "nav.home":"Home","nav.discover":"Discover","nav.orders":"Orders","nav.profile":"Profile",
+      "home.location":"Plateau, Dakar",
+      "home.mod.ecommerce":"Shop","home.mod.restaurant":"Food","home.mod.delivery":"Delivery","home.mod.ride-sharing":"Rides",
+      "home.mod.insurance":"Insurance","home.mod.airtime":"Airtime","home.mod.bill-payment":"Bills",
+      "home.explore":"Explore Ocass","home.popular":"Popular right now",
+      "cat.beauty":"Beauty","cat.electronics":"Electronics","cat.footwear":"Footwear","cat.groceries":"Groceries",
+      "discover.title":"Shop","discover.subtitle":"Pick a category",
+      "cat.all":"All","cat.articles":"Items","cat.stores":"Stores",
+      "product.title":"Product","product.desc":"Description","product.reviews":"Reviews",
+      "product.addToCart":"Add to cart","product.inStock":"in stock",
+      "toast.added":"Added to cart",
+      "cart.title":"Your cart","cart.subtotal":"Subtotal","cart.checkout":"Checkout","cart.empty.title":"Your cart is empty",
+      "cart.empty.body":"Browse the shop to find something you like.","cart.empty.cta":"Browse the shop",
+      "toast.ordered":"Order placed! Total: ",
+      "orders.title":"Your orders",
+      "orders.o1":"Order #7b3c1a9","orders.o2":"Order #55f0ae2","orders.o3":"Order #a12dd90",
+      "status.pending":"Pending","status.confirmed":"Confirmed","status.delivered":"Delivered","status.cancelled":"Cancelled",
+      "profile.notSignedIn":"You're not signed in","profile.defaultName":"Ocass user",
+      "profile.links.wallet":"Wallet","profile.links.orders":"My orders","profile.links.food":"My food orders",
+      "profile.links.wishlist":"My wishlist","profile.links.delivery":"Delivery requests","profile.links.rides":"My rides",
+      "profile.links.insurance":"My insurance policies","profile.links.topup":"Top-ups & bills",
+      "profile.work":"Work with Ocass",
+      "profile.becomeAgent":"Become a delivery agent","profile.becomeRider":"Become a rider","profile.becomeVendor":"Become a vendor",
+      "profile.agentDash":"Delivery agent dashboard","profile.driverDash":"Driver dashboard","profile.vendorDash":"Vendor dashboard",
+      "profile.stopGig":"Switch back to customer","profile.logout":"Log out",
+      "lang.title":"Language","lang.fr":"Français","lang.en":"English",
+      "wallet.title":"Wallet","wallet.balance":"Wallet balance","wallet.topup":"Top up wallet",
+      "wallet.history":"Transaction history",
+      "wallet.tx1":"Delivery earnings","wallet.tx2":"Ocass order #7b3c1a9","wallet.tx3":"Wallet top-up",
+      "vendor.title":"Vendor dashboard","vendor.manageProducts":"Manage products","vendor.viewOrders":"View orders",
+      "vendor.store":"Awa's Shop","vendor.address":"Plateau, Dakar",
+      "agent.title":"Delivery agent","agent.available":"Available","agent.mine":"My jobs","agent.accept":"Accept",
+      "agent.job1":"Plateau, Dakar → Almadies","agent.job2":"Medina → Point E","agent.estimate":"Estimate: ",
+      "driver.title":"Driver","driver.available":"Available","driver.mine":"My rides","driver.accept":"Accept",
+      "driver.job1":"Ngor → AIBD Airport","driver.job2":"Plateau → Yoff","driver.estimate":"Estimate: ",
+      "home.mod.anando":"Anando",
+      "restaurant.title":"Restaurants","restaurant.add":"Add","restaurant.order":"Order",
+      "delivery.title":"Delivery","delivery.formTitle":"New request","delivery.from":"Pickup address","delivery.fromPh":"e.g. Plateau, Dakar","delivery.to":"Drop-off address","delivery.toPh":"e.g. Almadies",
+      "delivery.pkgType":"Package type","delivery.pkg.document":"Document","delivery.pkg.package":"Package","delivery.pkg.food":"Food",
+      "delivery.submit":"Send request","delivery.sent":"Request sent","delivery.myRequests":"My requests",
+      "ride.title":"Rides","ride.formTitle":"Book a ride","ride.from":"Pickup point","ride.to":"Destination",
+      "ride.vehicleType":"Vehicle","ride.vehicle.moto":"Motorbike","ride.vehicle.car":"Car",
+      "ride.submit":"Find a driver","ride.sent":"Finding a driver…","ride.myRequests":"My rides",
+      "insurance.title":"Insurance","insurance.subscribe":"Subscribe","insurance.activated":"Policy activated",
+      "topup.title":"Top-up & Bills","topup.tabs.airtime":"Airtime","topup.tabs.bill":"Bills",
+      "topup.phone":"Phone number","topup.operator":"Operator","topup.amount":"Amount",
+      "topup.submitAirtime":"Top up","topup.airtimeDone":"Airtime topped up",
+      "topup.biller":"Biller","topup.account":"Account number","topup.submitBill":"Pay bill","topup.billDone":"Bill paid",
+      "topup.biller.senelec":"Senelec (Electricity)","topup.biller.sde":"SDE (Water)","topup.biller.canal":"Canal+ (TV)",
+      "anando.tabs.available":"Available","anando.tabs.mine":"My rides","anando.tabs.bookings":"My bookings",
+      "anando.postRide":"Post a ride","anando.postTitle":"Post a ride","anando.instant":"Leaving now",
+      "anando.origin":"Origin","anando.destination":"Destination","anando.departureAt":"Departure time","anando.departureAtPh":"e.g. Today 6:30 PM",
+      "anando.instantSwitch":"Instant availability (BlaBlaCar-style)","anando.seats":"Seats offered","anando.price":"Price per seat (CFA)",
+      "anando.note":"Note (optional)","anando.notePh":"e.g. Small trunk, no pets","anando.publish":"Post ride","anando.published":"Ride posted",
+      "anando.seatsLeft_one":"seat left","anando.seatsLeft_other":"seats left",
+      "anando.bookTitle":"Book a seat","anando.seatsToBook":"Seats to book","anando.paymentMethod":"Payment method",
+      "anando.pay.CASH":"Cash","anando.pay.WALLET":"Wallet","anando.pay.PAYDUNYA":"PayDunya",
+      "anando.total":"Total","anando.confirmBooking":"Confirm booking","anando.booked":"Seat booked!",
+      "anando.cancel":"Cancel","anando.driver":"Driver",
+      "anando.status.OPEN":"Open","anando.status.FULL":"Full","anando.status.CANCELLED":"Cancelled","anando.status.DEPARTED":"Departed",
+      "anando.empty":"No rides yet.",
+      "notifications.title":"Notifications","notifications.markAllRead":"Mark all read","notifications.empty":"No notifications",
+      "back":"Back"
+    }
+  };
+
+  /* ============================= data ============================= */
+  var CATS = [
+    {slug:"beauty", key:"cat.beauty", icon:"🌸", bg:"var(--red-soft)"},
+    {slug:"electronics", key:"cat.electronics", icon:"🎧", bg:"var(--blue-soft)"},
+    {slug:"footwear", key:"cat.footwear", icon:"👟", bg:"var(--green-soft)"},
+    {slug:"groceries", key:"cat.groceries", icon:"🧺", bg:"var(--amber-soft)"}
+  ];
+
+  var PRODUCTS = [
+    {id:"p1", cat:"beauty", name:{fr:"Savon Karité Artisanal",en:"Handmade Shea Soap"}, store:"Boutique Awa", price:3000, discount:2400, icon:"🧼", desc:{fr:"Savon 100% naturel au karité du Sénégal, fabriqué à la main à Dakar.",en:"100% natural Senegalese shea soap, handmade in Dakar."}, rating:4.6, reviews:12, stock:20},
+    {id:"p2", cat:"electronics", name:{fr:"Écouteurs sans fil X200",en:"X200 Wireless Earbuds"}, store:"Ocass Tech", price:15000, icon:"🎧", desc:{fr:"Écouteurs Bluetooth avec réduction de bruit et 20h d'autonomie.",en:"Bluetooth earbuds with noise cancelling and 20h battery life."}, rating:4.2, reviews:34, stock:8},
+    {id:"p3", cat:"footwear", name:{fr:"Baskets Running Pro",en:"Running Pro Sneakers"}, store:"Sport Dakar", price:25000, discount:19900, icon:"👟", desc:{fr:"Baskets légères à mesh respirant, idéales pour la course en ville.",en:"Lightweight breathable-mesh sneakers, great for city running."}, rating:4.4, reviews:21, stock:15},
+    {id:"p4", cat:"groceries", name:{fr:"Riz Parfumé 5kg",en:"Fragrant Rice 5kg"}, store:"Épicerie Médina", price:4500, icon:"🍚", desc:{fr:"Riz parfumé importé, sac de 5kg, idéal pour le thiéboudienne.",en:"Imported fragrant rice, 5kg bag, great for thiéboudienne."}, rating:4.8, reviews:57, stock:40},
+    {id:"p5", cat:"beauty", name:{fr:"Huile de Karité Pure",en:"Pure Shea Oil"}, store:"Boutique Awa", price:1500, icon:"🫙", desc:{fr:"Huile de karité pure pressée à froid, pour peau et cheveux.",en:"Cold-pressed pure shea oil, for skin and hair."}, rating:4.5, reviews:9, stock:30},
+    {id:"p6", cat:"electronics", name:{fr:"Chargeur Solaire 10W",en:"10W Solar Charger"}, store:"Ocass Tech", price:9000, discount:7200, icon:"🔋", desc:{fr:"Chargeur solaire portable, deux ports USB, résistant à la poussière.",en:"Portable solar charger, dual USB ports, dust resistant."}, rating:4.0, reviews:6, stock:11}
+  ];
+
+  var RESTAURANTS = [
+    {id:"r1", name:"Le Baobab Gourmand", cuisine:{fr:"Sénégalais",en:"Senegalese"}, icon:"🍛", bg:"var(--amber-soft)", rating:4.6, eta:"25-35 min", menu:[
+      {id:"m1", name:{fr:"Thiéboudienne",en:"Thiéboudienne"}, price:3500, icon:"🍚"},
+      {id:"m2", name:{fr:"Yassa Poulet",en:"Chicken Yassa"}, price:3000, icon:"🍗"},
+      {id:"m3", name:{fr:"Jus de Bissap",en:"Bissap Juice"}, price:800, icon:"🥤"}
+    ]},
+    {id:"r2", name:"Pizza Dakar", cuisine:{fr:"Italien",en:"Italian"}, icon:"🍕", bg:"var(--red-soft)", rating:4.3, eta:"20-30 min", menu:[
+      {id:"m4", name:{fr:"Pizza Margherita",en:"Margherita Pizza"}, price:5500, icon:"🍕"},
+      {id:"m5", name:{fr:"Tiramisu",en:"Tiramisu"}, price:2000, icon:"🍰"}
+    ]},
+    {id:"r3", name:"Fast Grill Almadies", cuisine:{fr:"Fast-food",en:"Fast food"}, icon:"🍔", bg:"var(--blue-soft)", rating:4.1, eta:"15-25 min", menu:[
+      {id:"m6", name:{fr:"Burger Classique",en:"Classic Burger"}, price:2800, icon:"🍔"},
+      {id:"m7", name:{fr:"Frites",en:"Fries"}, price:1000, icon:"🍟"}
+    ]}
+  ];
+
+  var INSURANCE_PLANS = [
+    {id:"i1", name:{fr:"Assurance Auto Tiers",en:"Auto Third-Party"}, provider:"Sen Assurance", price:15000, period:{fr:"/mois",en:"/mo"}, cover:{fr:"Dommages tiers, vol, incendie",en:"Third-party damage, theft, fire"}, icon:"🚗"},
+    {id:"i2", name:{fr:"Assurance Santé Famille",en:"Family Health"}, provider:"Sen Assurance", price:25000, period:{fr:"/mois",en:"/mo"}, cover:{fr:"Consultations, hospitalisation",en:"Consultations, hospitalization"}, icon:"🏥"},
+    {id:"i3", name:{fr:"Assurance Moto",en:"Motorbike Insurance"}, provider:"Sen Assurance", price:8000, period:{fr:"/mois",en:"/mo"}, cover:{fr:"Vol, dommages, assistance",en:"Theft, damage, roadside assistance"}, icon:"🛵"}
+  ];
+
+  var BILLERS = ["senelec","sde","canal"];
+  var BILLER_ICONS = {senelec:"💡", sde:"🚰", canal:"📺"};
+  var OPERATORS = ["Orange","Free","Expresso"];
+  var AMOUNT_CHIPS = [500,1000,2000,5000];
+
+  var ANANDO_POSTINGS = [
+    {id:"a1", driver:"Moussa Ndiaye", origin:"Plateau, Dakar", destination:"Almadies", departureAt:"Aujourd'hui, 18h30", isInstant:false, seatsTotal:3, seatsAvailable:2, pricePerSeat:1500, status:"OPEN"},
+    {id:"a2", driver:"Fatou Sarr", origin:"Médina", destination:"Aéroport AIBD", departureAt:"", isInstant:true, seatsTotal:4, seatsAvailable:1, pricePerSeat:2500, status:"OPEN"},
+    {id:"a3", driver:"Ibrahima Fall", origin:"Ngor", destination:"Point E", departureAt:"Demain, 8h00", isInstant:false, seatsTotal:2, seatsAvailable:2, pricePerSeat:1000, status:"OPEN"}
+  ];
+  var MY_ANANDO_POSTINGS = [];
+  var MY_ANANDO_BOOKINGS = [];
+
+  var NOTIFICATIONS = [
+    {id:"n1", icon:"🚗", title:{fr:"Nouvelle réservation Anando",en:"New Anando booking"}, body:{fr:"Fatou Sarr a réservé 1 place sur votre trajet Médina → Aéroport AIBD",en:"Fatou Sarr booked 1 seat on your Médina → AIBD Airport ride"}, time:{fr:"il y a 12 min",en:"12m ago"}, read:false},
+    {id:"n2", icon:"📦", title:{fr:"Livraison en cours",en:"Delivery in progress"}, body:{fr:"Votre colis est en route vers Point E",en:"Your package is on its way to Point E"}, time:{fr:"il y a 1 h",en:"1h ago"}, read:false},
+    {id:"n3", icon:"🛡️", title:{fr:"Police d'assurance activée",en:"Insurance policy activated"}, body:{fr:"Votre assurance auto est maintenant active",en:"Your auto insurance is now active"}, time:{fr:"hier",en:"yesterday"}, read:true}
+  ];
+
+  var DELIVERY_REQUESTS = [
+    {from:"Plateau, Dakar", to:"Point E", pkg:"document", status:"delivered"}
+  ];
+  var RIDE_REQUESTS = [
+    {from:"Ngor", to:"Aéroport AIBD", vehicle:"car", status:"confirmed"}
+  ];
+
+  // Mirrors src/constants/modules.js exactly: 8 tiles, in registry order.
+  // Wallet is deliberately not here - in the real app it's reachable only
+  // from the profile page, never a home-screen module tile.
+  var MODULES = [
+    {key:"home.mod.ecommerce", icon:iconBag, go:function(){ nav("discover"); }},
+    {key:"home.mod.restaurant", icon:iconFork, go:function(){ nav("restaurants"); }},
+    {key:"home.mod.delivery", icon:iconTruck, go:function(){ nav("delivery"); }},
+    {key:"home.mod.ride-sharing", icon:iconMoto, go:function(){ nav("ride"); }},
+    {key:"home.mod.insurance", icon:iconShield, go:function(){ nav("insurance"); }},
+    {key:"home.mod.airtime", icon:iconSim, go:function(){ nav("topup", {topupTab:"airtime"}); }},
+    {key:"home.mod.bill-payment", icon:iconReceipt, go:function(){ nav("topup", {topupTab:"bill"}); }},
+    {key:"home.mod.anando", icon:iconAnando, go:function(){ nav("anando"); }}
+  ];
+
+  /* ============================= state ============================= */
+  var state = {
+    lang: "fr",
+    tab: "home",
+    stack: [{screen:"home"}],
+    role: "CUSTOMER",
+    cart: {}, // id -> qty
+    catSlug: "beauty",
+    catTab: "articles",
+    productId: null,
+    restaurantId: null,
+    foodCart: {},
+    deliveryForm: {from:"", to:"", pkg:"document"},
+    rideForm: {from:"", to:"", vehicle:"moto"},
+    insurancePolicies: [],
+    topupTab: "airtime",
+    airtimeForm: {phone:"", operator:"Orange", amount:1000},
+    billForm: {biller:"senelec", account:"", amount:5000},
+    anandoTab: "available",
+    anandoPostingId: null,
+    anandoBookSeats: 1,
+    anandoBookPayment: "CASH",
+    anandoForm: {origin:"", destination:"", instant:false, departureAt:"", seats:1, price:"", note:""}
+  };
+
+  function setPath(obj, path, value){
+    var parts = path.split(".");
+    var cur = obj;
+    for (var i=0;i<parts.length-1;i++){ cur = cur[parts[i]]; }
+    cur[parts[parts.length-1]] = value;
+  }
+  function getPath(obj, path){
+    var parts = path.split(".");
+    var cur = obj;
+    for (var i=0;i<parts.length;i++){ cur = cur[parts[i]]; }
+    return cur;
+  }
+  function unreadNotifCount(){ return NOTIFICATIONS.filter(function(n){return !n.read;}).length; }
+
+  function t(key){ return (STR[state.lang] && STR[state.lang][key]) || key; }
+  function money(n){ return "CFA " + Math.round(n).toLocaleString(state.lang === "fr" ? "fr-FR" : "en-US"); }
+  function cartCount(){ var n=0; for (var k in state.cart) n += state.cart[k]; return n; }
+  function cartTotal(){
+    var sum=0;
+    for (var id in state.cart){
+      var p = PRODUCTS.filter(function(x){return x.id===id;})[0];
+      if (p) sum += (p.discount||p.price) * state.cart[id];
+    }
+    return sum;
+  }
+
+  var TOP_LEVEL = {home:1, discover:1, orders:1, profile:1};
+
+  function nav(screen, params){
+    params = params || {};
+    if (TOP_LEVEL[screen]){
+      state.tab = screen;
+      state.stack = [{screen:screen, params:params}];
+    } else {
+      state.stack.push({screen:screen, params:params});
+    }
+    Object.assign(state, params);
+    render();
+  }
+  function back(){
+    if (state.stack.length > 1) state.stack.pop();
+    var top = state.stack[state.stack.length-1];
+    Object.assign(state, top.params||{});
+    render();
+  }
+
+  var toastTimer;
+  function toast(msg){
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove("show"); }, 1800);
+  }
+
+  /* ============================= icons (inline SVG, no external assets) ============================= */
+  function svg(inner, color){ return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="'+(color||'currentColor')+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+inner+'</svg>'; }
+  function iconBag(c){ return svg('<path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 016 0v2"/>', c||"#0FAE58"); }
+  function iconFork(c){ return svg('<path d="M8 3v7a2 2 0 002 2v9"/><path d="M6 3v5M10 3v5"/><path d="M16 3c-1.5 1-2 3-2 5s.6 3 2 3 2-1 2-3-.5-4-2-5zM16 11v10"/>', c||"#E5484D"); }
+  function iconTruck(c){ return svg('<path d="M2 8h11v8H2z"/><path d="M13 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>', c||"#FFB020"); }
+  function iconMoto(c){ return svg('<circle cx="5.5" cy="17" r="2.4"/><circle cx="18.5" cy="17" r="2.4"/><path d="M8 17h7l-2-6H9l-1 3M13 11l3-3h3"/>', c||"#3B82F6"); }
+  function iconShield(c){ return svg('<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>', c||"#8B5CF6"); }
+  function iconSim(c){ return svg('<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M6 7h12"/><rect x="9" y="10" width="6" height="4" rx="1"/>', c||"#0D9488"); }
+  function iconReceipt(c){ return svg('<path d="M6 2h12v20l-2.5-1.6L13 22l-2.5-1.6L8 22l-2-1.6V2z"/><path d="M9 7h6M9 11h6M9 15h4"/>', c||"#F97316"); }
+  function iconWallet(c){ return svg('<rect x="2" y="6" width="20" height="14" rx="2.5"/><path d="M2 10h20"/><circle cx="17" cy="15" r="1.4"/>', c||"#0FAE58"); }
+  function iconBack(){ return svg('<path d="M15 5l-7 7 7 7"/>'); }
+  function iconSearch(){ return svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'); }
+  function iconCart(){ return svg('<path d="M3 4h2l2.4 12.2A2 2 0 009.36 18H18a2 2 0 001.95-1.56L21.5 8H6"/><circle cx="9.5" cy="21" r="1.4"/><circle cx="17.5" cy="21" r="1.4"/>'); }
+  function iconInfo(){ return svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>'); }
+  function iconHeart(c){ return svg('<path d="M12 20s-7-4.4-9.3-8.8C1.2 8 2.6 5 5.8 5c1.9 0 3.3 1 4.2 2.4C11 6 12.4 5 14.3 5c3.2 0 4.6 3 3.1 6.2C19.9 15.6 12 20 12 20z"/>', c||"#0FAE58"); }
+  function iconGlobe(){ return svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/>'); }
+  function iconChevron(){ return svg('<path d="M9 18l6-6-6-6"/>'); }
+  function iconMinus(){ return svg('<path d="M5 12h14"/>'); }
+  function iconPlus(){ return svg('<path d="M12 5v14M5 12h14"/>'); }
+  function iconTrash(c){ return svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', c||"#E5484D"); }
+  function iconLogout(c){ return svg('<path d="M15 4H6a1 1 0 00-1 1v14a1 1 0 001 1h9"/><path d="M10 12h11M17 8l4 4-4 4"/>', c||"#E5484D"); }
+  function iconStore(){ return svg('<path d="M3 9l1-5h16l1 5"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/>'); }
+  function iconArrowDown(c){ return svg('<path d="M12 4v14M6 12l6 6 6-6"/>', c||"#0FAE58"); }
+  function iconArrowUp(c){ return svg('<path d="M12 20V6M6 12l6-6 6 6"/>', c||"#E5484D"); }
+  function iconBell(c){ return svg('<path d="M6 10a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 004 0"/>', c||"currentColor"); }
+  function iconAnando(c){ return svg('<rect x="2" y="12" width="14" height="6" rx="2"/><circle cx="6" cy="19" r="1.6"/><circle cx="14" cy="19" r="1.6"/><path d="M4 12l2-4h6l2 4"/><circle cx="19" cy="7" r="2"/><circle cx="19" cy="15" r="2"/><path d="M19 9.5v1.5M19 14.5V13"/>', c||"#EC4899"); }
+
+  function iconTab(name){
+    switch(name){
+      case "home": return svg('<path d="M4 11l8-7 8 7"/><path d="M6 9v11h12V9"/>');
+      case "discover": return svg('<circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6 6-2z"/>');
+      case "orders": return svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>');
+      case "profile": return svg('<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>');
+    }
+    return "";
+  }
+
+  /* ============================= screen renderers ============================= */
+  function topbarHTML(opts){
+    // opts: {title, back, search, cart}
+    var left = opts.back
+      ? '<button class="icon-btn" data-act="back" aria-label="'+t("back")+'">'+iconBack()+'</button>'
+      : '<span style="width:8px"></span>';
+    var right = "";
+    if (opts.search) right += '<button class="icon-btn" aria-label="Search">'+iconSearch()+'</button>';
+    if (opts.cart) right += '<button class="icon-btn" data-act="goto" data-screen="cart" aria-label="Cart">'+iconCart()+(cartCount()?'<span class="cart-badge">'+cartCount()+'</span>':'')+'</button>';
+    return '<div class="topbar">'+left+'<h2>'+opts.title+'</h2>'+right+'</div>';
+  }
+
+  function tabbarHTML(){
+    var tabs = ["home","discover","orders","profile"];
+    return '<div class="tabbar">' + tabs.map(function(tb){
+      return '<button class="tab" data-act="goto" data-screen="'+tb+'" '+(state.tab===tb?'aria-current="page"':'')+'>'
+        + iconTab(tb) + '<span>' + t("nav."+tb) + '</span></button>';
+    }).join("") + '</div>';
+  }
+
+  function renderHome(){
+    document.getElementById("topbar-slot").innerHTML = "";
+    document.getElementById("tabbar-slot").innerHTML = tabbarHTML();
+
+    var mods = MODULES.map(function(m){
+      return '<button class="modtile" data-act="mod" data-mod="'+m.key+'">'
+        + '<span class="bubble">'+m.icon()+'</span>'
+        + '<span class="lbl">'+t(m.key)+'</span></button>';
+    }).join("");
+
+    var cats = CATS.map(function(c){
+      return '<button class="cattile" data-act="goto" data-screen="category" data-slug="'+c.slug+'">'
+        + '<span class="bubble" style="background:'+c.bg+'">'+c.icon+'</span>'
+        + '<span class="lbl">'+t(c.key)+'</span></button>';
+    }).join("");
+
+    var popular = PRODUCTS.slice(0,5).map(productCardHTML).join("");
+
+    document.getElementById("body").innerHTML =
+      '<div class="hero fade-enter">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px">'
+          + '<div class="locpill" style="margin-bottom:0">📍 ' + t("home.location") + ' ' + iconChevron() + '</div>'
+          + '<button class="icon-btn bell-btn" style="background:rgba(255,255,255,0.18);color:#fff;flex:0 0 auto" data-act="goto" data-screen="notifications">'
+            + iconBell("#fff") + (unreadNotifCount() ? '<span class="bell-badge">'+unreadNotifCount()+'</span>' : '')
+          + '</button>'
+        + '</div>'
+        + '<div class="modgrid">' + mods + '</div>'
+      + '</div>'
+      + '<div class="section">'
+        + '<div class="section-title"><h3>'+t("home.explore")+'</h3>'+iconInfo()+'</div>'
+        + '<div class="catgrid">'+cats+'</div>'
+      + '</div>'
+      + '<div class="section" style="padding-bottom:2px">'
+        + '<div class="section-title"><h3>'+t("home.popular")+'</h3></div>'
+      + '</div>'
+      + '<div class="hscroll">'+popular+'</div>'
+      + '<div style="height:14px"></div>';
+  }
+
+  function productCardHTML(p){
+    var price = p.discount || p.price;
+    var pct = p.discount ? Math.round((1 - p.discount/p.price)*100) : null;
+    return '<button class="pcard" data-act="goto" data-screen="product" data-id="'+p.id+'">'
+      + '<div class="thumb" style="background:'+catBg(p.cat)+'">'
+        + '<div class="thumb-art">'+p.icon+'</div>'
+        + (pct?'<span class="badge">'+pct+'% OFF</span>':'')
+        + '<span class="heart">'+iconHeart()+'</span>'
+      + '</div>'
+      + '<div class="meta">'
+        + '<div class="name">'+p.name[state.lang]+'</div>'
+        + '<div class="store">'+p.store+'</div>'
+        + '<div class="price">'+money(price)+(p.discount?'<s>'+money(p.price)+'</s>':'')+'</div>'
+      + '</div>'
+    + '</button>';
+  }
+  function catBg(slug){
+    var c = CATS.filter(function(x){return x.slug===slug;})[0];
+    return c ? c.bg : "var(--green-soft)";
+  }
+
+  function renderDiscover(){
+    document.getElementById("topbar-slot").innerHTML = "";
+    document.getElementById("tabbar-slot").innerHTML = tabbarHTML();
+    var tiles = CATS.map(function(c,i){
+      var count = PRODUCTS.filter(function(p){return p.cat===c.slug;}).length;
+      return '<button class="modtile" style="align-items:stretch" data-act="goto" data-screen="category" data-slug="'+c.slug+'">'
+        + '<div class="card" style="background:'+c.bg+';border:none;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:100px;justify-content:flex-end">'
+          + '<div style="font-size:26px">'+c.icon+'</div>'
+          + '<div style="text-align:left"><div style="font-weight:800;font-size:13px">'+t(c.key)+'</div>'
+          + '<div style="font-size:11px;color:var(--ink-dim)">'+count+' '+(state.lang==="fr"?"articles":"items")+'</div></div>'
+        + '</div></button>';
+    }).join("");
+    document.getElementById("body").innerHTML =
+      '<div class="section fade-enter">'
+        + '<div class="section-title"><h3 style="font-size:20px">'+t("discover.title")+'</h3></div>'
+        + '<p style="color:var(--ink-dim);font-size:13px;margin:-6px 0 16px">'+t("discover.subtitle")+'</p>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+tiles+'</div>'
+      + '</div>';
+  }
+
+  function renderCategory(){
+    var slug = state.catSlug;
+    var cat = CATS.filter(function(c){return c.slug===slug;})[0];
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t(cat.key), back:true, search:true, cart:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+
+    var side = ['<button data-act="filter" data-slug="all" '+(state.catTab==="all-side"?'':'')+' aria-current="'+(state.filterAll?"true":"false")+'">'+t("cat.all")+'</button>']
+      .concat(['Sport','Habillé','Sandales'].map(function(s){return '<button>'+s+'</button>';}))
+      .join("");
+
+    var products = PRODUCTS.filter(function(p){return p.cat===slug;});
+    var grid = products.map(productCardHTML).join("");
+
+    document.getElementById("body").innerHTML =
+      '<div class="catbody fade-enter" style="height:auto;min-height:100%">'
+        + '<div class="sidebar">' + side + '</div>'
+        + '<div class="catmain">'
+          + '<div class="tabs2">'
+            + '<button data-act="cattab" data-v="articles" aria-current="'+(state.catTab==="articles")+'">'+t("cat.articles")+'</button>'
+            + '<button data-act="cattab" data-v="stores" aria-current="'+(state.catTab==="stores")+'">'+t("cat.stores")+'</button>'
+          + '</div>'
+          + (state.catTab==="articles"
+              ? '<div class="pgrid" style="padding-top:14px">'+ (grid || emptyBlock()) +'</div>'
+              : storesBlock(products))
+        + '</div>'
+      + '</div>';
+  }
+  function emptyBlock(){
+    return '<div class="empty" style="grid-column:1/-1"><div class="glyph">🗂️</div><p>'+(state.lang==="fr"?"Rien ici pour le moment.":"Nothing here yet.")+'</p></div>';
+  }
+  function storesBlock(products){
+    var stores = {};
+    products.forEach(function(p){ stores[p.store] = true; });
+    var rows = Object.keys(stores).map(function(s){
+      return '<div class="listrow"><div class="avatar" style="background:var(--green-soft)">'+iconStore()+'</div>'
+        + '<div class="txt"><div class="t1">'+s+'</div><div class="t2">4.7 ★ · Dakar</div></div></div>';
+    }).join("");
+    return '<div style="padding-top:6px">' + (rows || emptyBlock()) + '</div>';
+  }
+
+  function renderProduct(){
+    var p = PRODUCTS.filter(function(x){return x.id===state.productId;})[0] || PRODUCTS[0];
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("product.title"), back:true, search:true, cart:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var price = p.discount || p.price;
+    var pct = p.discount ? Math.round((1 - p.discount/p.price)*100) : null;
+    var qty = state.cart[p.id] || 0;
+
+    document.getElementById("body").innerHTML =
+      '<div class="fade-enter">'
+      + '<div class="pdimgs"><div class="main" style="background:'+catBg(p.cat)+';display:flex;align-items:center;justify-content:center;font-size:70px">'+p.icon+'</div></div>'
+      + '<div class="pdinfo">'
+        + '<div class="store">'+p.store+'</div>'
+        + '<h1>'+p.name[state.lang]+'</h1>'
+        + '<div class="stars">★★★★☆ <span>('+p.reviews+')</span></div>'
+        + '<div class="priceline"><span class="now">'+money(price)+'</span>'
+          + (p.discount ? '<span class="was">'+money(p.price)+'</span><span class="off">'+pct+'% OFF</span>' : '')
+        + '</div>'
+        + '<div class="stock">'+p.stock+' '+t("product.inStock")+'</div>'
+        + '<hr class="divider">'
+        + '<div style="font-weight:800;font-size:13.5px;margin-bottom:6px">'+t("product.desc")+'</div>'
+        + '<p class="prose">'+p.desc[state.lang]+'</p>'
+        + '<hr class="divider">'
+        + '<div style="font-weight:800;font-size:13.5px;margin-bottom:6px">'+t("product.reviews")+' ('+p.reviews+')</div>'
+        + '<p class="prose" style="color:var(--ink-dim)">'+(state.lang==="fr"?"Marie D. — “Très bon produit, livraison rapide.”":"Marie D. — “Great product, fast delivery.”")+'</p>'
+      + '</div>'
+      + '<div style="height:110px"></div>'
+      + '</div>'
+      + '<div class="buybar" style="position:fixed;left:14px;right:14px;bottom:14px;border-radius:20px;box-shadow:0 -8px 24px rgba(0,0,0,0.06)">'
+        + '<div class="stepper">'
+          + '<button data-act="qty" data-d="-1">'+iconMinus()+'</button>'
+          + '<span class="n" id="pdqty">'+Math.max(1,qty)+'</span>'
+          + '<button data-act="qty" data-d="1">'+iconPlus()+'</button>'
+        + '</div>'
+        + '<button class="btn btn-primary" style="flex:1" data-act="addtocart" data-id="'+p.id+'">'+t("product.addToCart")+'</button>'
+      + '</div>';
+    if (!state._pdQty) state._pdQty = 1;
+  }
+
+  function renderCart(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("cart.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var ids = Object.keys(state.cart).filter(function(id){return state.cart[id]>0;});
+    if (!ids.length){
+      document.getElementById("body").innerHTML =
+        '<div class="empty fade-enter"><div class="glyph">🛒</div>'
+        + '<div style="font-weight:800;font-size:15px;color:var(--ink);margin-bottom:6px">'+t("cart.empty.title")+'</div>'
+        + '<p>'+t("cart.empty.body")+'</p>'
+        + '<button class="btn btn-primary" data-act="goto" data-screen="discover">'+t("cart.empty.cta")+'</button>'
+        + '</div>';
+      return;
+    }
+    var rows = ids.map(function(id){
+      var p = PRODUCTS.filter(function(x){return x.id===id;})[0];
+      var qty = state.cart[id];
+      var price = p.discount || p.price;
+      return '<div class="cartrow">'
+        + '<div class="thumb" style="background:'+catBg(p.cat)+';display:flex;align-items:center;justify-content:center;font-size:22px">'+p.icon+'</div>'
+        + '<div class="info"><div class="n">'+p.name[state.lang]+'</div><div class="p">'+money(price)+'</div>'
+          + '<div class="ctrl"><div class="stepper">'
+            + '<button data-act="cartqty" data-id="'+id+'" data-d="-1">'+iconMinus()+'</button>'
+            + '<span class="n">'+qty+'</span>'
+            + '<button data-act="cartqty" data-id="'+id+'" data-d="1">'+iconPlus()+'</button>'
+          + '</div></div>'
+        + '</div>'
+        + '<button class="trash" data-act="cartremove" data-id="'+id+'">'+iconTrash()+'</button>'
+      + '</div>';
+    }).join("");
+    document.getElementById("body").innerHTML =
+      '<div class="fade-enter">' + rows + '</div>'
+      + '<div style="height:80px"></div>'
+      + '<div style="position:fixed;left:14px;right:14px;bottom:14px;background:var(--paper);border-top:1px solid var(--line);border-radius:20px;box-shadow:0 -8px 24px rgba(0,0,0,0.06)">'
+        + '<div class="sumrow"><span class="k">'+t("cart.subtotal")+'</span><span class="v">'+money(cartTotal())+'</span></div>'
+        + '<div style="padding:0 14px 14px"><button class="btn btn-primary btn-block" data-act="checkout">'+t("cart.checkout")+'</button></div>'
+      + '</div>';
+  }
+
+  function renderOrders(){
+    document.getElementById("topbar-slot").innerHTML = "";
+    document.getElementById("tabbar-slot").innerHTML = tabbarHTML();
+    var orders = [
+      {k:"orders.o1", status:"confirmed", total:12400, items:2},
+      {k:"orders.o2", status:"delivered", total:8300, items:1},
+      {k:"orders.o3", status:"pending", total:4500, items:3}
+    ];
+    var rows = orders.map(function(o){
+      return '<div class="card" style="margin:0 18px 12px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center">'
+          + '<div style="font-weight:700;font-size:13.5px">'+t(o.k)+'</div>'
+          + '<span class="chip chip-'+o.status+'">'+t("status."+o.status)+'</span>'
+        + '</div>'
+        + '<div style="color:var(--ink-dim);font-size:12px;margin-top:4px">'+o.items+' '+(state.lang==="fr"?"articles":"items")+'</div>'
+        + '<div style="font-weight:800;margin-top:8px;font-variant-numeric:tabular-nums">'+money(o.total)+'</div>'
+      + '</div>';
+    }).join("");
+    document.getElementById("body").innerHTML =
+      '<div class="section fade-enter"><div class="section-title"><h3 style="font-size:20px">'+t("orders.title")+'</h3></div></div>'
+      + rows + '<div style="height:14px"></div>';
+  }
+
+  function renderProfile(){
+    document.getElementById("topbar-slot").innerHTML = "";
+    document.getElementById("tabbar-slot").innerHTML = tabbarHTML();
+
+    var links = [
+      ["profile.links.wallet","wallet","💳"],
+      ["profile.links.orders","orders","🧾"],
+      ["profile.links.food","restaurants","🍽️"],
+      ["profile.links.wishlist","discover","♥️"],
+      ["profile.links.delivery","agent","🚚"],
+      ["profile.links.rides","driver","🛵"],
+      ["profile.links.insurance","insurance","🛡️"],
+      ["profile.links.topup","topup","📶"]
+    ];
+    var linkRows = links.map(function(l){
+      return '<button class="listrow" style="width:100%;text-align:left;background:none;border:none;cursor:pointer" data-act="goto" data-screen="'+l[1]+'">'
+        + '<div class="avatar" style="background:var(--green-soft);font-size:18px">'+l[2]+'</div>'
+        + '<div class="txt"><div class="t1">'+t(l[0])+'</div></div>'
+        + '<span class="chevron">'+iconChevron()+'</span></button>';
+    }).join("");
+
+    var work = "";
+    if (state.role === "CUSTOMER"){
+      work =
+        '<div class="rolewrap">'
+          + '<button class="btn btn-outline btn-sm" data-act="role" data-r="DELIVERY_AGENT">'+t("profile.becomeAgent")+'</button>'
+          + '<button class="btn btn-outline btn-sm" data-act="role" data-r="RIDER">'+t("profile.becomeRider")+'</button>'
+          + '<button class="btn btn-outline btn-sm" data-act="role" data-r="VENDOR">'+t("profile.becomeVendor")+'</button>'
+        + '</div>';
+    } else {
+      var dashScreen = state.role==="DELIVERY_AGENT" ? "agent" : state.role==="RIDER" ? "driver" : "vendor";
+      var dashLabel = state.role==="DELIVERY_AGENT" ? "profile.agentDash" : state.role==="RIDER" ? "profile.driverDash" : "profile.vendorDash";
+      work =
+        '<div class="rolewrap">'
+          + '<button class="btn btn-primary btn-sm" data-act="goto" data-screen="'+dashScreen+'">'+t(dashLabel)+'</button>'
+          + '<button class="btn btn-text btn-sm" data-act="role" data-r="CUSTOMER">'+t("profile.stopGig")+'</button>'
+        + '</div>';
+    }
+
+    document.getElementById("body").innerHTML =
+      '<div class="fade-enter">'
+      + '<div class="pf-head"><div class="av">A</div><div><div class="nm">Awa Diop</div><div class="ph">+221 77 123 45 67</div></div></div>'
+      + linkRows
+      + '<div class="work-title">'+t("profile.work")+'</div>'
+      + work
+      + '<button class="listrow" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;margin-top:6px" data-act="logout">'
+          + '<div class="avatar" style="background:var(--red-soft)">'+iconLogout()+'</div>'
+          + '<div class="txt"><div class="t1" style="color:var(--red)">'+t("profile.logout")+'</div></div>'
+        + '</button>'
+      + '<div class="langwrap">'
+          + '<div class="lang-lbl">'+iconGlobe()+t("lang.title")+'</div>'
+          + '<div class="segwrap">'
+            + '<button data-act="lang" data-v="fr" aria-pressed="'+(state.lang==="fr")+'">'+t("lang.fr")+'</button>'
+            + '<button data-act="lang" data-v="en" aria-pressed="'+(state.lang==="en")+'">'+t("lang.en")+'</button>'
+          + '</div>'
+        + '</div>'
+      + '<div style="height:14px"></div>'
+      + '</div>';
+  }
+
+  function renderWallet(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("wallet.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var txs = [
+      {k:"wallet.tx1", credit:true, amt:2400, date:"18 Jul"},
+      {k:"wallet.tx2", credit:false, amt:8300, date:"17 Jul"},
+      {k:"wallet.tx3", credit:true, amt:10000, date:"15 Jul"}
+    ];
+    var rows = txs.map(function(x){
+      return '<div class="txrow">'
+        + '<div class="ic" style="background:'+(x.credit?"var(--green-soft)":"var(--red-soft)")+'">'+(x.credit?iconArrowDown():iconArrowUp())+'</div>'
+        + '<div class="info"><div class="n">'+t(x.k)+'</div><div class="d">'+x.date+'</div></div>'
+        + '<div class="amt" style="color:'+(x.credit?"var(--green-dark)":"var(--red)")+'">'+(x.credit?"+":"-")+money(x.amt)+'</div>'
+      + '</div>';
+    }).join("");
+    document.getElementById("body").innerHTML =
+      '<div class="fade-enter">'
+      + '<div class="walletcard"><div class="lbl">'+iconWallet("#fff")+t("wallet.balance")+'</div><div class="amt">'+money(14200)+'</div>'
+        + '<button class="btn btn-ghost-white btn-sm" data-act="topup">'+t("wallet.topup")+'</button></div>'
+      + '<div class="section" style="padding-top:0"><div class="section-title"><h3>'+t("wallet.history")+'</h3></div></div>'
+      + rows + '<div style="height:14px"></div>'
+      + '</div>';
+  }
+
+  function renderVendor(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("vendor.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    document.getElementById("body").innerHTML =
+      '<div class="fade-enter">'
+      + '<div class="storecard"><div class="logo">🏬</div><div><div class="n">'+t("vendor.store")+'</div><div class="a">'+t("vendor.address")+'</div></div></div>'
+      + '<div class="stack">'
+        + '<button class="btn btn-outline btn-block" style="text-align:left;display:flex;align-items:center;gap:10px">📦 '+t("vendor.manageProducts")+'</button>'
+        + '<button class="btn btn-outline btn-block" style="text-align:left;display:flex;align-items:center;gap:10px">🧾 '+t("vendor.viewOrders")+'</button>'
+      + '</div>'
+      + '</div>';
+  }
+
+  function dispatchScreen(kind){
+    // kind: 'agent' | 'driver'
+    var titleKey = kind+".title";
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t(titleKey), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var jobs = [
+      {route:t(kind+".job1"), est:kind==="agent"?1800:3200},
+      {route:t(kind+".job2"), est:kind==="agent"?1200:2600}
+    ];
+    var accepted = state["_accepted_"+kind];
+    var cards = jobs.map(function(j,i){
+      var isAccepted = accepted === i;
+      return '<div class="jobcard">'
+        + '<div class="route">'+j.route+'</div>'
+        + '<div class="row"><span class="est">'+t(kind+".estimate")+money(j.est)+'</span>'
+          + (isAccepted
+              ? '<span class="chip chip-done">'+t("status.confirmed")+'</span>'
+              : '<button class="btn btn-primary btn-sm" data-act="acceptjob" data-kind="'+kind+'" data-i="'+i+'">'+t(kind+".accept")+'</button>')
+        + '</div></div>';
+    }).join("");
+    document.getElementById("body").innerHTML =
+      '<div class="tabs2"><button aria-current="true">'+t(kind+".available")+'</button><button>'+t(kind+".mine")+'</button></div>'
+      + '<div style="padding-top:14px" class="fade-enter">' + cards + '</div>';
+  }
+
+  function renderRestaurants(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("restaurant.title"), back:true, search:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var rows = RESTAURANTS.map(function(r){
+      return '<div class="restrow" data-act="goto" data-screen="restaurant" data-id="'+r.id+'">'
+        + '<div class="logo" style="background:'+r.bg+'">'+r.icon+'</div>'
+        + '<div class="info"><div class="n">'+r.name+'</div><div class="c">'+r.cuisine[state.lang]+' · ★'+r.rating+' · '+r.eta+'</div></div>'
+      + '</div>';
+    }).join("");
+    document.getElementById("body").innerHTML = '<div class="fade-enter">'+rows+'</div><div style="height:14px"></div>';
+  }
+
+  function renderRestaurant(){
+    var r = RESTAURANTS.filter(function(x){return x.id===state.restaurantId;})[0] || RESTAURANTS[0];
+    if (state._lastRestId !== r.id){ state.foodCart = {}; state._lastRestId = r.id; }
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:r.name, back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var rows = r.menu.map(function(item){
+      var qty = state.foodCart[item.id]||0;
+      return '<div class="menurow">'
+        + '<div class="art" style="background:'+r.bg+'">'+item.icon+'</div>'
+        + '<div class="info"><div class="n">'+item.name[state.lang]+'</div><div class="p">'+money(item.price)+'</div></div>'
+        + (qty>0
+            ? '<div class="stepper"><button data-act="foodqty" data-id="'+item.id+'" data-d="-1">'+iconMinus()+'</button><span class="n">'+qty+'</span><button data-act="foodqty" data-id="'+item.id+'" data-d="1">'+iconPlus()+'</button></div>'
+            : '<button class="addbtn" data-act="foodqty" data-id="'+item.id+'" data-d="1">'+t("restaurant.add")+'</button>')
+      + '</div>';
+    }).join("");
+    var count = 0, total = 0;
+    for (var id in state.foodCart){
+      var it = r.menu.filter(function(x){return x.id===id;})[0];
+      if (it){ count += state.foodCart[id]; total += it.price*state.foodCart[id]; }
+    }
+    document.getElementById("body").innerHTML =
+      '<div class="fade-enter">' + rows + '</div>'
+      + '<div style="height:'+(count?'92px':'14px')+'"></div>'
+      + (count ? '<div style="position:fixed;left:14px;right:14px;bottom:14px;background:var(--paper);border-radius:20px;box-shadow:0 -8px 24px rgba(0,0,0,0.06);padding:12px 16px;display:flex;align-items:center;justify-content:space-between">'
+          + '<div style="font-weight:800;font-size:13.5px">'+count+' · '+money(total)+'</div>'
+          + '<button class="btn btn-primary btn-sm" data-act="foodcheckout">'+t("restaurant.order")+'</button>'
+        + '</div>' : '');
+  }
+
+  function renderDelivery(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("delivery.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var pkgs = ["document","package","food"];
+    var chips = pkgs.map(function(p){
+      return '<button class="chipbtn" data-act="pkgtype" data-v="'+p+'" aria-pressed="'+(state.deliveryForm.pkg===p)+'">'+t("delivery.pkg."+p)+'</button>';
+    }).join("");
+    var reqs = DELIVERY_REQUESTS.map(function(rq){
+      return '<div class="reqcard"><div class="route">'+rq.from+' → '+rq.to+'</div>'
+        + '<div class="row"><span class="chip chip-'+rq.status+'">'+t("status."+rq.status)+'</span><span style="font-size:11.5px;color:var(--ink-dim)">'+t("delivery.pkg."+rq.pkg)+'</span></div></div>';
+    }).join("");
+    document.getElementById("body").innerHTML =
+      '<div class="formwrap tinted fade-enter">'
+        + '<div class="formheading">'+t("delivery.formTitle")+'</div>'
+        + '<div class="field"><label>'+t("delivery.from")+'</label><div class="rowfield"><input data-bind="deliveryForm.from" value="'+state.deliveryForm.from+'" placeholder="'+t("delivery.fromPh")+'"><button class="locbtn" data-act="uselocation" data-target="deliveryForm.from">'+iconArrowDown()+'</button></div></div>'
+        + '<div class="field"><label>'+t("delivery.to")+'</label><input data-bind="deliveryForm.to" value="'+state.deliveryForm.to+'" placeholder="'+t("delivery.toPh")+'"></div>'
+        + '<div class="field"><label>'+t("delivery.pkgType")+'</label><div class="chiprow">'+chips+'</div></div>'
+        + '<button class="btn btn-primary btn-block" data-act="submitdelivery">'+t("delivery.submit")+'</button>'
+      + '</div>'
+      + '<div class="section-title" style="padding:16px 18px 4px"><h3>'+t("delivery.myRequests")+'</h3></div>'
+      + (reqs || emptyBlock()) + '<div style="height:14px"></div>';
+  }
+
+  function renderRide(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("ride.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var vs = ["moto","car"];
+    var chips = vs.map(function(v){
+      return '<button class="chipbtn blue" data-act="vehicletype" data-v="'+v+'" aria-pressed="'+(state.rideForm.vehicle===v)+'">'+t("ride.vehicle."+v)+'</button>';
+    }).join("");
+    var reqs = RIDE_REQUESTS.map(function(rq){
+      return '<div class="reqcard"><div class="route">'+rq.from+' → '+rq.to+'</div>'
+        + '<div class="row"><span class="chip chip-'+rq.status+'">'+t("status."+rq.status)+'</span><span style="font-size:11.5px;color:var(--ink-dim)">'+t("ride.vehicle."+rq.vehicle)+'</span></div></div>';
+    }).join("");
+    document.getElementById("body").innerHTML =
+      '<div class="formwrap tinted-blue fade-enter">'
+        + '<div class="formheading">'+t("ride.formTitle")+'</div>'
+        + '<div class="field"><label>'+t("ride.from")+'</label><div class="rowfield"><input data-bind="rideForm.from" value="'+state.rideForm.from+'" placeholder="'+t("delivery.fromPh")+'"><button class="locbtn blue" data-act="uselocation" data-target="rideForm.from">'+iconArrowDown()+'</button></div></div>'
+        + '<div class="field"><label>'+t("ride.to")+'</label><input data-bind="rideForm.to" value="'+state.rideForm.to+'" placeholder="'+t("delivery.toPh")+'"></div>'
+        + '<div class="field"><label>'+t("ride.vehicleType")+'</label><div class="chiprow">'+chips+'</div></div>'
+        + '<button class="btn btn-primary btn-block" data-act="submitride">'+t("ride.submit")+'</button>'
+      + '</div>'
+      + '<div class="section-title" style="padding:16px 18px 4px"><h3>'+t("ride.myRequests")+'</h3></div>'
+      + (reqs || emptyBlock()) + '<div style="height:14px"></div>';
+  }
+
+  function renderInsurance(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("insurance.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var cards = INSURANCE_PLANS.map(function(p){
+      var active = state.insurancePolicies.indexOf(p.id) !== -1;
+      return '<div class="plancard"><div class="n">'+p.icon+' '+p.name[state.lang]+'</div><div class="prov">'+p.provider+'</div>'
+        + '<div class="row"><span class="price">'+money(p.price)+p.period[state.lang]+'</span>'
+        + (active ? '<span class="chip chip-done">'+t("status.confirmed")+'</span>' : '<button class="btn btn-primary btn-sm" data-act="subscribe" data-id="'+p.id+'">'+t("insurance.subscribe")+'</button>')
+        + '</div><div class="cov">'+p.cover[state.lang]+'</div></div>';
+    }).join("");
+    document.getElementById("body").innerHTML = '<div class="fade-enter" style="padding-top:14px">'+cards+'</div><div style="height:14px"></div>';
+  }
+
+  function renderTopup(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("topup.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var tabs = '<div class="tabs2">'
+      + '<button data-act="topuptab" data-v="airtime" aria-current="'+(state.topupTab==="airtime")+'">'+t("topup.tabs.airtime")+'</button>'
+      + '<button data-act="topuptab" data-v="bill" aria-current="'+(state.topupTab==="bill")+'">'+t("topup.tabs.bill")+'</button>'
+      + '</div>';
+    var body;
+    if (state.topupTab === "airtime"){
+      var opChips = OPERATORS.map(function(o){
+        return '<button class="chipbtn" data-act="operator" data-v="'+o+'" aria-pressed="'+(state.airtimeForm.operator===o)+'">'+o+'</button>';
+      }).join("");
+      var amtChips = AMOUNT_CHIPS.map(function(a){
+        return '<button class="chipbtn" data-act="amountchip" data-field="airtimeForm.amount" data-v="'+a+'" aria-pressed="'+(state.airtimeForm.amount===a)+'">'+money(a)+'</button>';
+      }).join("");
+      body = '<div class="formwrap tinted fade-enter">'
+        + '<div class="field"><label>'+t("topup.phone")+'</label><input data-bind="airtimeForm.phone" value="'+state.airtimeForm.phone+'" placeholder="+221 77 000 00 00"></div>'
+        + '<div class="field"><label>'+t("topup.operator")+'</label><div class="chiprow">'+opChips+'</div></div>'
+        + '<div class="field"><label>'+t("topup.amount")+'</label><div class="chiprow">'+amtChips+'</div></div>'
+        + '<button class="btn btn-primary btn-block" data-act="submitairtime">'+t("topup.submitAirtime")+'</button>'
+      + '</div>';
+    } else {
+      var billChips = BILLERS.map(function(b){
+        return '<button class="chipbtn" data-act="biller" data-v="'+b+'" aria-pressed="'+(state.billForm.biller===b)+'">'+BILLER_ICONS[b]+' '+t("topup.biller."+b)+'</button>';
+      }).join("");
+      var amtChips2 = AMOUNT_CHIPS.map(function(a){
+        var v = a*2;
+        return '<button class="chipbtn" data-act="amountchip" data-field="billForm.amount" data-v="'+v+'" aria-pressed="'+(state.billForm.amount===v)+'">'+money(v)+'</button>';
+      }).join("");
+      body = '<div class="formwrap tinted fade-enter">'
+        + '<div class="field"><label>'+t("topup.biller")+'</label><div class="chiprow">'+billChips+'</div></div>'
+        + '<div class="field"><label>'+t("topup.account")+'</label><input data-bind="billForm.account" value="'+state.billForm.account+'" placeholder="Ex. 00123456"></div>'
+        + '<div class="field"><label>'+t("topup.amount")+'</label><div class="chiprow">'+amtChips2+'</div></div>'
+        + '<button class="btn btn-primary btn-block" data-act="submitbill">'+t("topup.submitBill")+'</button>'
+      + '</div>';
+    }
+    document.getElementById("body").innerHTML = tabs + body;
+  }
+
+  function anandoCardHTML(p){
+    return '<div class="reqcard" data-act="goto" data-screen="anando-book" data-id="'+p.id+'" style="cursor:pointer">'
+      + '<div class="route">'+p.origin+' → '+p.destination+'</div>'
+      + '<div class="row"><span style="font-size:11.5px;color:var(--ink-dim)">'+p.driver+' · '+(p.isInstant ? t("anando.instant") : p.departureAt)+'</span>'
+        + '<span class="chip chip-done">'+p.seatsAvailable+' '+t(p.seatsAvailable===1?"anando.seatsLeft_one":"anando.seatsLeft_other")+'</span></div>'
+      + '<div class="row"><span style="font-weight:800;font-size:13px">'+money(p.pricePerSeat)+'</span></div>'
+    + '</div>';
+  }
+  function anandoMyCardHTML(p){
+    return '<div class="reqcard"><div class="route">'+p.origin+' → '+p.destination+'</div>'
+      + '<div class="row"><span style="font-size:11.5px;color:var(--ink-dim)">'+(p.isInstant ? t("anando.instant") : p.departureAt)+'</span>'
+        + '<span class="chip '+(p.status==="OPEN"?"chip-done":p.status==="FULL"?"chip-confirmed":"chip-cancelled")+'">'+t("anando.status."+p.status)+'</span></div>'
+      + '<div class="row"><span style="font-weight:800;font-size:13px">'+p.seatsAvailable+'/'+p.seatsTotal+' · '+money(p.pricePerSeat)+'</span>'
+        + (p.status==="OPEN" ? '<button class="btn btn-text danger btn-sm" data-act="cancelanandoposting" data-id="'+p.id+'">'+t("anando.cancel")+'</button>' : '')
+      + '</div></div>';
+  }
+  function anandoBookingCardHTML(b){
+    var p = ANANDO_POSTINGS.concat(MY_ANANDO_POSTINGS).filter(function(x){return x.id===b.postingId;})[0];
+    var route = p ? (p.origin+' → '+p.destination) : "—";
+    return '<div class="reqcard"><div class="route">'+route+'</div>'
+      + '<div class="row"><span style="font-size:11.5px;color:var(--ink-dim)">'+b.seats+' × '+t("anando.pay."+b.payment)+'</span>'
+        + '<span class="chip '+(b.status==="CONFIRMED"?"chip-done":"chip-cancelled")+'">'+(b.status==="CONFIRMED"?t("status.confirmed"):t("status.cancelled"))+'</span></div>'
+      + '<div class="row"><span style="font-weight:800;font-size:13px">'+money(b.total)+'</span>'
+        + (b.status==="CONFIRMED" ? '<button class="btn btn-text danger btn-sm" data-act="cancelanandobooking" data-id="'+b.id+'">'+t("anando.cancel")+'</button>' : '')
+      + '</div></div>';
+  }
+
+  function renderAnando(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:"Anando", back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var tabs = '<div class="tabs2">'
+      + '<button data-act="anandotab" data-v="available" aria-current="'+(state.anandoTab==="available")+'">'+t("anando.tabs.available")+'</button>'
+      + '<button data-act="anandotab" data-v="mine" aria-current="'+(state.anandoTab==="mine")+'">'+t("anando.tabs.mine")+'</button>'
+      + '<button data-act="anandotab" data-v="bookings" aria-current="'+(state.anandoTab==="bookings")+'">'+t("anando.tabs.bookings")+'</button>'
+      + '</div>';
+    var content;
+    if (state.anandoTab === "available"){
+      var avail = ANANDO_POSTINGS.filter(function(p){return p.seatsAvailable>0 && p.status==="OPEN";});
+      content = '<div style="padding-top:14px">' + (avail.map(anandoCardHTML).join("") || emptyText(t("anando.empty"))) + '</div>';
+    } else if (state.anandoTab === "mine"){
+      content = '<div style="padding:14px 18px 0"><button class="btn btn-primary btn-block" data-act="goto" data-screen="anando-post">'+t("anando.postRide")+'</button></div>'
+        + '<div style="padding-top:8px">' + (MY_ANANDO_POSTINGS.map(anandoMyCardHTML).join("") || emptyText(t("anando.empty"))) + '</div>';
+    } else {
+      content = '<div style="padding-top:14px">' + (MY_ANANDO_BOOKINGS.map(anandoBookingCardHTML).join("") || emptyText(t("anando.empty"))) + '</div>';
+    }
+    document.getElementById("body").innerHTML = '<div class="fade-enter">' + tabs + content + '</div><div style="height:14px"></div>';
+  }
+  function emptyText(msg){
+    return '<div class="empty"><div class="glyph">🚗</div><p>'+msg+'</p></div>';
+  }
+
+  function renderAnandoPost(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("anando.postTitle"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var f = state.anandoForm;
+    document.getElementById("body").innerHTML =
+      '<div class="formwrap tinted-pink fade-enter">'
+        + '<div class="field"><label>'+t("anando.origin")+'</label><div class="rowfield"><input data-bind="anandoForm.origin" value="'+f.origin+'" placeholder="Ex. Plateau, Dakar"><button class="locbtn" style="background:#FDF1F7;color:#EC4899" data-act="uselocation" data-target="anandoForm.origin">'+iconArrowDown()+'</button></div></div>'
+        + '<div class="field"><label>'+t("anando.destination")+'</label><input data-bind="anandoForm.destination" value="'+f.destination+'" placeholder="Ex. Almadies"></div>'
+        + '<div class="switchrow"><span class="lbl2">'+t("anando.instantSwitch")+'</span><button class="switchtoggle" data-act="toggleinstant" aria-pressed="'+f.instant+'"></button></div>'
+        + (!f.instant ? '<div class="field"><label>'+t("anando.departureAt")+'</label><input data-bind="anandoForm.departureAt" value="'+f.departureAt+'" placeholder="'+t("anando.departureAtPh")+'"></div>' : '')
+        + '<div class="field"><label>'+t("anando.seats")+'</label><div class="stepper" style="justify-content:flex-start;gap:14px"><button data-act="anandoseats" data-d="-1">'+iconMinus()+'</button><span class="n">'+f.seats+'</span><button data-act="anandoseats" data-d="1">'+iconPlus()+'</button></div></div>'
+        + '<div class="field"><label>'+t("anando.price")+'</label><input data-bind="anandoForm.price" value="'+f.price+'" placeholder="1500" inputmode="numeric"></div>'
+        + '<div class="field"><label>'+t("anando.note")+'</label><textarea data-bind="anandoForm.note" rows="2" placeholder="'+t("anando.notePh")+'">'+f.note+'</textarea></div>'
+        + '<button class="btn btn-primary btn-block" data-act="submitanandopost">'+t("anando.publish")+'</button>'
+      + '</div>';
+  }
+
+  function renderAnandoBook(){
+    var p = ANANDO_POSTINGS.filter(function(x){return x.id===state.anandoPostingId;})[0];
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("anando.bookTitle"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    if (!p){ document.getElementById("body").innerHTML = emptyText(t("anando.empty")); return; }
+    var pays = ["CASH","WALLET","PAYDUNYA"];
+    var payChips = pays.map(function(m){
+      return '<button class="chipbtn" data-act="anandopay" data-v="'+m+'" aria-pressed="'+(state.anandoBookPayment===m)+'">'+t("anando.pay."+m)+'</button>';
+    }).join("");
+    var seats = Math.min(state.anandoBookSeats, p.seatsAvailable);
+    document.getElementById("body").innerHTML =
+      '<div class="formwrap tinted-pink fade-enter">'
+        + '<div class="reqcard" style="margin:0 0 16px"><div class="route">'+p.origin+' → '+p.destination+'</div>'
+          + '<div class="row"><span style="font-size:11.5px;color:var(--ink-dim)">'+t("anando.driver")+': '+p.driver+'</span>'
+          + '<span class="chip chip-done">'+p.seatsAvailable+' '+t(p.seatsAvailable===1?"anando.seatsLeft_one":"anando.seatsLeft_other")+'</span></div></div>'
+        + '<div class="field"><label>'+t("anando.seatsToBook")+'</label><div class="stepper" style="justify-content:flex-start;gap:14px"><button data-act="anandobookseats" data-d="-1">'+iconMinus()+'</button><span class="n">'+seats+'</span><button data-act="anandobookseats" data-d="1">'+iconPlus()+'</button></div></div>'
+        + '<div class="field"><label>'+t("anando.paymentMethod")+'</label><div class="chiprow">'+payChips+'</div></div>'
+        + '<div class="row" style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 16px"><span style="font-weight:700;font-size:13.5px">'+t("anando.total")+'</span><span style="font-weight:800;font-size:16px">'+money(seats*p.pricePerSeat)+'</span></div>'
+        + '<button class="btn btn-primary btn-block" data-act="confirmanandobook">'+t("anando.confirmBooking")+'</button>'
+      + '</div>';
+  }
+
+  function renderNotifications(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("notifications.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var hasUnread = NOTIFICATIONS.some(function(n){return !n.read;});
+    var markAllBtn = hasUnread
+      ? '<div style="display:flex;justify-content:flex-end;padding:10px 18px 0"><button class="btn btn-text btn-sm" data-act="marknotifall">'+t("notifications.markAllRead")+'</button></div>'
+      : '';
+    var rows = NOTIFICATIONS.map(function(n){
+      return '<div class="notifrow '+(n.read?'':'unread')+'" data-act="marknotif" data-id="'+n.id+'">'
+        + '<div class="ic">'+n.icon+'</div>'
+        + '<div class="info"><div class="n">'+n.title[state.lang]+'</div><div class="b">'+n.body[state.lang]+'</div><div class="d">'+n.time[state.lang]+'</div></div>'
+        + (n.read ? '' : '<div class="dot"></div>')
+      + '</div>';
+    }).join("");
+    document.getElementById("body").innerHTML = markAllBtn + '<div class="fade-enter">'+(rows || emptyText(t("notifications.empty")))+'</div><div style="height:14px"></div>';
+  }
+
+  /* ============================= router ============================= */
+  var RENDERERS = {
+    home: renderHome, discover: renderDiscover, category: renderCategory, product: renderProduct,
+    cart: renderCart, orders: renderOrders, profile: renderProfile, wallet: renderWallet,
+    vendor: renderVendor,
+    agent: function(){ dispatchScreen("agent"); },
+    driver: function(){ dispatchScreen("driver"); },
+    restaurants: renderRestaurants, restaurant: renderRestaurant,
+    delivery: renderDelivery, ride: renderRide,
+    insurance: renderInsurance, topup: renderTopup,
+    anando: renderAnando, "anando-post": renderAnandoPost, "anando-book": renderAnandoBook,
+    notifications: renderNotifications
+  };
+
+  function currentScreen(){ return state.stack[state.stack.length-1].screen; }
+
+  function render(){
+    document.documentElement.lang = state.lang;
+    var scr = currentScreen();
+    (RENDERERS[scr] || renderHome)();
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    document.getElementById("body").scrollTop = 0;
+  }
+
+  /* ============================= events ============================= */
+  document.getElementById("screen").addEventListener("click", function(e){
+    var el = e.target.closest("[data-act]");
+    if (!el) return;
+    var act = el.getAttribute("data-act");
+
+    if (act === "back"){ back(); return; }
+    if (act === "goto"){
+      var scr = el.getAttribute("data-screen");
+      var gp = {};
+      if (el.dataset.slug) gp.catSlug = el.dataset.slug;
+      if (el.dataset.id && scr === "restaurant") gp.restaurantId = el.dataset.id;
+      if (el.dataset.id && scr === "anando-book"){ gp.anandoPostingId = el.dataset.id; state.anandoBookSeats = 1; state.anandoBookPayment = "CASH"; }
+      nav(scr, gp);
+      return;
+    }
+    if (act === "mod"){
+      var m = MODULES.filter(function(x){return x.key===el.getAttribute("data-mod");})[0];
+      if (m && m.go) m.go(); else toast(state.lang==="fr" ? "Bientôt disponible" : "Coming soon");
+      return;
+    }
+    if (act === "filter"){ render(); return; }
+    if (act === "cattab"){ state.catTab = el.getAttribute("data-v"); render(); return; }
+    if (act === "qty"){
+      var d = parseInt(el.getAttribute("data-d"),10);
+      state._pdQty = Math.max(1, (state._pdQty||1) + d);
+      var n = document.getElementById("pdqty"); if (n) n.textContent = state._pdQty;
+      return;
+    }
+    if (act === "addtocart"){
+      var id = el.getAttribute("data-id");
+      var add = state._pdQty || 1;
+      state.cart[id] = (state.cart[id]||0) + add;
+      state._pdQty = 1;
+      toast(t("toast.added"));
+      render();
+      return;
+    }
+    if (act === "cartqty"){
+      var cid = el.getAttribute("data-id");
+      var cd = parseInt(el.getAttribute("data-d"),10);
+      state.cart[cid] = Math.max(0, (state.cart[cid]||0) + cd);
+      if (!state.cart[cid]) delete state.cart[cid];
+      render();
+      return;
+    }
+    if (act === "cartremove"){ delete state.cart[el.getAttribute("data-id")]; render(); return; }
+    if (act === "checkout"){
+      var total = cartTotal();
+      state.cart = {};
+      toast(t("toast.ordered") + money(total));
+      nav("orders");
+      return;
+    }
+    if (act === "topup"){ toast(state.lang==="fr" ? "Redirection vers PayDunya…" : "Redirecting to PayDunya…"); return; }
+    if (act === "role"){ state.role = el.getAttribute("data-r"); render(); return; }
+    if (act === "logout"){ toast(state.lang==="fr" ? "Déconnecté" : "Logged out"); return; }
+    if (act === "lang"){ state.lang = el.getAttribute("data-v"); render(); return; }
+    if (act === "acceptjob"){
+      var kind = el.getAttribute("data-kind");
+      state["_accepted_"+kind] = parseInt(el.getAttribute("data-i"),10);
+      toast(state.lang==="fr" ? "Course acceptée" : "Job accepted");
+      render();
+      return;
+    }
+
+    /* -------- restaurant -------- */
+    if (act === "foodqty"){
+      var fid = el.getAttribute("data-id");
+      var fd = parseInt(el.getAttribute("data-d"),10);
+      state.foodCart[fid] = Math.max(0,(state.foodCart[fid]||0)+fd);
+      if (!state.foodCart[fid]) delete state.foodCart[fid];
+      render();
+      return;
+    }
+    if (act === "foodcheckout"){
+      var r2 = RESTAURANTS.filter(function(x){return x.id===state.restaurantId;})[0];
+      var ftotal = 0;
+      for (var fid2 in state.foodCart){
+        var it2 = r2.menu.filter(function(x){return x.id===fid2;})[0];
+        if (it2) ftotal += it2.price*state.foodCart[fid2];
+      }
+      state.foodCart = {};
+      toast(t("toast.ordered")+money(ftotal));
+      nav("orders");
+      return;
+    }
+
+    /* -------- shared "use my location" -------- */
+    if (act === "uselocation"){
+      setPath(state, el.getAttribute("data-target"), "Plateau, Dakar");
+      render();
+      return;
+    }
+
+    /* -------- delivery -------- */
+    if (act === "pkgtype"){ state.deliveryForm.pkg = el.getAttribute("data-v"); render(); return; }
+    if (act === "submitdelivery"){
+      if (!state.deliveryForm.from || !state.deliveryForm.to){ toast(state.lang==="fr"?"Veuillez remplir les adresses":"Please fill in the addresses"); return; }
+      DELIVERY_REQUESTS.unshift({from:state.deliveryForm.from, to:state.deliveryForm.to, pkg:state.deliveryForm.pkg, status:"pending"});
+      state.deliveryForm = {from:"", to:"", pkg:"document"};
+      toast(t("delivery.sent"));
+      render();
+      return;
+    }
+
+    /* -------- ride-sharing (on-demand) -------- */
+    if (act === "vehicletype"){ state.rideForm.vehicle = el.getAttribute("data-v"); render(); return; }
+    if (act === "submitride"){
+      if (!state.rideForm.from || !state.rideForm.to){ toast(state.lang==="fr"?"Veuillez remplir les adresses":"Please fill in the addresses"); return; }
+      RIDE_REQUESTS.unshift({from:state.rideForm.from, to:state.rideForm.to, vehicle:state.rideForm.vehicle, status:"pending"});
+      state.rideForm = {from:"", to:"", vehicle:"moto"};
+      toast(t("ride.sent"));
+      render();
+      return;
+    }
+
+    /* -------- insurance -------- */
+    if (act === "subscribe"){
+      var pid = el.getAttribute("data-id");
+      if (state.insurancePolicies.indexOf(pid)===-1) state.insurancePolicies.push(pid);
+      toast(t("insurance.activated"));
+      render();
+      return;
+    }
+
+    /* -------- topup -------- */
+    if (act === "topuptab"){ state.topupTab = el.getAttribute("data-v"); render(); return; }
+    if (act === "operator"){ state.airtimeForm.operator = el.getAttribute("data-v"); render(); return; }
+    if (act === "biller"){ state.billForm.biller = el.getAttribute("data-v"); render(); return; }
+    if (act === "amountchip"){ setPath(state, el.getAttribute("data-field"), parseInt(el.getAttribute("data-v"),10)); render(); return; }
+    if (act === "submitairtime"){
+      if (!state.airtimeForm.phone){ toast(state.lang==="fr"?"Veuillez saisir un numéro":"Please enter a phone number"); return; }
+      toast(t("topup.airtimeDone"));
+      state.airtimeForm.phone = "";
+      render();
+      return;
+    }
+    if (act === "submitbill"){
+      if (!state.billForm.account){ toast(state.lang==="fr"?"Veuillez saisir un numéro de compte":"Please enter an account number"); return; }
+      toast(t("topup.billDone"));
+      state.billForm.account = "";
+      render();
+      return;
+    }
+
+    /* -------- anando -------- */
+    if (act === "anandotab"){ state.anandoTab = el.getAttribute("data-v"); render(); return; }
+    if (act === "toggleinstant"){ state.anandoForm.instant = !state.anandoForm.instant; render(); return; }
+    if (act === "anandoseats"){
+      var asd = parseInt(el.getAttribute("data-d"),10);
+      state.anandoForm.seats = Math.max(1, state.anandoForm.seats + asd);
+      render();
+      return;
+    }
+    if (act === "submitanandopost"){
+      var af = state.anandoForm;
+      if (!af.origin || !af.destination || !af.price){ toast(state.lang==="fr"?"Veuillez remplir le trajet et le prix":"Please fill in the route and price"); return; }
+      MY_ANANDO_POSTINGS.unshift({
+        id: "my"+Date.now(), origin: af.origin, destination: af.destination,
+        departureAt: af.instant ? "" : (af.departureAt || "—"), isInstant: af.instant,
+        seatsTotal: af.seats, seatsAvailable: af.seats, pricePerSeat: parseInt(af.price,10)||0, status:"OPEN"
+      });
+      state.anandoForm = {origin:"", destination:"", instant:false, departureAt:"", seats:1, price:"", note:""};
+      toast(t("anando.published"));
+      nav("anando", {anandoTab:"mine"});
+      return;
+    }
+    if (act === "cancelanandoposting"){
+      var cpid = el.getAttribute("data-id");
+      var cp = MY_ANANDO_POSTINGS.filter(function(x){return x.id===cpid;})[0];
+      if (cp) cp.status = "CANCELLED";
+      render();
+      return;
+    }
+    if (act === "anandopay"){ state.anandoBookPayment = el.getAttribute("data-v"); render(); return; }
+    if (act === "anandobookseats"){
+      var bp = ANANDO_POSTINGS.filter(function(x){return x.id===state.anandoPostingId;})[0];
+      var bd = parseInt(el.getAttribute("data-d"),10);
+      var next = state.anandoBookSeats + bd;
+      state.anandoBookSeats = Math.max(1, Math.min(bp ? bp.seatsAvailable : 1, next));
+      render();
+      return;
+    }
+    if (act === "confirmanandobook"){
+      var bpost = ANANDO_POSTINGS.filter(function(x){return x.id===state.anandoPostingId;})[0];
+      if (!bpost || state.anandoBookSeats > bpost.seatsAvailable){ toast(state.lang==="fr"?"Places insuffisantes":"Not enough seats"); return; }
+      bpost.seatsAvailable -= state.anandoBookSeats;
+      if (bpost.seatsAvailable === 0) bpost.status = "FULL";
+      MY_ANANDO_BOOKINGS.unshift({
+        id: "bk"+Date.now(), postingId: bpost.id, seats: state.anandoBookSeats,
+        payment: state.anandoBookPayment, total: state.anandoBookSeats*bpost.pricePerSeat, status:"CONFIRMED"
+      });
+      toast(t("anando.booked"));
+      nav("anando", {anandoTab:"bookings"});
+      return;
+    }
+    if (act === "cancelanandobooking"){
+      var cbid = el.getAttribute("data-id");
+      var cb = MY_ANANDO_BOOKINGS.filter(function(x){return x.id===cbid;})[0];
+      if (cb && cb.status === "CONFIRMED"){
+        cb.status = "CANCELLED";
+        var relp = ANANDO_POSTINGS.filter(function(x){return x.id===cb.postingId;})[0];
+        if (relp){ relp.seatsAvailable += cb.seats; if (relp.status==="FULL") relp.status="OPEN"; }
+      }
+      render();
+      return;
+    }
+
+    /* -------- notifications -------- */
+    if (act === "marknotif"){
+      var nid = el.getAttribute("data-id");
+      var nn = NOTIFICATIONS.filter(function(x){return x.id===nid;})[0];
+      if (nn) nn.read = true;
+      render();
+      return;
+    }
+    if (act === "marknotifall"){
+      NOTIFICATIONS.forEach(function(n){ n.read = true; });
+      render();
+      return;
+    }
+  });
+
+  document.getElementById("screen").addEventListener("input", function(e){
+    var el = e.target.closest("[data-bind]");
+    if (!el) return;
+    setPath(state, el.getAttribute("data-bind"), el.value);
+    if (el.tagName === "BUTTON") render();
+  });
+
+  /* clock */
+  function tickClock(){
+    var d = new Date();
+    var h = d.getHours(), m = d.getMinutes();
+    var hh = ((h % 12) || 12);
+    document.getElementById("clock").textContent = hh + ":" + (m<10?"0":"")+m;
+  }
+  tickClock(); setInterval(tickClock, 15000);
+
+  render();
+})();
+</script>
