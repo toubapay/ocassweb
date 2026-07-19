@@ -73,6 +73,11 @@ class ApiClient {
     return User.fromJson(_data(res)['user'] as Map<String, dynamic>);
   }
 
+  Future<User> updateRole(String role) async {
+    final res = await _dio.patch('/auth/role', data: {'role': role});
+    return User.fromJson(_data(res)['user'] as Map<String, dynamic>);
+  }
+
   // ---------------- Ecommerce ----------------
 
   Future<List<Category>> fetchCategories() async {
@@ -196,17 +201,52 @@ class ApiClient {
     required String pickupAddress,
     required String dropoffAddress,
     String? packageNote,
+    double? pickupLat,
+    double? pickupLng,
   }) async {
     final res = await _dio.post('/delivery/requests', data: {
       'pickupAddress': pickupAddress,
       'dropoffAddress': dropoffAddress,
       if (packageNote != null && packageNote.isNotEmpty) 'packageNote': packageNote,
+      if (pickupLat != null) 'pickupLat': pickupLat,
+      if (pickupLng != null) 'pickupLng': pickupLng,
     });
     return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
   }
 
   Future<DeliveryRequest> cancelDeliveryRequest(String id) async {
     final res = await _dio.patch('/delivery/requests/$id/cancel');
+    return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
+  }
+
+  // ---------------- Delivery agent dispatch ----------------
+
+  Future<List<DeliveryRequest>> fetchAvailableDeliveryJobs() async {
+    final res = await _dio.get('/delivery/jobs/available');
+    return (_data(res)['requests'] as List<dynamic>)
+        .map((r) => DeliveryRequest.fromJson(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<DeliveryRequest>> fetchMyDeliveryJobs() async {
+    final res = await _dio.get('/delivery/jobs/mine');
+    return (_data(res)['requests'] as List<dynamic>)
+        .map((r) => DeliveryRequest.fromJson(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<DeliveryRequest> acceptDeliveryJob(String id) async {
+    final res = await _dio.post('/delivery/jobs/$id/accept');
+    return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
+  }
+
+  Future<DeliveryRequest> markDeliveryPickedUp(String id) async {
+    final res = await _dio.post('/delivery/jobs/$id/picked-up');
+    return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
+  }
+
+  Future<DeliveryRequest> markDeliveryDelivered(String id) async {
+    final res = await _dio.post('/delivery/jobs/$id/delivered');
     return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
   }
 
@@ -288,17 +328,52 @@ class ApiClient {
     required String pickupAddress,
     required String dropoffAddress,
     String vehicleType = 'ECONOMY',
+    double? pickupLat,
+    double? pickupLng,
   }) async {
     final res = await _dio.post('/rideshare/rides', data: {
       'pickupAddress': pickupAddress,
       'dropoffAddress': dropoffAddress,
       'vehicleType': vehicleType,
+      if (pickupLat != null) 'pickupLat': pickupLat,
+      if (pickupLng != null) 'pickupLng': pickupLng,
     });
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
   }
 
   Future<RideRequest> cancelRide(String id) async {
     final res = await _dio.patch('/rideshare/rides/$id/cancel');
+    return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
+  // ---------------- Rider dispatch ----------------
+
+  Future<List<RideRequest>> fetchAvailableRideJobs() async {
+    final res = await _dio.get('/rideshare/jobs/available');
+    return (_data(res)['rides'] as List<dynamic>)
+        .map((r) => RideRequest.fromJson(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<RideRequest>> fetchMyRideJobs() async {
+    final res = await _dio.get('/rideshare/jobs/mine');
+    return (_data(res)['rides'] as List<dynamic>)
+        .map((r) => RideRequest.fromJson(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<RideRequest> acceptRideJob(String id) async {
+    final res = await _dio.post('/rideshare/jobs/$id/accept');
+    return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
+  Future<RideRequest> startRideJob(String id) async {
+    final res = await _dio.post('/rideshare/jobs/$id/start');
+    return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
+  Future<RideRequest> completeRideJob(String id) async {
+    final res = await _dio.post('/rideshare/jobs/$id/complete');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
   }
 

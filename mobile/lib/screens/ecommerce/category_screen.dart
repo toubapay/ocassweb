@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
 import '../../models/product.dart';
 import '../../models/store.dart';
@@ -80,12 +81,12 @@ class _CategoryScreenState extends State<CategoryScreen> with SingleTickerProvid
         ? children
         : (_current != null ? [_current!] : const <Category>[]);
     final sidebarItems = [
-      const SidebarItem(slug: 'all', name: 'Tous'),
+      SidebarItem(slug: 'all', name: context.t('ecommerce.category.all')),
       ...sidebarSource.map((c) => SidebarItem(slug: c.slug, name: c.name)),
     ];
 
     return Scaffold(
-      appBar: TopBar(title: _current?.name ?? 'Shop'),
+      appBar: TopBar(title: _current?.name ?? context.t('ecommerce.category.title')),
       body: Column(
         children: [
           TabBar(
@@ -94,7 +95,10 @@ class _CategoryScreenState extends State<CategoryScreen> with SingleTickerProvid
             unselectedLabelColor: AppColors.textSecondary,
             indicatorColor: AppColors.green,
             labelStyle: const TextStyle(fontWeight: FontWeight.w700),
-            tabs: const [Tab(text: 'Article'), Tab(text: 'Magasins')],
+            tabs: [
+              Tab(text: context.t('ecommerce.category.articleTab')),
+              Tab(text: context.t('ecommerce.category.storesTab')),
+            ],
           ),
           Expanded(
             child: Row(
@@ -124,7 +128,7 @@ class _CategoryScreenState extends State<CategoryScreen> with SingleTickerProvid
         }
         final items = snapshot.data?.items ?? const <Product>[];
         if (items.isEmpty) {
-          return const Center(child: Text('No products in this category yet.'));
+          return Center(child: Text(context.t('ecommerce.category.noProducts')));
         }
         return GridView.builder(
           padding: const EdgeInsets.all(12),
@@ -152,7 +156,7 @@ class _CategoryScreenState extends State<CategoryScreen> with SingleTickerProvid
           if (store != null) stores[store.id] = store;
         }
         if (stores.isEmpty) {
-          return const Center(child: Text('No stores found for this category.'));
+          return Center(child: Text(context.t('ecommerce.category.noStores')));
         }
         return ListView(
           padding: const EdgeInsets.all(16),

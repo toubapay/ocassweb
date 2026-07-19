@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -25,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final phone = _controller.text.trim();
     if (phone.length < 8) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter a valid phone number')));
+          .showSnackBar(SnackBar(content: Text(context.tr('auth.login.invalidPhone'))));
       return;
     }
     setState(() => _loading = true);
@@ -34,7 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(devCode != null ? 'Dev OTP: $devCode' : 'Code sent'),
+          content: Text(devCode != null
+              ? context.tr('auth.login.devOtp', {'code': devCode})
+              : context.tr('auth.login.codeSent')),
           duration: const Duration(seconds: 6),
         ),
       );
@@ -42,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not send code')));
+          .showSnackBar(SnackBar(content: Text(context.tr('auth.login.couldNotSendCode'))));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -59,24 +62,24 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome to Ocass',
+                context.t('auth.login.welcome'),
                 style: Theme.of(context)
                     .textTheme
                     .headlineSmall
                     ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Enter your phone number to sign in or create an account.',
-                style: TextStyle(color: Colors.grey),
+              Text(
+                context.t('auth.login.subtitle'),
+                style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 32),
               TextField(
                 controller: _controller,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone number',
-                  prefixIcon: Icon(Icons.phone_rounded),
+                decoration: InputDecoration(
+                  labelText: context.t('auth.login.phoneNumberLabel'),
+                  prefixIcon: const Icon(Icons.phone_rounded),
                 ),
               ),
               const SizedBox(height: 24),
@@ -84,7 +87,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _submit,
-                  child: Text(_loading ? 'Sending...' : 'Send code'),
+                  child: Text(_loading
+                      ? context.t('auth.login.sending')
+                      : context.t('auth.login.sendCode')),
                 ),
               ),
             ],

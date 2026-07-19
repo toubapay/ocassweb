@@ -5,19 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/wallet.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
 const _quickAmounts = [1000, 5000, 10000, 25000];
-
-const Map<String, String> _typeLabels = {
-  'TOPUP': 'Top-up',
-  'PAYMENT': 'Payment',
-  'REFUND': 'Refund',
-  'ADJUSTMENT': 'Adjustment',
-};
 
 /// Mirrors pages/wallet/index.js: balance card, a top-up dialog that starts
 /// a PayDunya invoice and opens it in the device browser (same reasoning as
@@ -80,7 +74,7 @@ class _WalletScreenState extends State<WalletScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not start top-up')));
+          .showSnackBar(SnackBar(content: Text(context.tr('wallet.couldNotStartTopUp'))));
       rethrow;
     }
   }
@@ -107,7 +101,8 @@ class _WalletScreenState extends State<WalletScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Top up wallet', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              Text(sheetContext.t('wallet.topUpWallet'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 8,
@@ -124,7 +119,8 @@ class _WalletScreenState extends State<WalletScreen> {
               TextField(
                 controller: controller,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Amount (CFA)', border: OutlineInputBorder()),
+                decoration: InputDecoration(
+                    labelText: sheetContext.t('wallet.amountLabel'), border: const OutlineInputBorder()),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -135,8 +131,8 @@ class _WalletScreenState extends State<WalletScreen> {
                       : () async {
                           final value = double.tryParse(controller.text);
                           if (value == null || value <= 0) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(sheetContext.tr('wallet.enterValidAmount'))));
                             return;
                           }
                           setSheetState(() => starting = true);
@@ -146,7 +142,9 @@ class _WalletScreenState extends State<WalletScreen> {
                             setSheetState(() => starting = false);
                           }
                         },
-                  child: Text(starting ? 'Starting...' : 'Continue to payment'),
+                  child: Text(starting
+                      ? sheetContext.t('wallet.starting')
+                      : sheetContext.t('wallet.continueToPayment')),
                 ),
               ),
               const SizedBox(height: 8),
@@ -163,16 +161,16 @@ class _WalletScreenState extends State<WalletScreen> {
 
     if (!isAuthenticated) {
       return Scaffold(
-        appBar: const TopBar(title: 'Wallet', showCart: false, showSearch: false),
+        appBar: TopBar(title: context.t('wallet.title'), showCart: false, showSearch: false),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Log in to see your wallet.'),
+              Text(context.t('wallet.loginToView')),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => context.push('/auth/login'),
-                child: const Text('Log in'),
+                child: Text(context.t('common.logIn')),
               ),
             ],
           ),
@@ -181,7 +179,7 @@ class _WalletScreenState extends State<WalletScreen> {
     }
 
     return Scaffold(
-      appBar: const TopBar(title: 'Wallet', showCart: false, showSearch: false),
+      appBar: TopBar(title: context.t('wallet.title'), showCart: false, showSearch: false),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -201,10 +199,11 @@ class _WalletScreenState extends State<WalletScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    children: const [
-                      Icon(Icons.account_balance_wallet_rounded, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text('Wallet balance', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                    children: [
+                      const Icon(Icons.account_balance_wallet_rounded, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(context.t('wallet.balance'),
+                          style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -219,18 +218,21 @@ class _WalletScreenState extends State<WalletScreen> {
                       foregroundColor: AppColors.green,
                     ),
                     onPressed: _showTopUpSheet,
-                    child: const Text('Top up wallet', style: TextStyle(fontWeight: FontWeight.w800)),
+                    child: Text(context.t('wallet.topUpWallet'),
+                        style: const TextStyle(fontWeight: FontWeight.w800)),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Transaction history', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            Text(context.t('wallet.transactionHistory'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
             if (!_loading && _transactions.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('No transactions yet.', style: TextStyle(color: AppColors.textSecondary)),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(context.t('wallet.empty'),
+                    style: const TextStyle(color: AppColors.textSecondary)),
               ),
             ..._transactions.map((tx) {
               final isCredit = tx.isCredit;
@@ -260,7 +262,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           Text(
                             tx.description?.isNotEmpty == true
                                 ? tx.description!
-                                : (_typeLabels[tx.type] ?? tx.type),
+                                : context.tOr('wallet.type.${tx.type}', tx.type),
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                           Text(

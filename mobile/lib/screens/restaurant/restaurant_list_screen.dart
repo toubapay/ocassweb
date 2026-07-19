@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/restaurant.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
@@ -25,7 +26,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TopBar(title: 'Restaurants', showBack: false, showSearch: false),
+      appBar: TopBar(title: context.t('restaurant.list.title'), showBack: false, showSearch: false),
       body: FutureBuilder<List<Restaurant>>(
         future: _future,
         builder: (context, snapshot) {

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/format.dart';
+import '../l10n/app_localizations.dart';
 import '../models/product.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
@@ -26,7 +27,7 @@ class _ProductCardState extends State<ProductCard> {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuthenticated) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Log in to continue')));
+          .showSnackBar(SnackBar(content: Text(context.tr('common.logInToContinue'))));
       context.push('/auth/login');
       return;
     }
@@ -38,13 +39,14 @@ class _ProductCardState extends State<ProductCard> {
     try {
       await context.read<CartProvider>().add(widget.product.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${widget.product.name} added to cart')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr(
+                'ecommerce.productCard.addedToCart', {'name': widget.product.name}))));
       }
     } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Could not add to cart')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr('ecommerce.productCard.couldNotAddToCart'))));
       }
     } finally {
       if (mounted) setState(() => _adding = false);
@@ -95,7 +97,9 @@ class _ProductCardState extends State<ProductCard> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration:
                           BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(999)),
-                      child: Text('${product.discountPercent}% OFF',
+                      child: Text(
+                          context.t('ecommerce.product.percentOff',
+                              {'percent': '${product.discountPercent}'}),
                           style:
                               const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 11)),
                     ),
@@ -165,7 +169,7 @@ class _ProductCardState extends State<ProductCard> {
                       child: _adding
                           ? const SizedBox(
                               width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('ADD'),
+                          : Text(context.t('ecommerce.productCard.add')),
                     ),
                   ),
                 ],

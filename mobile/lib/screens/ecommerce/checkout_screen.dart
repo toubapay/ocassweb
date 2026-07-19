@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/wallet.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
@@ -57,13 +58,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         // PayDunya's IPN webhook same as on the web app.
         await launchUrl(Uri.parse(paymentUrl), mode: LaunchMode.externalApplication);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed!')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.tr('ecommerce.checkout.orderPlaced'))));
       }
       context.go('/ecommerce/orders');
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not place order')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('ecommerce.checkout.couldNotPlaceOrder'))));
     } finally {
       if (mounted) setState(() => _placing = false);
     }
@@ -79,11 +81,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final walletInsufficient = _wallet != null && _wallet!.balance < total;
 
     return Scaffold(
-      appBar: const TopBar(title: 'Checkout', showCart: false, showSearch: false),
+      appBar: TopBar(
+          title: context.t('ecommerce.checkout.title'), showCart: false, showSearch: false),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Delivery to', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(context.t('ecommerce.checkout.deliveryTo'),
+              style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(16),
@@ -94,16 +98,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(user?.name ?? 'You', style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(user?.name ?? context.t('ecommerce.checkout.you'),
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
                 Text(user?.phone ?? '', style: const TextStyle(color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
-                const Text('Add a saved address to speed up future orders.',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text(context.t('ecommerce.checkout.addAddressHint'),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          const Text('Order summary', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(context.t('ecommerce.checkout.orderSummary'),
+              style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
           ...cart.items.map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -122,7 +128,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Subtotal', style: TextStyle(color: AppColors.textSecondary)),
+              Text(context.t('ecommerce.checkout.subtotal'),
+                  style: const TextStyle(color: AppColors.textSecondary)),
               Text(formatCfa(subtotal)),
             ],
           ),
@@ -130,7 +137,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Delivery fee', style: TextStyle(color: AppColors.textSecondary)),
+              Text(context.t('ecommerce.checkout.deliveryFee'),
+                  style: const TextStyle(color: AppColors.textSecondary)),
               Text(formatCfa(deliveryFee)),
             ],
           ),
@@ -138,12 +146,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Total', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              Text(context.t('ecommerce.checkout.total'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               Text(formatCfa(total), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             ],
           ),
           const Divider(height: 32),
-          const Text('Pay with', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(context.t('ecommerce.checkout.payWith'),
+              style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
           Container(
             decoration: BoxDecoration(
@@ -154,8 +164,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               value: 'paydunya',
               groupValue: _paymentMethod,
               onChanged: (v) => setState(() => _paymentMethod = v!),
-              title: const Text('PayDunya (mobile money, card)',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              title: Text(context.t('ecommerce.checkout.payDunya'),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               secondary: const Icon(Icons.credit_card_rounded, color: AppColors.green),
             ),
           ),
@@ -169,8 +179,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               value: 'wallet',
               groupValue: _paymentMethod,
               onChanged: walletInsufficient ? null : (v) => setState(() => _paymentMethod = v!),
-              title: const Text('Ocass Wallet', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              subtitle: Text(_wallet != null ? 'Balance: ${formatCfa(_wallet!.balance)}' : '...'),
+              title: Text(context.t('ecommerce.checkout.wallet'),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              subtitle: Text(_wallet != null
+                  ? context.t('ecommerce.checkout.walletBalance',
+                      {'amount': formatCfa(_wallet!.balance)})
+                  : '...'),
               secondary: const Icon(Icons.account_balance_wallet_rounded, color: AppColors.green),
             ),
           ),
@@ -181,7 +195,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
             onPressed: (_placing || cart.items.isEmpty) ? null : () => _placeOrder(total),
-            child: Text(_placing ? 'Placing order...' : 'Place order · ${formatCfa(total)}'),
+            child: Text(_placing
+                ? context.t('ecommerce.checkout.placingOrder')
+                : context.t('ecommerce.checkout.placeOrder', {'total': formatCfa(total)})),
           ),
         ),
       ),

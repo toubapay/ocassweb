@@ -44,4 +44,11 @@ class AuthProvider extends ChangeNotifier {
     _user = null;
     notifyListeners();
   }
+
+  Future<User> updateRole(String role) async {
+    final user = await apiClient.updateRole(role);
+    _user = user;
+    notifyListeners();
+    return user;
+  }
 }

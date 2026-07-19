@@ -22,9 +22,14 @@ fixing whatever it finds** - most likely spots, in rough order of risk:
    This method name and its "no permission needed" behavior came from a
    single pub.dev doc fetch, not from experience with the package; if it's
    wrong, that function is small and isolated to fix.
-3. Anywhere using Dart 3 records (`(a, b, c)` / `.$1` field access) -
+3. `lib/core/geo.dart` - `Geolocator.getCurrentPosition(locationSettings: ...)`.
+   Same caveat as above: written from pub.dev docs for `geolocator: ^13.0.2`,
+   not verified against a real build: `LocationSettings` replaced an older
+   `desiredAccuracy` positional param in some prior major version, so this
+   is worth a second look if `flutter analyze` flags it.
+4. Anywhere using Dart 3 records (`(a, b, c)` / `.$1` field access) -
    straightforward but easy to typo by hand.
-4. Minor Flutter-version drift (a Material 3 API renamed between the
+5. Minor Flutter-version drift (a Material 3 API renamed between the
    version this assumes and whatever you have installed).
 
 ## First-time setup
@@ -59,6 +64,20 @@ native permission entries once the above has generated the files:
   ```xml
   <key>NSContactsUsageDescription</key>
   <string>Ocass uses your contacts to let you pick a phone number to top up.</string>
+  ```
+
+For the "use my location" pickup button in Delivery/Ride Sharing
+(`geolocator`), add these too:
+
+- **Android** (`android/app/src/main/AndroidManifest.xml`), inside `<manifest>`:
+  ```xml
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+  ```
+- **iOS** (`ios/Runner/Info.plist`), inside the top-level `<dict>`:
+  ```xml
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>Ocass uses your location to set an accurate delivery/ride pickup point.</string>
   ```
 
 ## Running against the backend
@@ -103,6 +122,29 @@ Sharing, and subscribe/cancel for Insurance; Airtime Top-up & Bill Payment
 managed catalog); a Wallet (balance, top-up, transaction history) reachable
 from the profile screen, usable at ecommerce checkout as an alternative to
 PayDunya; phone+OTP auth.
+
+**French / English**, matching the web app: `lib/l10n/strings_en.dart` and
+`strings_fr.dart` hold the same key set as `src/i18n/locales/{en,fr}.json`
+(hand-derived from that JSON, not codegen'd - there's no Flutter SDK here
+to run `flutter gen-l10n`), `LocaleProvider` persists the choice with
+`shared_preferences` (French default, same as web), and
+`context.t('some.key')` mirrors the web's `t("some.key")`. One difference
+from the web hook: `context.t()` reads via `context.watch`, so it's only
+safe to call from a `build()` method - anywhere else (a button's
+`onPressed`, an async method) use `context.tr()` instead, which reads the
+current language with `context.read` and doesn't try to subscribe to
+changes outside of a build phase. `context.tOr(key, fallback)` mirrors the
+web's `t(key, { defaultValue })` for backend-sourced text (category names,
+order/ride/delivery statuses) where only a known subset is translated.
+
+**Delivery/ride dispatch**, matching the web app: any user can opt into the
+`DELIVERY_AGENT`/`RIDER` role from the profile screen and reach a dashboard
+(`/delivery/agent`, `/ride-sharing/driver`) listing unassigned jobs, accept
+one, and walk it through pickup/start to delivered/completed - same
+backend endpoints and race-safe accept as the web app. The "use my
+location" pickup button (`lib/core/geo.dart`, via the `geolocator` package)
+mirrors the web's `navigator.geolocation` button: pickup-only, no
+geocoding, since there's no maps API key configured anywhere in this app.
 
 PayDunya's hosted checkout (used by both ecommerce checkout and wallet
 top-up) opens in the device's external browser via `url_launcher` rather

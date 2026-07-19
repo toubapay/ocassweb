@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
@@ -34,7 +35,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TopBar(title: 'Shop', showBack: false),
+      appBar: TopBar(title: context.t('ecommerce.discover.title'), showBack: false),
       body: FutureBuilder<List<Category>>(
         future: _future,
         builder: (context, snapshot) {
@@ -65,10 +66,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                      Text(context.tOr('categories.${cat.slug}', cat.name),
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
                       const SizedBox(height: 4),
                       Text(
-                        cat.children.isNotEmpty ? '${cat.children.length} subcategories' : 'Shop now',
+                        cat.children.isNotEmpty
+                            ? context.tPlural(
+                                'ecommerce.discover.subcategoriesCount', cat.children.length)
+                            : context.t('ecommerce.discover.shopNow'),
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                       ),
                     ],

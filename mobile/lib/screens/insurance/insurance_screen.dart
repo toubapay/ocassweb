@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/insurance.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
@@ -50,7 +51,8 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
 
   Future<void> _subscribe(InsurancePlan plan) async {
     if (!context.read<AuthProvider>().isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Log in to subscribe')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('insurance.loginToSubscribe'))));
       context.push('/auth/login');
       return;
     }
@@ -58,11 +60,12 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
       await apiClient.subscribeInsurancePlan(plan.id);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Subscribed! Your policy is pending activation.')));
+          .showSnackBar(SnackBar(content: Text(context.tr('insurance.subscribed'))));
       await _loadPolicies();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not subscribe')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('insurance.couldNotSubscribe'))));
     }
   }
 
@@ -70,18 +73,21 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
     try {
       await apiClient.cancelInsurancePolicy(policy.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Policy cancelled')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('insurance.policyCancelled'))));
       await _loadPolicies();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not cancel policy')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('insurance.couldNotCancel'))));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TopBar(title: 'Insurance', showBack: false, showSearch: false, showCart: false),
+      appBar: TopBar(
+          title: context.t('insurance.title'), showBack: false, showSearch: false, showCart: false),
       body: Column(
         children: [
           TabBar(
@@ -92,7 +98,7 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
             indicatorColor: AppColors.green,
             labelStyle: const TextStyle(fontWeight: FontWeight.w700),
             tabs: _categories
-                .map((c) => Tab(text: c[0] + c.substring(1).toLowerCase()))
+                .map((c) => Tab(text: context.t('insurance.categories.$c')))
                 .toList(),
           ),
           Expanded(
@@ -110,8 +116,8 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
                     }
                     final plans = snapshot.data ?? const <InsurancePlan>[];
                     if (plans.isEmpty) {
-                      return const Text('No plans in this category yet.',
-                          style: TextStyle(color: AppColors.textSecondary));
+                      return Text(context.t('insurance.noPlans'),
+                          style: const TextStyle(color: AppColors.textSecondary));
                     }
                     return Column(
                       children: plans
@@ -140,16 +146,20 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
                                         Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text('${formatCfa(plan.premiumMonthly)}/mo',
+                                            Text(
+                                                context.t('insurance.perMonth',
+                                                    {'amount': formatCfa(plan.premiumMonthly)}),
                                                 style: const TextStyle(fontWeight: FontWeight.w800)),
-                                            Text('Coverage up to ${formatCfa(plan.coverageAmount)}',
+                                            Text(
+                                                context.t('insurance.coverageUpTo',
+                                                    {'amount': formatCfa(plan.coverageAmount)}),
                                                 style:
                                                     const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                                           ],
                                         ),
                                         OutlinedButton(
                                           onPressed: () => _subscribe(plan),
-                                          child: const Text('Subscribe'),
+                                          child: Text(context.t('insurance.subscribe')),
                                         ),
                                       ],
                                     ),
@@ -162,7 +172,7 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
                 ),
                 if (_policies.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  const Text('My policies', style: TextStyle(fontWeight: FontWeight.w800)),
+                  Text(context.t('insurance.myPolicies'), style: const TextStyle(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 12),
                   ..._policies.map((policy) => Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -176,7 +186,10 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(policy.plan.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                                Chip(label: Text(policy.status), visualDensity: VisualDensity.compact),
+                                Chip(
+                                    label: Text(
+                                        context.tOr('insurance.policyStatus.${policy.status}', policy.status)),
+                                    visualDensity: VisualDensity.compact),
                               ],
                             ),
                             if (policy.status == 'PENDING' || policy.status == 'ACTIVE')
@@ -190,7 +203,8 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
                                     padding: EdgeInsets.zero,
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
+                                  child: Text(context.t('insurance.cancel'),
+                                      style: const TextStyle(fontWeight: FontWeight.w700)),
                                 ),
                               ),
                           ],

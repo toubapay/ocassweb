@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/geo.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/delivery_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
@@ -22,6 +24,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   final _noteController = TextEditingController();
   bool _submitting = false;
   List<DeliveryRequest> _requests = [];
+  (double, double)? _pickupCoords;
 
   @override
   void initState() {
@@ -47,25 +50,43 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     try {
       await apiClient.cancelDeliveryRequest(id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request cancelled')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('delivery.requestCancelled'))));
       await _loadRequests();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not cancel request')));
+          .showSnackBar(SnackBar(content: Text(context.tr('delivery.couldNotCancel'))));
     }
+  }
+
+  /// There's no geocoding/maps integration in this app (no API key
+  /// configured), so a typed address never has coordinates on its own -
+  /// this is the one way to get a real pickup point for distance-based
+  /// pricing. Dropoff stays address-text-only until a map picker exists.
+  Future<void> _useMyLocation() async {
+    final coords = await getCurrentLatLng();
+    if (!mounted) return;
+    if (coords == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('delivery.locationError'))));
+      return;
+    }
+    setState(() => _pickupCoords = coords);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(context.tr('delivery.locationSet'))));
   }
 
   Future<void> _submit() async {
     if (!context.read<AuthProvider>().isAuthenticated) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Log in to request a delivery')));
+          .showSnackBar(SnackBar(content: Text(context.tr('delivery.loginToRequest'))));
       context.push('/auth/login');
       return;
     }
     if (_pickupController.text.trim().isEmpty || _dropoffController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter pickup and dropoff addresses')));
+          .showSnackBar(SnackBar(content: Text(context.tr('delivery.enterAddresses'))));
       return;
     }
     setState(() => _submitting = true);
@@ -74,19 +95,22 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
         pickupAddress: _pickupController.text.trim(),
         dropoffAddress: _dropoffController.text.trim(),
         packageNote: _noteController.text.trim(),
+        pickupLat: _pickupCoords?.$1,
+        pickupLng: _pickupCoords?.$2,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Request created · estimate ${formatCfa(request.priceEstimate)}')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.tr(
+              'delivery.requestCreated', {'amount': formatCfa(request.priceEstimate)}))));
       _pickupController.clear();
       _dropoffController.clear();
       _noteController.clear();
+      setState(() => _pickupCoords = null);
       await _loadRequests();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not create request')));
+          .showSnackBar(SnackBar(content: Text(context.tr('delivery.couldNotCreate'))));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -95,24 +119,42 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TopBar(title: 'Package Delivery', showBack: false, showSearch: false, showCart: false),
+      appBar: TopBar(
+          title: context.t('delivery.title'), showBack: false, showSearch: false, showCart: false),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Send a package across town',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text(context.t('delivery.heading'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 16),
-          TextField(
-              controller: _pickupController,
-              decoration: const InputDecoration(labelText: 'Pickup address')),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                    controller: _pickupController,
+                    decoration: InputDecoration(labelText: context.t('delivery.pickupAddress'))),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _useMyLocation,
+                tooltip: context.t('delivery.useMyLocation'),
+                icon: const Icon(Icons.my_location_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: _pickupCoords != null ? AppColors.amber : AppColors.amber.withOpacity(0.2),
+                  foregroundColor: _pickupCoords != null ? Colors.white : AppColors.amber,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           TextField(
               controller: _dropoffController,
-              decoration: const InputDecoration(labelText: 'Dropoff address')),
+              decoration: InputDecoration(labelText: context.t('delivery.dropoffAddress'))),
           const SizedBox(height: 12),
           TextField(
               controller: _noteController,
-              decoration: const InputDecoration(labelText: 'What are you sending? (optional)')),
+              decoration: InputDecoration(labelText: context.t('delivery.packageNote'))),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -120,12 +162,14 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
               style:
                   ElevatedButton.styleFrom(backgroundColor: AppColors.amber, foregroundColor: Colors.black87),
               onPressed: _submitting ? null : _submit,
-              child: Text(_submitting ? 'Requesting...' : 'Get a price estimate'),
+              child: Text(_submitting
+                  ? context.t('delivery.requesting')
+                  : context.t('delivery.getEstimate')),
             ),
           ),
           if (_requests.isNotEmpty) ...[
             const SizedBox(height: 28),
-            const Text('Your requests', style: TextStyle(fontWeight: FontWeight.w800)),
+            Text(context.t('delivery.yourRequests'), style: const TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),
             ..._requests.map((r) => Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -140,13 +184,16 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                           Expanded(
                               child: Text('${r.pickupAddress} → ${r.dropoffAddress}',
                                   style: const TextStyle(fontWeight: FontWeight.w700))),
-                          Chip(label: Text(r.status), visualDensity: VisualDensity.compact),
+                          Chip(
+                              label: Text(context.tOr('delivery.status.${r.status}', r.status)),
+                              visualDensity: VisualDensity.compact),
                         ],
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Estimate: ${formatCfa(r.priceEstimate)}',
+                          Text(
+                              context.t('delivery.estimate', {'amount': formatCfa(r.priceEstimate)}),
                               style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                           if (r.status == 'REQUESTED')
                             TextButton(
@@ -157,7 +204,8 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                                 padding: EdgeInsets.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                              child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
+                              child: Text(context.t('delivery.cancel'),
+                                  style: const TextStyle(fontWeight: FontWeight.w700)),
                             ),
                         ],
                       ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 
 import '../../core/api_client.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
 import '../../models/product.dart';
 import '../../providers/auth_provider.dart';
@@ -88,10 +89,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    const Center(
+                    Center(
                       child: Text(
-                        'Hold and drag an icon to rearrange',
-                        style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                        context.t('home.dragHint'),
+                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -112,7 +113,9 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    firstName != null ? '$firstName, these are for you' : 'Explore Ocass',
+                    firstName != null
+                        ? context.t('home.greeting', {'name': firstName})
+                        : context.t('home.exploreOcass'),
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
                   ),
                 ),
@@ -141,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: conf.$1,
                       color: conf.$2,
                       bg: conf.$3,
-                      label: cat.name,
+                      label: context.tOr('categories.${cat.slug}', cat.name),
                       route: '/ecommerce/${cat.slug}',
                     );
                   },
@@ -149,9 +152,10 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
-            child: Text('Popular right now', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+            child: Text(context.t('home.popularRightNow'),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           ),
           SizedBox(
             height: 250,
@@ -187,11 +191,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Free delivery on your first order',
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                        Text(context.t('home.freeDeliveryTitle'),
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                         const SizedBox(height: 4),
-                        const Text('Offer applied automatically at checkout.',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        Text(context.t('home.freeDeliverySubtitle'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                       ],
                     ),
                   ),

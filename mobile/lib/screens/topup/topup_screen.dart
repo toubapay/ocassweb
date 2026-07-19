@@ -7,6 +7,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/mobile_service.dart';
 import '../../models/mobile_transaction.dart';
 import '../../providers/auth_provider.dart';
@@ -119,13 +120,14 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not access contacts')));
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.airtime.couldNotAccessContacts'))));
     }
   }
 
   void _requireLogin(VoidCallback action) {
     if (!context.read<AuthProvider>().isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Log in to continue')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.loginToContinue'))));
       context.push('/auth/login');
       return;
     }
@@ -135,17 +137,18 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
   Future<void> _submitTopup() async {
     if (_airtimeServiceId == null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Select a mobile operator')));
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.airtime.selectOperator'))));
       return;
     }
     final digits = _phoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.length < 8) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter a valid phone number')));
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.airtime.invalidPhone'))));
       return;
     }
     if (_airtimeAmount == null || _airtimeAmount! <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter an amount')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.airtime.enterAmount'))));
       return;
     }
     _requireLogin(() async {
@@ -157,14 +160,15 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
           amount: _airtimeAmount!,
         );
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Top-up successful · ${tx.reference}')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr('topup.airtime.success', {'reference': tx.reference}))));
         setState(() => _airtimeAmount = null);
         _airtimeAmountController.clear();
         await _loadTransactions();
       } catch (_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Top-up failed')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.tr('topup.airtime.failed'))));
       } finally {
         if (mounted) setState(() => _submittingAirtime = false);
       }
@@ -173,16 +177,18 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
 
   Future<void> _submitBillPayment() async {
     if (_billServiceId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select a biller')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.bill.selectBiller'))));
       return;
     }
     if (_accountController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter your account/meter number')));
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.bill.enterAccountNumber'))));
       return;
     }
     if (_billAmount == null || _billAmount! <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter an amount')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.bill.enterAmount'))));
       return;
     }
     _requireLogin(() async {
@@ -194,8 +200,8 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
           amount: _billAmount!,
         );
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Payment successful · ${tx.reference}')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr('topup.bill.success', {'reference': tx.reference}))));
         _billAmountController.clear();
         setState(() {
           _accountController.clear();
@@ -204,7 +210,8 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
         await _loadTransactions();
       } catch (_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment failed')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.tr('topup.bill.failed'))));
       } finally {
         if (mounted) setState(() => _submittingBill = false);
       }
@@ -214,7 +221,8 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TopBar(title: 'Top Up & Bills', showBack: false, showSearch: false, showCart: false),
+      appBar: TopBar(
+          title: context.t('topup.title'), showBack: false, showSearch: false, showCart: false),
       body: Column(
         children: [
           TabBar(
@@ -223,7 +231,7 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
             unselectedLabelColor: AppColors.textSecondary,
             indicatorColor: AppColors.green,
             labelStyle: const TextStyle(fontWeight: FontWeight.w700),
-            tabs: const [Tab(text: 'Airtime'), Tab(text: 'Bill Payment')],
+            tabs: [Tab(text: context.t('topup.airtimeTab')), Tab(text: context.t('topup.billTab'))],
           ),
           Expanded(
             child: TabBarView(
@@ -240,7 +248,8 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Text('Top up any phone', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        Text(context.t('topup.airtime.heading'),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,7 +259,7 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  labelText: 'Phone number',
+                  labelText: context.t('topup.airtime.phoneNumber'),
                   suffixIcon: _detecting
                       ? const Padding(
                           padding: EdgeInsets.all(12),
@@ -263,15 +272,15 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
             const SizedBox(width: 8),
             IconButton(
               onPressed: _pickContact,
-              tooltip: 'Choose from contacts',
+              tooltip: context.t('topup.airtime.chooseFromContacts'),
               icon: const Icon(Icons.contact_phone_rounded),
               style: IconButton.styleFrom(backgroundColor: AppColors.greenSoft, foregroundColor: AppColors.green),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        const Text('OPERATOR',
-            style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
+        Text(context.t('topup.airtime.operator'),
+            style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
         const SizedBox(height: 8),
         FutureBuilder<List<MobileService>>(
           future: apiClient.fetchMobileServices(type: 'AIRTIME'),
@@ -297,8 +306,8 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
           },
         ),
         const SizedBox(height: 20),
-        const Text('AMOUNT (CFA)',
-            style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
+        Text(context.t('topup.airtime.amount'),
+            style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -323,14 +332,16 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
         const SizedBox(height: 12),
         TextField(
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Amount'),
+          decoration: InputDecoration(labelText: context.t('topup.airtime.amountLabel')),
           controller: _airtimeAmountController,
           onChanged: (value) => _airtimeAmount = double.tryParse(value),
         ),
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: _submittingAirtime ? null : _submitTopup,
-          child: Text(_submittingAirtime ? 'Processing...' : 'Top up'),
+          child: Text(_submittingAirtime
+              ? context.t('topup.airtime.processing')
+              : context.t('topup.airtime.topUp')),
         ),
         if (_transactions.isNotEmpty) _buildHistory(),
       ],
@@ -341,10 +352,11 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Text('Pay a bill', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        Text(context.t('topup.bill.heading'),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 16),
-        const Text('BILLER',
-            style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
+        Text(context.t('topup.bill.biller'),
+            style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
         const SizedBox(height: 8),
         FutureBuilder<List<MobileService>>(
           future: apiClient.fetchMobileServices(type: 'BILL'),
@@ -377,11 +389,11 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
         const SizedBox(height: 12),
         TextField(
           controller: _accountController,
-          decoration: const InputDecoration(labelText: 'Account / meter number'),
+          decoration: InputDecoration(labelText: context.t('topup.bill.accountNumber')),
         ),
         const SizedBox(height: 20),
-        const Text('AMOUNT (CFA)',
-            style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
+        Text(context.t('topup.bill.amount'),
+            style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -406,14 +418,16 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
         const SizedBox(height: 12),
         TextField(
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Amount'),
+          decoration: InputDecoration(labelText: context.t('topup.bill.amountLabel')),
           controller: _billAmountController,
           onChanged: (value) => _billAmount = double.tryParse(value),
         ),
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: _submittingBill ? null : _submitBillPayment,
-          child: Text(_submittingBill ? 'Processing...' : 'Pay bill'),
+          child: Text(_submittingBill
+              ? context.t('topup.bill.processing')
+              : context.t('topup.bill.payBill')),
         ),
         if (_transactions.isNotEmpty) _buildHistory(),
       ],
@@ -426,7 +440,7 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Recent transactions', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(context.t('topup.recentTransactions'), style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
           ..._transactions.map((tx) => Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -451,7 +465,8 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
                           ],
                         ),
                         Chip(
-                          label: Text(tx.status, style: const TextStyle(fontSize: 11, color: Colors.white)),
+                          label: Text(context.tOr('topup.transactionStatus.${tx.status}', tx.status),
+                              style: const TextStyle(fontSize: 11, color: Colors.white)),
                           backgroundColor: _statusColors[tx.status] ?? AppColors.textSecondary,
                           visualDensity: VisualDensity.compact,
                         ),

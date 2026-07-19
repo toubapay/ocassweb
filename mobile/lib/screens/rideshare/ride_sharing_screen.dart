@@ -4,16 +4,14 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/geo.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/ride_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
-const _vehicles = [
-  ('MOTO', 'Moto'),
-  ('ECONOMY', 'Economy'),
-  ('COMFORT', 'Comfort'),
-];
+const _vehicleCodes = ['MOTO', 'ECONOMY', 'COMFORT'];
 
 class RideSharingScreen extends StatefulWidget {
   const RideSharingScreen({super.key});
@@ -28,6 +26,7 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
   String _vehicleType = 'ECONOMY';
   bool _submitting = false;
   List<RideRequest> _rides = [];
+  (double, double)? _pickupCoords;
 
   @override
   void initState() {
@@ -52,24 +51,43 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
     try {
       await apiClient.cancelRide(id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ride cancelled')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('rideSharing.rideCancelled'))));
       await _loadRides();
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not cancel ride')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('rideSharing.couldNotCancel'))));
     }
+  }
+
+  /// There's no geocoding/maps integration in this app (no API key
+  /// configured), so a typed address never has coordinates on its own -
+  /// this is the one way to get a real pickup point for distance-based
+  /// pricing. Dropoff stays address-text-only until a map picker exists.
+  Future<void> _useMyLocation() async {
+    final coords = await getCurrentLatLng();
+    if (!mounted) return;
+    if (coords == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('rideSharing.locationError'))));
+      return;
+    }
+    setState(() => _pickupCoords = coords);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(context.tr('rideSharing.locationSet'))));
   }
 
   Future<void> _submit() async {
     if (!context.read<AuthProvider>().isAuthenticated) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Log in to book a ride')));
+          .showSnackBar(SnackBar(content: Text(context.tr('rideSharing.loginToBook'))));
       context.push('/auth/login');
       return;
     }
     if (_pickupController.text.trim().isEmpty || _dropoffController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter pickup and dropoff addresses')));
+          .showSnackBar(SnackBar(content: Text(context.tr('rideSharing.enterAddresses'))));
       return;
     }
     setState(() => _submitting = true);
@@ -78,18 +96,21 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
         pickupAddress: _pickupController.text.trim(),
         dropoffAddress: _dropoffController.text.trim(),
         vehicleType: _vehicleType,
+        pickupLat: _pickupCoords?.$1,
+        pickupLng: _pickupCoords?.$2,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ride requested · estimate ${formatCfa(ride.priceEstimate)}')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.tr(
+              'rideSharing.rideRequested', {'amount': formatCfa(ride.priceEstimate)}))));
       _pickupController.clear();
       _dropoffController.clear();
+      setState(() => _pickupCoords = null);
       await _loadRides();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not request ride')));
+          .showSnackBar(SnackBar(content: Text(context.tr('rideSharing.couldNotRequest'))));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -98,28 +119,47 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TopBar(title: 'Ride Sharing', showBack: false, showSearch: false, showCart: false),
+      appBar: TopBar(
+          title: context.t('rideSharing.title'), showBack: false, showSearch: false, showCart: false),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Where are you headed?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text(context.t('rideSharing.heading'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 16),
-          TextField(
-              controller: _pickupController,
-              decoration: const InputDecoration(labelText: 'Pickup location')),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                    controller: _pickupController,
+                    decoration: InputDecoration(labelText: context.t('rideSharing.pickupLocation'))),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _useMyLocation,
+                tooltip: context.t('rideSharing.useMyLocation'),
+                icon: const Icon(Icons.my_location_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: _pickupCoords != null ? AppColors.blue : AppColors.blue.withOpacity(0.15),
+                  foregroundColor: _pickupCoords != null ? Colors.white : AppColors.blue,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           TextField(
               controller: _dropoffController,
-              decoration: const InputDecoration(labelText: 'Dropoff location')),
+              decoration: InputDecoration(labelText: context.t('rideSharing.dropoffLocation'))),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
-            children: _vehicles.map((v) {
-              final selected = _vehicleType == v.$1;
+            children: _vehicleCodes.map((code) {
+              final selected = _vehicleType == code;
               return ChoiceChip(
-                label: Text(v.$2),
+                label: Text(context.t('rideSharing.vehicles.$code')),
                 selected: selected,
-                onSelected: (_) => setState(() => _vehicleType = v.$1),
+                onSelected: (_) => setState(() => _vehicleType = code),
                 selectedColor: AppColors.blue,
                 labelStyle: TextStyle(
                   color: selected ? Colors.white : AppColors.textPrimary,
@@ -134,12 +174,14 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.blue),
               onPressed: _submitting ? null : _submit,
-              child: Text(_submitting ? 'Requesting...' : 'Request ride'),
+              child: Text(_submitting
+                  ? context.t('rideSharing.requesting')
+                  : context.t('rideSharing.requestRide')),
             ),
           ),
           if (_rides.isNotEmpty) ...[
             const SizedBox(height: 28),
-            const Text('Your rides', style: TextStyle(fontWeight: FontWeight.w800)),
+            Text(context.t('rideSharing.yourRides'), style: const TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),
             ..._rides.map((r) => Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -154,13 +196,16 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
                           Expanded(
                               child: Text('${r.pickupAddress} → ${r.dropoffAddress}',
                                   style: const TextStyle(fontWeight: FontWeight.w700))),
-                          Chip(label: Text(r.status), visualDensity: VisualDensity.compact),
+                          Chip(
+                              label: Text(context.tOr('rideSharing.status.${r.status}', r.status)),
+                              visualDensity: VisualDensity.compact),
                         ],
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('${r.vehicleType} · ${formatCfa(r.priceEstimate)}',
+                          Text(
+                              '${context.tOr('rideSharing.vehicles.${r.vehicleType}', r.vehicleType)} · ${formatCfa(r.priceEstimate)}',
                               style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                           if (r.status == 'REQUESTED')
                             TextButton(
@@ -171,7 +216,8 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
                                 padding: EdgeInsets.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                              child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
+                              child: Text(context.t('rideSharing.cancel'),
+                                  style: const TextStyle(fontWeight: FontWeight.w700)),
                             ),
                         ],
                       ),

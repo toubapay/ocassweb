@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/order.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
@@ -42,14 +43,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     if (!isAuthenticated) {
       return Scaffold(
-        appBar: const TopBar(title: 'Your orders', showCart: false, showSearch: false, showBack: false),
+        appBar: TopBar(
+            title: context.t('ecommerce.orders.title'),
+            showCart: false,
+            showSearch: false,
+            showBack: false),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Log in to see your orders.'),
+              Text(context.t('ecommerce.orders.loginToView')),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => context.push('/auth/login'), child: const Text('Log in')),
+              ElevatedButton(
+                  onPressed: () => context.push('/auth/login'),
+                  child: Text(context.t('common.logIn'))),
             ],
           ),
         ),
@@ -57,7 +64,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
 
     return Scaffold(
-      appBar: const TopBar(title: 'Your orders', showCart: false, showSearch: false, showBack: false),
+      appBar: TopBar(
+          title: context.t('ecommerce.orders.title'),
+          showCart: false,
+          showSearch: false,
+          showBack: false),
       body: FutureBuilder<List<Order>>(
         future: _future,
         builder: (context, snapshot) {
@@ -70,9 +81,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('No orders yet.'),
+                  Text(context.t('ecommerce.orders.empty')),
                   const SizedBox(height: 16),
-                  ElevatedButton(onPressed: () => context.go('/ecommerce'), child: const Text('Start shopping')),
+                  ElevatedButton(
+                      onPressed: () => context.go('/ecommerce'),
+                      child: Text(context.t('common.startShopping'))),
                 ],
               ),
             );
@@ -95,10 +108,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Order #${order.id.substring(0, 8)}',
+                        Text(context.t('ecommerce.orders.orderNumber', {'id': order.id.substring(0, 8)}),
                             style: const TextStyle(fontWeight: FontWeight.w700)),
                         Chip(
-                          label: Text(order.status.replaceAll('_', ' '),
+                          label: Text(
+                              context.tOr('ecommerce.orders.status.${order.status}',
+                                  order.status.replaceAll('_', ' ')),
                               style: const TextStyle(color: Colors.white, fontSize: 11)),
                           backgroundColor: _statusColors[order.status] ?? AppColors.textSecondary,
                           visualDensity: VisualDensity.compact,
@@ -111,7 +126,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     ...order.items.map((item) => Text('${item.quantity} x ${item.product.name}',
                         style: const TextStyle(color: AppColors.textSecondary))),
                     const SizedBox(height: 8),
-                    Text('Total: ${formatCfa(order.total)}',
+                    Text(context.t('ecommerce.orders.total', {'amount': formatCfa(order.total)}),
                         style: const TextStyle(fontWeight: FontWeight.w800)),
                   ],
                 ),

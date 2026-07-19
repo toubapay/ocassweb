@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/restaurant.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
@@ -42,14 +43,16 @@ class _RestaurantOrdersScreenState extends State<RestaurantOrdersScreen> {
 
     if (!isAuthenticated) {
       return Scaffold(
-        appBar: const TopBar(title: 'Your food orders', showCart: false, showSearch: false),
+        appBar: TopBar(title: context.t('restaurant.orders.title'), showCart: false, showSearch: false),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Log in to see your food orders.'),
+              Text(context.t('restaurant.orders.loginToView')),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => context.push('/auth/login'), child: const Text('Log in')),
+              ElevatedButton(
+                  onPressed: () => context.push('/auth/login'),
+                  child: Text(context.t('common.logIn'))),
             ],
           ),
         ),
@@ -57,7 +60,7 @@ class _RestaurantOrdersScreenState extends State<RestaurantOrdersScreen> {
     }
 
     return Scaffold(
-      appBar: const TopBar(title: 'Your food orders', showCart: false, showSearch: false),
+      appBar: TopBar(title: context.t('restaurant.orders.title'), showCart: false, showSearch: false),
       body: FutureBuilder<List<RestaurantOrder>>(
         future: _future,
         builder: (context, snapshot) {
@@ -70,10 +73,11 @@ class _RestaurantOrdersScreenState extends State<RestaurantOrdersScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('No food orders yet.'),
+                  Text(context.t('restaurant.orders.empty')),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                      onPressed: () => context.go('/restaurant'), child: const Text('Browse restaurants')),
+                      onPressed: () => context.go('/restaurant'),
+                      child: Text(context.t('restaurant.orders.browseRestaurants'))),
                 ],
               ),
             );
@@ -100,7 +104,9 @@ class _RestaurantOrdersScreenState extends State<RestaurantOrdersScreen> {
                             child: Text(order.restaurant.name,
                                 style: const TextStyle(fontWeight: FontWeight.w700))),
                         Chip(
-                          label: Text(order.status.replaceAll('_', ' '),
+                          label: Text(
+                              context.tOr('ecommerce.orders.status.${order.status}',
+                                  order.status.replaceAll('_', ' ')),
                               style: const TextStyle(color: Colors.white, fontSize: 11)),
                           backgroundColor: _statusColors[order.status] ?? AppColors.textSecondary,
                           visualDensity: VisualDensity.compact,
@@ -114,12 +120,12 @@ class _RestaurantOrdersScreenState extends State<RestaurantOrdersScreen> {
                         style: const TextStyle(color: AppColors.textSecondary))),
                     if (order.note != null && order.note!.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text('Note: ${order.note}',
+                      Text(context.t('restaurant.orders.note', {'note': order.note!}),
                           style: const TextStyle(
                               color: AppColors.textSecondary, fontStyle: FontStyle.italic, fontSize: 12)),
                     ],
                     const SizedBox(height: 8),
-                    Text('Total: ${formatCfa(order.total)}',
+                    Text(context.t('restaurant.orders.total', {'amount': formatCfa(order.total)}),
                         style: const TextStyle(fontWeight: FontWeight.w800)),
                   ],
                 ),

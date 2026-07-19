@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/product.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
@@ -33,7 +34,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _addToCart(Product product) async {
     if (!context.read<AuthProvider>().isAuthenticated) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Log in to continue')));
+          .showSnackBar(SnackBar(content: Text(context.tr('common.logInToContinue'))));
       context.push('/auth/login');
       return;
     }
@@ -41,12 +42,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     try {
       await context.read<CartProvider>().add(product.id, quantity: _quantity);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.tr('ecommerce.product.addedToCart'))));
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Could not add to cart')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.tr('ecommerce.product.couldNotAddToCart'))));
       }
     } finally {
       if (mounted) setState(() => _adding = false);
@@ -56,7 +58,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TopBar(title: 'Product'),
+      appBar: TopBar(title: context.t('ecommerce.product.title')),
       body: FutureBuilder<Product>(
         future: _future,
         builder: (context, snapshot) {
@@ -64,7 +66,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData) {
-            return const Center(child: Text('Could not load this product.'));
+            return Center(child: Text(context.t('ecommerce.product.loading')));
           }
           final product = snapshot.data!;
           return Stack(
@@ -146,7 +148,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         decoration: TextDecoration.lineThrough)),
                                 const SizedBox(width: 8),
                                 Chip(
-                                  label: Text('${product.discountPercent}% OFF',
+                                  label: Text(
+                                      context.t('ecommerce.product.percentOff',
+                                          {'percent': '${product.discountPercent}'}),
                                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                                   backgroundColor: AppColors.green,
                                   visualDensity: VisualDensity.compact,
@@ -156,20 +160,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            product.stock > 0 ? '${product.stock} in stock' : 'Out of stock',
+                            product.stock > 0
+                                ? context.tPlural('ecommerce.product.inStock', product.stock)
+                                : context.t('ecommerce.product.outOfStock'),
                             style: const TextStyle(color: AppColors.textSecondary),
                           ),
                           const Divider(height: 32),
-                          const Text('Description', style: TextStyle(fontWeight: FontWeight.w700)),
+                          Text(context.t('ecommerce.product.description'),
+                              style: const TextStyle(fontWeight: FontWeight.w700)),
                           const SizedBox(height: 6),
-                          Text(product.description ?? 'No description available.',
+                          Text(product.description ?? context.t('ecommerce.product.noDescription'),
                               style: const TextStyle(color: AppColors.textSecondary)),
                           const Divider(height: 32),
-                          Text('Reviews (${product.reviews.length})',
+                          Text(
+                              context.t('ecommerce.product.reviews',
+                                  {'count': '${product.reviews.length}'}),
                               style: const TextStyle(fontWeight: FontWeight.w700)),
                           const SizedBox(height: 8),
                           if (product.reviews.isEmpty)
-                            const Text('No reviews yet.', style: TextStyle(color: AppColors.textSecondary)),
+                            Text(context.t('ecommerce.product.noReviews'),
+                                style: const TextStyle(color: AppColors.textSecondary)),
                           ...product.reviews.map((review) => Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: Column(
@@ -177,7 +187,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(review.userName ?? 'Anonymous',
+                                        Text(review.userName ?? context.t('ecommerce.product.anonymous'),
                                             style: const TextStyle(fontWeight: FontWeight.w700)),
                                         const SizedBox(width: 8),
                                         Icon(Icons.star_rounded, color: Colors.amber[700], size: 16),
@@ -234,7 +244,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           child: ElevatedButton(
                             onPressed:
                                 (_adding || product.stock == 0) ? null : () => _addToCart(product),
-                            child: const Text('Add to cart'),
+                            child: Text(context.t('ecommerce.product.addToCart')),
                           ),
                         ),
                       ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../widgets/product_card.dart';
@@ -31,14 +32,16 @@ class _WishlistScreenState extends State<WishlistScreen> {
 
     if (!isAuthenticated) {
       return Scaffold(
-        appBar: const TopBar(title: 'Wishlist', showCart: false, showSearch: false),
+        appBar: TopBar(title: context.t('ecommerce.wishlist.title'), showCart: false, showSearch: false),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Log in to see your wishlist.'),
+              Text(context.t('ecommerce.wishlist.loginToView')),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => context.push('/auth/login'), child: const Text('Log in')),
+              ElevatedButton(
+                  onPressed: () => context.push('/auth/login'),
+                  child: Text(context.t('common.logIn'))),
             ],
           ),
         ),
@@ -48,15 +51,17 @@ class _WishlistScreenState extends State<WishlistScreen> {
     final items = context.watch<WishlistProvider>().items;
 
     return Scaffold(
-      appBar: const TopBar(title: 'Wishlist', showCart: false, showSearch: false),
+      appBar: TopBar(title: context.t('ecommerce.wishlist.title'), showCart: false, showSearch: false),
       body: items.isEmpty
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Your wishlist is empty.'),
+                  Text(context.t('ecommerce.wishlist.empty')),
                   const SizedBox(height: 16),
-                  ElevatedButton(onPressed: () => context.go('/ecommerce'), child: const Text('Browse products')),
+                  ElevatedButton(
+                      onPressed: () => context.go('/ecommerce'),
+                      child: Text(context.t('ecommerce.wishlist.browseProducts'))),
                 ],
               ),
             )

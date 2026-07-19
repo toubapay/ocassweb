@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../theme/app_theme.dart';
@@ -32,16 +33,16 @@ class _CartScreenState extends State<CartScreen> {
 
     if (!isAuthenticated) {
       return Scaffold(
-        appBar: const TopBar(title: 'Cart', showCart: false),
+        appBar: TopBar(title: context.t('ecommerce.cart.title'), showCart: false),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Log in to view your cart.'),
+              Text(context.t('ecommerce.cart.loginToView')),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => context.push('/auth/login'),
-                child: const Text('Log in'),
+                child: Text(context.t('common.logIn')),
               ),
             ],
           ),
@@ -52,7 +53,7 @@ class _CartScreenState extends State<CartScreen> {
     final cart = context.watch<CartProvider>();
 
     return Scaffold(
-      appBar: const TopBar(title: 'Your cart', showCart: false, showSearch: false),
+      appBar: TopBar(title: context.t('ecommerce.cart.title'), showCart: false, showSearch: false),
       body: cart.loading
           ? const Center(child: CircularProgressIndicator())
           : cart.items.isEmpty
@@ -60,11 +61,11 @@ class _CartScreenState extends State<CartScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Your cart is empty.'),
+                      Text(context.t('ecommerce.cart.empty')),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () => context.go('/ecommerce'),
-                        child: const Text('Start shopping'),
+                        child: Text(context.t('common.startShopping')),
                       ),
                     ],
                   ),
@@ -153,7 +154,8 @@ class _CartScreenState extends State<CartScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Subtotal', style: TextStyle(color: AppColors.textSecondary)),
+                        Text(context.t('ecommerce.cart.subtotal'),
+                            style: const TextStyle(color: AppColors.textSecondary)),
                         Text(formatCfa(cart.subtotal), style: const TextStyle(fontWeight: FontWeight.w800)),
                       ],
                     ),
@@ -162,7 +164,7 @@ class _CartScreenState extends State<CartScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () => context.push('/ecommerce/checkout'),
-                        child: const Text('Checkout'),
+                        child: Text(context.t('ecommerce.cart.checkout')),
                       ),
                     ),
                   ],

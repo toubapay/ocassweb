@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/restaurant.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
@@ -33,7 +34,8 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
 
   void _setQuantity(String menuItemId, int quantity) {
     if (!context.read<AuthProvider>().isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Log in to order')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('restaurant.detail.loginToOrder'))));
       context.push('/auth/login');
       return;
     }
@@ -51,13 +53,14 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     try {
       await apiClient.createRestaurantOrder(widget.slug, items);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed!')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('restaurant.detail.orderPlaced'))));
       setState(() => _quantities.clear());
       context.push('/restaurant/orders');
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not place order')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('restaurant.detail.couldNotPlaceOrder'))));
     } finally {
       if (mounted) setState(() => _placing = false);
     }
@@ -66,7 +69,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const TopBar(title: 'Restaurant', showSearch: false, showCart: false),
+      appBar: TopBar(title: context.t('restaurant.detail.title'), showSearch: false, showCart: false),
       body: FutureBuilder<Restaurant>(
         future: _future,
         builder: (context, snapshot) {
@@ -74,7 +77,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData) {
-            return const Center(child: Text('Could not load this restaurant.'));
+            return Center(child: Text(context.t('restaurant.detail.loading')));
           }
           final restaurant = snapshot.data!;
 
@@ -132,7 +135,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                           if (qty == 0)
                             OutlinedButton(
                               onPressed: () => _setQuantity(item.id, 1),
-                              child: const Text('ADD'),
+                              child: Text(context.t('restaurant.detail.add')),
                             )
                           else
                             Container(
@@ -178,8 +181,9 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       child: ElevatedButton(
                         onPressed: _placing ? null : _placeOrder,
                         child: Text(_placing
-                            ? 'Placing order...'
-                            : 'Place order · $itemCount item${itemCount > 1 ? 's' : ''} · ${formatCfa(total)}'),
+                            ? context.t('restaurant.detail.placingOrder')
+                            : context.tPlural('restaurant.detail.placeOrder', itemCount,
+                                {'total': formatCfa(total)})),
                       ),
                     ),
                   ),

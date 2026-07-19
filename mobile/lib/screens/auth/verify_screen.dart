@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/wishlist_provider.dart';
@@ -29,7 +30,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
   Future<void> _verify() async {
     if (_code.length != 6) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter the 6-digit code')));
+          .showSnackBar(SnackBar(content: Text(context.tr('auth.verify.enterCode'))));
       return;
     }
     setState(() => _loading = true);
@@ -47,12 +48,14 @@ class _VerifyScreenState extends State<VerifyScreen> {
       ]);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Welcome${user.name != null ? ', ${user.name}' : ''}!')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(context.tr('auth.verify.welcome',
+              {'name': user.name != null ? ', ${user.name}' : ''}))));
       context.go('/');
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid code')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('auth.verify.invalidCode'))));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -62,12 +65,14 @@ class _VerifyScreenState extends State<VerifyScreen> {
     try {
       final devCode = await context.read<AuthProvider>().requestOtp(widget.phone);
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(devCode != null ? 'Dev OTP: $devCode' : 'Code resent')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(devCode != null
+              ? context.tr('auth.verify.devOtp', {'code': devCode})
+              : context.tr('auth.verify.codeResent'))));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not resend code')));
+          .showSnackBar(SnackBar(content: Text(context.tr('auth.verify.couldNotResend'))));
     }
   }
 
@@ -82,34 +87,37 @@ class _VerifyScreenState extends State<VerifyScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Verify your number',
+                context.t('auth.verify.title'),
                 style: Theme.of(context)
                     .textTheme
                     .headlineSmall
                     ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
-              Text('We sent a 6-digit code to ${widget.phone}',
+              Text(context.t('auth.verify.subtitle', {'phone': widget.phone}),
                   style: const TextStyle(color: Colors.grey)),
               const SizedBox(height: 32),
               OtpInput(onChanged: (value) => _code = value),
               const SizedBox(height: 24),
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Your name (first time only)'),
+                decoration: InputDecoration(labelText: context.t('auth.verify.nameLabel')),
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _verify,
-                  child: Text(_loading ? 'Verifying...' : 'Verify'),
+                  child: Text(_loading
+                      ? context.t('auth.verify.verifying')
+                      : context.t('auth.verify.verify')),
                 ),
               ),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: TextButton(onPressed: _resend, child: const Text('Resend code')),
+                child: TextButton(
+                    onPressed: _resend, child: Text(context.t('auth.verify.resendCode'))),
               ),
             ],
           ),
