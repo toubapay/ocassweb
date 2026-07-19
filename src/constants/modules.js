@@ -5,6 +5,7 @@ import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
 import PhoneAndroidRoundedIcon from "@mui/icons-material/PhoneAndroidRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import AnandoIcon from "../components/icons/AnandoIcon";
 
 // Central registry of the super-app's modules. Adding a module means adding
 // one entry here plus its /pages/<id> route, (optionally) a bottom nav
@@ -61,6 +62,13 @@ export const MODULES = [
     icon: ReceiptLongRoundedIcon,
     color: "#F97316",
     bg: "#FFF1E6",
+  },
+  {
+    id: "anando",
+    href: "/anando",
+    icon: AnandoIcon,
+    color: "#EC4899",
+    bg: "#FDF1F7",
   },
 ];
 

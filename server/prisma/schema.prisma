@@ -27,25 +27,31 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  addresses        Address[]
-  cartItems        CartItem[]
-  orders           Order[]
-  wishlist         Wishlist[]
-  reviews          Review[]
-  deliveryRequests DeliveryRequest[] @relation("DeliveryRequester")
-  insurancePolicies InsurancePolicy[]
-  rideRequests     RideRequest[]     @relation("RideRequester")
-  restaurantOrders RestaurantOrder[]
+  addresses          Address[]
+  cartItems          CartItem[]
+  orders             Order[]
+  wishlist           Wishlist[]
+  reviews            Review[]
+  deliveryRequests   DeliveryRequest[]   @relation("DeliveryRequester")
+  insurancePolicies  InsurancePolicy[]
+  rideRequests       RideRequest[]       @relation("RideRequester")
+  restaurantOrders   RestaurantOrder[]
   mobileTransactions MobileTransaction[]
-  payments Payment[]
-  wallet   Wallet?
+  payments           Payment[]
+  wallet             Wallet?
   // Opt-in gig work / selling: any user can self-serve into role
   // DELIVERY_AGENT, RIDER, or VENDOR (see PATCH /api/auth/role). role isn't
   // checked anywhere else in the app, so this doesn't affect their ability
   // to keep shopping/ordering as a customer too.
-  assignedDeliveries DeliveryRequest[] @relation("DeliveryAgent")
-  assignedRides      RideRequest[]     @relation("AssignedRider")
-  store              Store?            @relation("StoreOwner")
+  assignedDeliveries DeliveryRequest[]   @relation("DeliveryAgent")
+  assignedRides      RideRequest[]       @relation("AssignedRider")
+  store              Store?              @relation("StoreOwner")
+  // Anando (peer-to-peer carpooling) - any user can post a ride they're
+  // already making (as driver) and/or book a seat on someone else's (as
+  // passenger); this is independent of the RIDER gig-work role above.
+  ridePostings       RidePosting[]       @relation("RidePostingDriver")
+  rideBookings       RideBooking[]       @relation("RideBookingPassenger")
+  notifications      Notification[]
 }
 
 model OtpCode {
@@ -226,19 +232,19 @@ enum DeliveryStatus {
 }
 
 model DeliveryRequest {
-  id             String         @id @default(uuid())
-  userId         String
-  pickupAddress  String
-  pickupLat      Float?
-  pickupLng      Float?
-  dropoffAddress String
-  dropoffLat     Float?
-  dropoffLng     Float?
-  packageNote    String?
-  priceEstimate  Decimal?       @db.Decimal(10, 2)
-  status         DeliveryStatus @default(REQUESTED)
+  id              String         @id @default(uuid())
+  userId          String
+  pickupAddress   String
+  pickupLat       Float?
+  pickupLng       Float?
+  dropoffAddress  String
+  dropoffLat      Float?
+  dropoffLng      Float?
+  packageNote     String?
+  priceEstimate   Decimal?       @db.Decimal(10, 2)
+  status          DeliveryStatus @default(REQUESTED)
   assignedAgentId String?
-  createdAt      DateTime       @default(now())
+  createdAt       DateTime       @default(now())
 
   user          User  @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
   assignedAgent User? @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
@@ -291,12 +297,12 @@ model InsurancePolicy {
 // ---------- Restaurant module (stub) ----------
 
 model Restaurant {
-  id      String @id @default(uuid())
+  id      String  @id @default(uuid())
   name    String
-  slug    String @unique
+  slug    String  @unique
   logoUrl String?
   cuisine String?
-  rating  Float  @default(0)
+  rating  Float   @default(0)
   address String?
   lat     Float?
   lng     Float?
@@ -314,7 +320,7 @@ model MenuItem {
   imageUrl     String?
   category     String?
 
-  restaurant Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   orderItems RestaurantOrderItem[]
 }
 
@@ -336,11 +342,11 @@ model RestaurantOrder {
 }
 
 model RestaurantOrderItem {
-  id      String  @id @default(uuid())
-  orderId String
+  id         String  @id @default(uuid())
+  orderId    String
   menuItemId String
-  quantity Int
-  price   Decimal @db.Decimal(10, 2)
+  quantity   Int
+  price      Decimal @db.Decimal(10, 2)
 
   order    RestaurantOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItem MenuItem        @relation(fields: [menuItemId], references: [id])
@@ -363,22 +369,22 @@ enum RideStatus {
 }
 
 model RideRequest {
-  id             String      @id @default(uuid())
-  userId         String
-  pickupAddress  String
-  pickupLat      Float?
-  pickupLng      Float?
-  dropoffAddress String
-  dropoffLat     Float?
-  dropoffLng     Float?
-  vehicleType    VehicleType @default(ECONOMY)
-  priceEstimate  Decimal?    @db.Decimal(10, 2)
-  status         RideStatus  @default(REQUESTED)
+  id              String      @id @default(uuid())
+  userId          String
+  pickupAddress   String
+  pickupLat       Float?
+  pickupLng       Float?
+  dropoffAddress  String
+  dropoffLat      Float?
+  dropoffLng      Float?
+  vehicleType     VehicleType @default(ECONOMY)
+  priceEstimate   Decimal?    @db.Decimal(10, 2)
+  status          RideStatus  @default(REQUESTED)
   assignedRiderId String?
-  createdAt      DateTime    @default(now())
+  createdAt       DateTime    @default(now())
 
-  user           User  @relation("RideRequester", fields: [userId], references: [id], onDelete: Cascade)
-  assignedRider  User? @relation("AssignedRider", fields: [assignedRiderId], references: [id])
+  user          User  @relation("RideRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedRider User? @relation("AssignedRider", fields: [assignedRiderId], references: [id])
 
   @@index([assignedRiderId])
 }
@@ -466,6 +472,7 @@ enum PaymentPurpose {
   DELIVERY_REQUEST
   RIDE_REQUEST
   WALLET_TOPUP
+  ANANDO_BOOKING
 }
 
 // ---------- Wallet ----------
@@ -500,19 +507,19 @@ model Wallet {
 }
 
 model WalletTransaction {
-  id           String                      @id @default(uuid())
+  id           String                     @id @default(uuid())
   walletId     String
   type         WalletTransactionType
   direction    WalletTransactionDirection
-  amount       Decimal                     @db.Decimal(12, 2)
-  balanceAfter Decimal                     @db.Decimal(12, 2)
+  amount       Decimal                    @db.Decimal(12, 2)
+  balanceAfter Decimal                    @db.Decimal(12, 2)
   // Freeform, mirroring Payment.purpose/purposeId - what this movement was
   // for (e.g. "ECOMMERCE_ORDER" + an order id, or "WALLET_TOPUP" + the
   // funding Payment's id). Nullable for plain admin adjustments.
   purpose      String?
   purposeId    String?
   description  String?
-  createdAt    DateTime                    @default(now())
+  createdAt    DateTime                   @default(now())
 
   wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
@@ -537,4 +544,107 @@ model Payment {
   order Order?
 
   @@index([purpose, purposeId])
+}
+
+// ---------- Anando (peer-to-peer carpooling) ----------
+// Deliberately a separate module from Ride Sharing above, not an extension
+// of it - the two are inverted shapes. Ride Sharing: a passenger requests a
+// trip and any RIDER-role gig worker can accept it (1 request : 1 driver).
+// Anando: a driver (any regular user, no special role) posts a trip
+// they're already making with N seats, and any number of other users each
+// claim one (1 posting : many bookings) - so the concurrency-guarded
+// operation is a decrementing seat count, not a single-winner accept.
+
+enum RidePostingStatus {
+  OPEN
+  FULL
+  CANCELLED
+  DEPARTED
+}
+
+model RidePosting {
+  id                 String            @id @default(uuid())
+  driverId           String
+  originAddress      String
+  originLat          Float?
+  originLng          Float?
+  destinationAddress String
+  destinationLat     Float?
+  destinationLng     Float?
+  // For an instant posting (driver leaving right now, BlaBlaCar-style
+  // "instant" availability rather than a scheduled trip) this is set to
+  // the creation time rather than left null, so every posting still sorts
+  // and displays the same way regardless of isInstant.
+  departureAt        DateTime
+  isInstant          Boolean           @default(false)
+  seatsTotal         Int
+  seatsAvailable     Int
+  // Null = no in-app price - cost-sharing arranged off-platform (cash in
+  // person). Non-null still allows CASH as the settlement method below;
+  // it's just what the driver is asking passengers to pay.
+  pricePerSeat       Decimal?          @db.Decimal(10, 2)
+  note               String?
+  status             RidePostingStatus @default(OPEN)
+  createdAt          DateTime          @default(now())
+
+  driver   User          @relation("RidePostingDriver", fields: [driverId], references: [id], onDelete: Cascade)
+  bookings RideBooking[]
+
+  @@index([status, departureAt])
+}
+
+enum RideBookingPaymentMethod {
+  CASH
+  WALLET
+  PAYDUNYA
+}
+
+enum RideBookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model RideBooking {
+  id            String                   @id @default(uuid())
+  postingId     String
+  passengerId   String
+  seatsBooked   Int                      @default(1)
+  paymentMethod RideBookingPaymentMethod
+  // CASH settles off-platform, so `paid` just stays false as a record of
+  // intent rather than a real payment; WALLET debits synchronously so
+  // `paid` flips true immediately; PAYDUNYA starts false and flips true
+  // once payments.service's IPN handler confirms the invoice, same as
+  // ecommerce checkout.
+  paid          Boolean                  @default(false)
+  status        RideBookingStatus        @default(CONFIRMED)
+  createdAt     DateTime                 @default(now())
+
+  posting   RidePosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  passenger User        @relation("RideBookingPassenger", fields: [passengerId], references: [id], onDelete: Cascade)
+
+  @@index([postingId])
+  @@index([passengerId])
+}
+
+// ---------- Notifications ----------
+// Generic, cross-module in-app notifications - Anando is the first
+// consumer (new booking on your posting, posting full, posting
+// cancelled), written so any other module can create one the same way.
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  // Freeform pointer to whatever this is about, mirroring
+  // Payment.purpose/purposeId's loose-reference pattern above (e.g.
+  // { postingId, bookingId }).
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
 }

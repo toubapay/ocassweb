@@ -1,9 +1,12 @@
 import { useMemo } from "react";
+import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import Badge from "@mui/material/Badge";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import CardGiftcardRoundedIcon from "@mui/icons-material/CardGiftcardRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import CheckroomRoundedIcon from "@mui/icons-material/CheckroomRounded";
@@ -32,6 +35,7 @@ import ShortcutCard from "../src/components/home/ShortcutCard";
 import ProductCard from "../src/components/ecommerce/ProductCard";
 import useAuth from "../src/hooks/useAuth";
 import { fetchProducts, fetchCategories } from "../src/api/ecommerce";
+import { fetchUnreadCount } from "../src/api/notifications";
 
 const CATEGORY_ICONS = {
   footwear: { icon: CheckroomRoundedIcon, color: "#0FAE58", bg: "#E7F7EE" },
@@ -43,11 +47,16 @@ const DEFAULT_CATEGORY_ICON = { icon: StorefrontRoundedIcon, color: "#8B5CF6", b
 
 export default function Home() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const dispatch = useDispatch();
   const savedOrder = useSelector((state) => state.layout.moduleOrder);
   const { data } = useQuery("home-products", () => fetchProducts({ pageSize: 6 }));
   const { data: categories } = useQuery("categories", fetchCategories);
+  const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
   const firstName = user?.name?.split(" ")[0];
 
   const orderedModules = useMemo(() => getOrderedModules(savedOrder), [savedOrder]);
@@ -87,7 +96,19 @@ export default function Home() {
           px: 2.5,
         }}
       >
-        <AddressBar address="Plateau, Dakar" />
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <AddressBar address="Plateau, Dakar" />
+          {isAuthenticated && (
+            <IconButton
+              onClick={() => router.push("/notifications")}
+              sx={{ color: "#fff", bgcolor: "rgba(255,255,255,0.18)" }}
+            >
+              <Badge badgeContent={unreadCount || 0} color="error">
+                <NotificationsRoundedIcon />
+              </Badge>
+            </IconButton>
+          )}
+        </Box>
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={orderedModules.map((m) => m.id)} strategy={rectSortingStrategy}>

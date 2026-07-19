@@ -54,6 +54,11 @@
       "label": "Bills",
       "fullLabel": "Bill Payment",
       "description": "Pay electricity, water & TV bills"
+    },
+    "anando": {
+      "label": "Anando",
+      "fullLabel": "Anando Carpooling",
+      "description": "Share a ride with other riders going your way"
     }
   },
   "categories": {
@@ -488,5 +493,73 @@
       "DELIVERED": "Delivered",
       "CANCELLED": "Cancelled"
     }
+  },
+  "anando": {
+    "title": "Anando",
+    "tabs": {
+      "available": "Available",
+      "myPostings": "My rides",
+      "myBookings": "My bookings"
+    },
+    "instantBadge": "Leaving now",
+    "noAvailable": "No rides posted right now. Be the first to post one!",
+    "seat": "seat",
+    "freeOrCash": "Cash / arrange with driver",
+    "seatsLeft_one": "{{count}} seat left",
+    "seatsLeft_other": "{{count}} seats left",
+    "book": "Book",
+    "noMyPostings": "You haven't posted a ride yet.",
+    "status": {
+      "OPEN": "Open",
+      "FULL": "Full",
+      "CANCELLED": "Cancelled",
+      "DEPARTED": "Departed"
+    },
+    "seatsFilled": "{{taken}}/{{total}} seats taken",
+    "paymentMethod": {
+      "CASH": "Cash",
+      "WALLET": "Wallet",
+      "PAYDUNYA": "PayDunya"
+    },
+    "paid": "paid",
+    "markDeparted": "Mark departed",
+    "cancel": "Cancel",
+    "noMyBookings": "You haven't booked a seat yet.",
+    "bookingStatus": {
+      "CONFIRMED": "Confirmed",
+      "CANCELLED": "Cancelled"
+    },
+    "postTitle": "Post a ride",
+    "origin": "Leaving from",
+    "destination": "Going to",
+    "isInstant": "Leaving right now",
+    "departureAt": "Departure time",
+    "seatsTotal": "Seats available",
+    "pricePerSeatOptional": "Price per seat (optional)",
+    "noteOptional": "Note (optional)",
+    "posting": "Posting...",
+    "publish": "Post ride",
+    "bookTitle": "Book a seat",
+    "seatsBooked": "Seats",
+    "paymentMethodLabel": "Payment method",
+    "total": "Total",
+    "noPriceHint": "No price set - arrange payment with the driver directly.",
+    "booking": "Booking...",
+    "confirmBooking": "Confirm booking",
+    "posted": "Ride posted",
+    "couldNotPost": "Could not post this ride",
+    "postingCancelled": "Ride cancelled",
+    "couldNotCancel": "Could not cancel",
+    "departed": "Marked as departed",
+    "booked": "Seat booked!",
+    "couldNotBook": "Could not book this seat",
+    "bookingCancelled": "Booking cancelled",
+    "enterAddresses": "Enter where you're leaving from and going to",
+    "chooseDeparture": "Choose a departure time, or mark this ride as instant"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications yet."
   }
 }

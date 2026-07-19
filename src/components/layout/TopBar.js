@@ -8,11 +8,20 @@ import Box from "@mui/material/Box";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import ShoppingCartRoundedIcon from "@mui/icons-material/ShoppingCartRounded";
+import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import { useQuery } from "react-query";
 import { fetchCart } from "../../api/ecommerce";
+import { fetchUnreadCount } from "../../api/notifications";
 import useAuth from "../../hooks/useAuth";
 
-export default function TopBar({ title, showBack = true, showSearch = true, showCart = true, onSearchClick }) {
+export default function TopBar({
+  title,
+  showBack = true,
+  showSearch = true,
+  showCart = true,
+  showNotifications = true,
+  onSearchClick,
+}) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
 
@@ -20,6 +29,11 @@ export default function TopBar({ title, showBack = true, showSearch = true, show
     enabled: isAuthenticated && showCart,
   });
   const cartCount = (cartItems || []).reduce((sum, item) => sum + item.quantity, 0);
+
+  const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
+    enabled: isAuthenticated && showNotifications,
+    refetchInterval: 30000,
+  });
 
   return (
     <AppBar
@@ -41,6 +55,13 @@ export default function TopBar({ title, showBack = true, showSearch = true, show
           {showSearch && (
             <IconButton onClick={onSearchClick} size="small">
               <SearchRoundedIcon />
+            </IconButton>
+          )}
+          {showNotifications && isAuthenticated && (
+            <IconButton onClick={() => router.push("/notifications")} size="small">
+              <Badge badgeContent={unreadCount || 0} color="error">
+                <NotificationsRoundedIcon />
+              </Badge>
             </IconButton>
           )}
           {showCart && (

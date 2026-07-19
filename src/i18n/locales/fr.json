@@ -54,6 +54,11 @@
       "label": "Factures",
       "fullLabel": "Paiement de factures",
       "description": "Payez l'électricité, l'eau et la télé"
+    },
+    "anando": {
+      "label": "Anando",
+      "fullLabel": "Covoiturage Anando",
+      "description": "Partagez un trajet avec d'autres usagers"
     }
   },
   "categories": {
@@ -488,5 +493,73 @@
       "DELIVERED": "Livrée",
       "CANCELLED": "Annulée"
     }
+  },
+  "anando": {
+    "title": "Anando",
+    "tabs": {
+      "available": "Disponibles",
+      "myPostings": "Mes trajets",
+      "myBookings": "Mes réservations"
+    },
+    "instantBadge": "Départ immédiat",
+    "noAvailable": "Aucun trajet publié pour le moment. Soyez le premier à en publier un !",
+    "seat": "place",
+    "freeOrCash": "Espèces / à convenir avec le conducteur",
+    "seatsLeft_one": "{{count}} place restante",
+    "seatsLeft_other": "{{count}} places restantes",
+    "book": "Réserver",
+    "noMyPostings": "Vous n'avez pas encore publié de trajet.",
+    "status": {
+      "OPEN": "Ouvert",
+      "FULL": "Complet",
+      "CANCELLED": "Annulé",
+      "DEPARTED": "Parti"
+    },
+    "seatsFilled": "{{taken}}/{{total}} places prises",
+    "paymentMethod": {
+      "CASH": "Espèces",
+      "WALLET": "Portefeuille",
+      "PAYDUNYA": "PayDunya"
+    },
+    "paid": "payé",
+    "markDeparted": "Marquer comme parti",
+    "cancel": "Annuler",
+    "noMyBookings": "Vous n'avez pas encore réservé de place.",
+    "bookingStatus": {
+      "CONFIRMED": "Confirmée",
+      "CANCELLED": "Annulée"
+    },
+    "postTitle": "Publier un trajet",
+    "origin": "Départ",
+    "destination": "Destination",
+    "isInstant": "Départ immédiat",
+    "departureAt": "Heure de départ",
+    "seatsTotal": "Places disponibles",
+    "pricePerSeatOptional": "Prix par place (optionnel)",
+    "noteOptional": "Note (optionnelle)",
+    "posting": "Publication...",
+    "publish": "Publier le trajet",
+    "bookTitle": "Réserver une place",
+    "seatsBooked": "Places",
+    "paymentMethodLabel": "Mode de paiement",
+    "total": "Total",
+    "noPriceHint": "Aucun prix indiqué - convenez du paiement directement avec le conducteur.",
+    "booking": "Réservation...",
+    "confirmBooking": "Confirmer la réservation",
+    "posted": "Trajet publié",
+    "couldNotPost": "Impossible de publier ce trajet",
+    "postingCancelled": "Trajet annulé",
+    "couldNotCancel": "Impossible d'annuler",
+    "departed": "Marqué comme parti",
+    "booked": "Place réservée !",
+    "couldNotBook": "Impossible de réserver cette place",
+    "bookingCancelled": "Réservation annulée",
+    "enterAddresses": "Indiquez votre point de départ et votre destination",
+    "chooseDeparture": "Choisissez une heure de départ, ou marquez ce trajet comme immédiat"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "empty": "Aucune notification pour le moment."
   }
 }

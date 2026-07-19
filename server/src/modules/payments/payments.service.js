@@ -1,6 +1,7 @@
 const prisma = require("../../lib/prisma");
 const paydunya = require("./paydunya.service");
 const walletService = require("../wallet/wallet.service");
+const notificationsService = require("../notifications/notifications.service");
 
 /**
  * Creates a Payment record and a matching PayDunya invoice for it. Callers
@@ -82,6 +83,23 @@ async function applyPaymentSideEffects(payment) {
         description: "PayDunya top-up",
       });
       break;
+    case "ANANDO_BOOKING": {
+      const booking = await prisma.rideBooking.update({
+        where: { id: payment.purposeId },
+        data: { paid: true },
+        include: { posting: true },
+      });
+      await notificationsService
+        .notify({
+          userId: booking.posting.driverId,
+          type: "ANANDO_BOOKING_PAID",
+          title: "Réservation payée",
+          body: "Un passager a payé sa réservation sur votre trajet Anando.",
+          data: { postingId: booking.postingId, bookingId: booking.id },
+        })
+        .catch(() => {});
+      break;
+    }
     default:
       break;
   }

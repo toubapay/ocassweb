@@ -86,14 +86,22 @@ yarn dev                    # http://localhost:3000
   from their profile, create one store, and manage its product catalog
   (create/edit/soft-delete) and see orders containing their products. See
   "Vendor marketplace" below.
+- **Anando (carpooling)** — peer-to-peer ride sharing, separate from the
+  on-demand Ride Sharing dispatch above: any user can post a trip they're
+  already making (scheduled or "leaving now") with N seats, and any number
+  of other users each claim a seat until it's full. Pay by cash, wallet, or
+  PayDunya. See "Anando" below.
+- **In-app notifications** — a generic `Notification` model with a bell +
+  unread badge (home page and most top bars); Anando is the first module
+  that creates them (new booking, seat cancelled, ride cancelled).
 - **French / English** — the whole web app is translated (`src/i18n/`,
   `react-i18next`), French by default. A toggle on the profile page switches
   languages instantly and the choice persists (redux-persist) across
   reloads. See "Internationalization" below for how to add new strings.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage as
   the web app, including French/English i18n and the delivery/ride dispatch
-  system (see `mobile/README.md`). The vendor marketplace below is the one
-  feature still web-only; syncing it to Flutter hasn't been done yet.
+  system (see `mobile/README.md`). The vendor marketplace and Anando are
+  web-only so far; syncing them to Flutter hasn't been done yet.
 
 ## Delivery & ride dispatch
 
@@ -171,6 +179,67 @@ storefront pages for browsing a specific vendor's catalog as a shopper
 dedicated `/store/[slug]` page yet), and multi-vendor cart/checkout
 splitting (checkout is unchanged - one cart, one order, regardless of how
 many stores its items come from).
+
+## Anando
+
+Peer-to-peer carpooling (`server/src/modules/anando/`, `/anando`) -
+deliberately a separate module from Ride Sharing above, not an extension of
+it, because the two are inverted shapes:
+
+|                | Ride Sharing (on-demand)                    | Anando (carpooling)                          |
+| -------------- | -------------------------------------------- | --------------------------------------------- |
+| Who initiates  | Passenger requests a trip                    | Driver posts a trip they're already making    |
+| Cardinality    | 1 request : 1 driver                         | 1 posting : many bookings (seats)             |
+| Driver         | `RIDER`-role gig worker                      | Any regular user, no special role             |
+| Concurrency guard | Single-winner accept (`assignedRiderId: null`) | Decrementing seat count (`seatsAvailable: { gte: n }`) |
+
+1. **Posting a ride** (`POST /api/anando/postings`): origin/destination,
+   seat count, an optional price per seat (null = arrange payment with the
+   driver directly), and either a `departureAt` or `isInstant: true` for a
+   BlaBlaCar-style "leaving right now" posting (its `departureAt` is set to
+   the creation time server-side, so every posting sorts/displays the same
+   way regardless).
+2. **Booking a seat** (`POST /api/anando/postings/:id/book`) claims
+   instantly, no driver approval step - the guard is a conditional
+   `updateMany` on `seatsAvailable`, the same shape as
+   `acceptDeliveryJob`/`acceptRide`'s single-winner guard but checking a
+   range instead of equality, since more than one booking can each
+   partially succeed against the same posting. The posting flips to `FULL`
+   (and drops off `GET /api/anando/postings/available`) the instant seats
+   hit zero; a driver can't book their own posting.
+3. **Payment**, chosen per booking: `CASH` (settles off-platform, `paid`
+   stays `false` as a record of intent only), `WALLET` (debits
+   synchronously, same `InsufficientBalanceError`-driven rollback as
+   ecommerce checkout), or `PAYDUNYA` (starts a hosted-checkout invoice,
+   `paid` flips `true` once `payments.service`'s IPN handler confirms it).
+   If payment fails after the seat was already claimed, the seat is given
+   back rather than left as a phantom hold.
+4. **Cancelling**: a passenger cancelling a `WALLET`-paid booking gets an
+   automatic refund and the posting reopens if it had filled up; a driver
+   cancelling the whole posting cascades to cancel every confirmed booking
+   on it (refunding `WALLET` payments) and notifies each passenger.
+   `CASH`/`PAYDUNYA` bookings aren't auto-refunded on cancel - cash never
+   moved through the app, and there's no PayDunya refund flow built
+   anywhere in the app yet.
+
+**Not built**: real geocoding (same limitation as Ride Sharing - a typed
+address never has coordinates on its own, no maps API key is reachable
+from this sandbox), a background job to auto-flip old scheduled postings
+to `DEPARTED` (the driver marks it manually), and a request/approval
+booking flow (deliberately instant-claim only, per the product decision
+behind this module).
+
+### Notifications
+
+A generic `Notification` model (`server/src/modules/notifications/`,
+`GET/PATCH /api/notifications/*`) that any module can write to via
+`notificationsService.notify({ userId, type, title, body, data })` -
+Anando is the first and only caller today (new booking, booking
+cancelled, posting cancelled, PayDunya payment confirmed). Surfaced as a
+bell + unread badge on the home page and most top bars
+(`showNotifications` prop on `TopBar`), linking to `/notifications`.
+Polls for the unread count every 30s; there's no push/real-time delivery
+(no websocket or service worker wired up).
 
 ## Internationalization
 
