@@ -402,6 +402,247 @@ async function main() {
     if (!existing) await prisma.mobileService.create({ data: service });
   }
 
+  // ---------- Test users, wallets, cart, wishlist, reviews, and orders ----------
+  const customer = await prisma.user.upsert({
+    where: { phone: "+221772001001" },
+    update: { name: "Aissatou Ndiaye", email: "aissatou@example.com" },
+    create: {
+      phone: "+221772001001",
+      name: "Aissatou Ndiaye",
+      email: "aissatou@example.com",
+      role: "CUSTOMER",
+    },
+  });
+
+  const vendor = await prisma.user.upsert({
+    where: { phone: "+221772001002" },
+    update: { name: "Mamadou Diop", email: "mamadou@example.com" },
+    create: {
+      phone: "+221772001002",
+      name: "Mamadou Diop",
+      email: "mamadou@example.com",
+      role: "VENDOR",
+    },
+  });
+
+  const deliveryAgent = await prisma.user.upsert({
+    where: { phone: "+221772001003" },
+    update: { name: "Fatou Cisse", email: "fatou@example.com" },
+    create: {
+      phone: "+221772001003",
+      name: "Fatou Cisse",
+      email: "fatou@example.com",
+      role: "DELIVERY_AGENT",
+    },
+  });
+
+  await prisma.store.update({
+    where: { id: shoesFashion.id },
+    data: { ownerId: vendor.id },
+  });
+
+  const wallet = await prisma.wallet.upsert({
+    where: { userId: customer.id },
+    update: { balance: 20000 },
+    create: { userId: customer.id, balance: 20000, currency: "XOF" },
+  });
+
+  const address = await prisma.address.findFirst({
+    where: { userId: customer.id, label: "Home" },
+  });
+  const customerAddress =
+    address ||
+    (await prisma.address.create({
+      data: {
+        userId: customer.id,
+        label: "Home",
+        line1: "123 Rue Faidherbe",
+        city: "Dakar",
+        lat: 14.6927,
+        lng: -17.4440,
+        isDefault: true,
+      },
+    }));
+
+  const sportsShoesProduct = await prisma.product.findUnique({
+    where: { slug: "sports-shoes-for-women" },
+  });
+  const casualSneakerProduct = await prisma.product.findUnique({
+    where: { slug: "women-casual-sneaker" },
+  });
+  const freshestProduceProduct = await prisma.product.findUnique({
+    where: { slug: "fresh-produce-basket" },
+  });
+
+  if (!sportsShoesProduct || !casualSneakerProduct || !freshestProduceProduct) {
+    throw new Error("Expected seeded products not found when creating test data.");
+  }
+
+  await prisma.cartItem.upsert({
+    where: {
+      userId_productId: {
+        userId: customer.id,
+        productId: sportsShoesProduct.id,
+      },
+    },
+    update: { quantity: 2 },
+    create: {
+      userId: customer.id,
+      productId: sportsShoesProduct.id,
+      quantity: 2,
+    },
+  });
+
+  await prisma.wishlist.upsert({
+    where: {
+      userId_productId: {
+        userId: customer.id,
+        productId: freshestProduceProduct.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: customer.id,
+      productId: freshestProduceProduct.id,
+    },
+  });
+
+  const existingReview = await prisma.review.findFirst({
+    where: {
+      userId: customer.id,
+      productId: casualSneakerProduct.id,
+    },
+  });
+  if (!existingReview) {
+    await prisma.review.create({
+      data: {
+        userId: customer.id,
+        productId: casualSneakerProduct.id,
+        rating: 5,
+        comment: "Very comfortable and fits perfectly. Great value!",
+      },
+    });
+  }
+
+  const existingOrder = await prisma.order.findFirst({
+    where: {
+      userId: customer.id,
+      status: "CONFIRMED",
+      paid: true,
+    },
+  });
+  if (!existingOrder) {
+    const order = await prisma.order.create({
+      data: {
+        userId: customer.id,
+        deliveryAddressId: customerAddress.id,
+        status: "CONFIRMED",
+        total: "3080",
+        paid: true,
+        payment: {
+          create: {
+            provider: "PAYDUNYA",
+            providerToken: "paydunya-order-1001",
+            checkoutUrl: "https://paydunya.com/invoice/1001",
+            status: "COMPLETED",
+            amount: "3080",
+            currency: "XOF",
+            purpose: "ECOMMERCE_ORDER",
+            purposeId: "order-1001",
+          },
+        },
+      },
+    });
+
+    await prisma.orderItem.createMany({
+      data: [
+        {
+          orderId: order.id,
+          productId: sportsShoesProduct.id,
+          quantity: 1,
+          price: sportsShoesProduct.discountPrice?.toString() || sportsShoesProduct.price.toString(),
+        },
+        {
+          orderId: order.id,
+          productId: casualSneakerProduct.id,
+          quantity: 1,
+          price: casualSneakerProduct.discountPrice?.toString() || casualSneakerProduct.price.toString(),
+        },
+      ],
+    });
+
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        type: "PAYMENT",
+        direction: "DEBIT",
+        amount: "3080",
+        balanceAfter: wallet.balance.minus(3080).toString(),
+        purpose: "ECOMMERCE_ORDER",
+        purposeId: order.id,
+        description: "Order payment for ecommerce checkout",
+      },
+    });
+
+    await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: wallet.balance.minus(3080) },
+    });
+  }
+
+  const orangeService = await prisma.mobileService.findFirst({ where: { name: "Orange Sénégal" } });
+  if (orangeService) {
+    const existingTx = await prisma.mobileTransaction.findFirst({
+      where: { userId: customer.id, reference: "mobile-topup-1001" },
+    });
+    if (!existingTx) {
+      await prisma.mobileTransaction.create({
+        data: {
+          userId: customer.id,
+          serviceId: orangeService.id,
+          type: "AIRTIME",
+          phoneNumber: "+221772001001",
+          amount: "2000",
+          status: "SUCCESS",
+          reference: "mobile-topup-1001",
+        },
+      });
+    }
+  }
+
+  const existingRestaurantOrder = await prisma.restaurantOrder.findFirst({
+    where: {
+      userId: customer.id,
+      status: "PENDING",
+      note: "Extra sauce, please",
+    },
+  });
+  if (!existingRestaurantOrder) {
+    const restaurant = await prisma.restaurant.findUnique({ where: { slug: "keur-tantie" } });
+    const menuItem = restaurant
+      ? await prisma.menuItem.findFirst({ where: { restaurantId: restaurant.id } })
+      : null;
+    if (restaurant && menuItem) {
+      const restaurantOrder = await prisma.restaurantOrder.create({
+        data: {
+          userId: customer.id,
+          restaurantId: restaurant.id,
+          status: "PENDING",
+          total: "2000",
+          note: "Extra sauce, please",
+        },
+      });
+      await prisma.restaurantOrderItem.create({
+        data: {
+          orderId: restaurantOrder.id,
+          menuItemId: menuItem.id,
+          quantity: 1,
+          price: menuItem.price,
+        },
+      });
+    }
+  }
+
   console.log("Seed complete.");
 }
 
