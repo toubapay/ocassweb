@@ -30,6 +30,18 @@ const queryClient = new QueryClient({
 export default function App(props) {
   const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      // Register service worker in production
+      if (process.env.NODE_ENV === 'production') {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then((reg) => console.log('SW registered', reg.scope))
+          .catch((err) => console.warn('SW registration failed', err));
+      }
+    }
+  }, []);
+
   return (
     <CacheProvider value={emotionCache}>
       <Head>

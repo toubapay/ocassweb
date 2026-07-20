@@ -10,6 +10,8 @@ export default class MyDocument extends Document {
         <Head>
           <meta charSet="utf-8" />
           <meta name="theme-color" content="#0FAE58" />
+          <link rel="manifest" href="/manifest.json" />
+          <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
           <link rel="icon" href="/favicon.ico" />
           <link
             rel="preconnect"
