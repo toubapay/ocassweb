@@ -1,25 +1,20 @@
 import { NextResponse } from "next/server";
 
-// Define the protected routes
-const protectedRoutes = ["/rental/cart"];
+// Routes that require an authenticated user (checked via the ocass-token cookie).
+const protectedRoutes = ["/ecommerce/checkout"];
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
   if (protectedRoutes.includes(pathname)) {
-    const cartListCookie = request.cookies.get("cart-list");
-    const cartListValue = cartListCookie?.value;
-
-    if (!cartListValue || cartListValue === "0") {
-      const url = new URL("/home", request.url);
+    const token = request.cookies.get("ocass-token");
+    if (!token?.value) {
+      const url = new URL("/auth/login", request.url);
       return NextResponse.redirect(url);
     }
   }
-
-  const response = NextResponse.next();
-  response.headers.set("x-middleware-check", "working");
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/rental/cart"], // Explicitly match protected routes
+  matcher: ["/ecommerce/checkout"],
 };

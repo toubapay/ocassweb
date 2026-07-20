@@ -1,0 +1,65 @@
+# Cloud Build trigger config: builds + deploys both services on push.
+#
+# This assumes the one-time bootstrap in DEPLOY_GCP.md has already run once
+# (Cloud SQL instance created, secrets stored, and each service's first
+# `gcloud run deploy` has attached --add-cloudsql-instances / --set-secrets).
+# Deploys from this file intentionally omit those flags - `gcloud run
+# deploy` carries a service's existing configuration (Cloud SQL
+# connections, secrets, env vars) forward onto new revisions unless you
+# explicitly override it, so re-specifying them here isn't needed and
+# avoids the risk of a CI step drifting out of sync with what's actually
+# configured on the service.
+substitutions:
+  _REGION: europe-west1
+  _REPO: ocass
+
+steps:
+  - id: build-backend
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/backend:$SHORT_SHA", "./server"]
+
+  - id: push-backend
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/backend:$SHORT_SHA"]
+    waitFor: ["build-backend"]
+
+  - id: deploy-backend
+    name: gcr.io/google.com/cloudsdk/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ocass-backend
+      - --image=$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/backend:$SHORT_SHA
+      - --region=$_REGION
+      - --quiet
+    waitFor: ["push-backend"]
+
+  - id: build-frontend
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/frontend:$SHORT_SHA", "."]
+    waitFor: ["-"]
+
+  - id: push-frontend
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/frontend:$SHORT_SHA"]
+    waitFor: ["build-frontend"]
+
+  - id: deploy-frontend
+    name: gcr.io/google.com/cloudsdk/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ocass-frontend
+      - --image=$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/frontend:$SHORT_SHA
+      - --region=$_REGION
+      - --quiet
+    waitFor: ["push-frontend"]
+
+images:
+  - "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/backend:$SHORT_SHA"
+  - "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/frontend:$SHORT_SHA"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

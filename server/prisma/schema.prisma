@@ -1,0 +1,650 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Core / Auth ----------
+
+enum UserRole {
+  CUSTOMER
+  VENDOR
+  RIDER
+  DELIVERY_AGENT
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  name      String?
+  email     String?  @unique
+  avatarUrl String?
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses          Address[]
+  cartItems          CartItem[]
+  orders             Order[]
+  wishlist           Wishlist[]
+  reviews            Review[]
+  deliveryRequests   DeliveryRequest[]   @relation("DeliveryRequester")
+  insurancePolicies  InsurancePolicy[]
+  rideRequests       RideRequest[]       @relation("RideRequester")
+  restaurantOrders   RestaurantOrder[]
+  mobileTransactions MobileTransaction[]
+  payments           Payment[]
+  wallet             Wallet?
+  // Opt-in gig work / selling: any user can self-serve into role
+  // DELIVERY_AGENT, RIDER, or VENDOR (see PATCH /api/auth/role). role isn't
+  // checked anywhere else in the app, so this doesn't affect their ability
+  // to keep shopping/ordering as a customer too.
+  assignedDeliveries DeliveryRequest[]   @relation("DeliveryAgent")
+  assignedRides      RideRequest[]       @relation("AssignedRider")
+  store              Store?              @relation("StoreOwner")
+  // Anando (peer-to-peer carpooling) - any user can post a ride they're
+  // already making (as driver) and/or book a seat on someone else's (as
+  // passenger); this is independent of the RIDER gig-work role above.
+  ridePostings       RidePosting[]       @relation("RidePostingDriver")
+  rideBookings       RideBooking[]       @relation("RideBookingPassenger")
+  notifications      Notification[]
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  label     String
+  line1     String
+  city      String
+  lat       Float?
+  lng       Float?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+}
+
+// ---------- Ecommerce module ----------
+
+model Category {
+  id       String     @id @default(uuid())
+  name     String
+  slug     String     @unique
+  icon     String?
+  parentId String?
+  parent   Category?  @relation("CategoryToSubcategory", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryToSubcategory")
+  products Product[]
+}
+
+model Store {
+  id       String    @id @default(uuid())
+  name     String
+  slug     String    @unique
+  logoUrl  String?
+  address  String?
+  lat      Float?
+  lng      Float?
+  rating   Float     @default(0)
+  // Nullable + unique: null for admin/seed-managed stores (no self-service
+  // owner), unique among non-null values so a vendor can own at most one
+  // store (Postgres unique constraints allow any number of NULLs).
+  ownerId  String?   @unique
+  products Product[]
+
+  owner User? @relation("StoreOwner", fields: [ownerId], references: [id])
+}
+
+model Product {
+  id              String   @id @default(uuid())
+  storeId         String
+  categoryId      String
+  name            String
+  slug            String   @unique
+  description     String?
+  images          String[]
+  price           Decimal  @db.Decimal(10, 2)
+  discountPrice   Decimal? @db.Decimal(10, 2)
+  discountPercent Int?
+  stock           Int      @default(0)
+  rating          Float    @default(0)
+  tags            String[]
+  // Soft-delete flag so a vendor "removing" a product doesn't break FK
+  // references from existing CartItem/OrderItem/Wishlist/Review rows.
+  // Public listing/detail endpoints filter this out; the vendor's own
+  // product list does not.
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  store      Store       @relation(fields: [storeId], references: [id])
+  category   Category    @relation(fields: [categoryId], references: [id])
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  wishlist   Wishlist[]
+  reviews    Review[]
+
+  @@index([categoryId])
+  @@index([storeId])
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  userId            String
+  deliveryAddressId String?
+  status            OrderStatus @default(PENDING)
+  total             Decimal     @db.Decimal(10, 2)
+  // Payment is tracked separately from fulfillment status above - `paid`
+  // only flips true once the PayDunya IPN webhook confirms the invoice,
+  // never optimistically on order creation.
+  paid              Boolean     @default(false)
+  paymentId         String?     @unique
+  createdAt         DateTime    @default(now())
+
+  user            User        @relation(fields: [userId], references: [id])
+  deliveryAddress Address?    @relation(fields: [deliveryAddressId], references: [id])
+  payment         Payment?    @relation(fields: [paymentId], references: [id])
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Delivery module (stub) ----------
+
+enum DeliveryStatus {
+  REQUESTED
+  ACCEPTED
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+model DeliveryRequest {
+  id              String         @id @default(uuid())
+  userId          String
+  pickupAddress   String
+  pickupLat       Float?
+  pickupLng       Float?
+  dropoffAddress  String
+  dropoffLat      Float?
+  dropoffLng      Float?
+  packageNote     String?
+  priceEstimate   Decimal?       @db.Decimal(10, 2)
+  status          DeliveryStatus @default(REQUESTED)
+  assignedAgentId String?
+  createdAt       DateTime       @default(now())
+
+  user          User  @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedAgent User? @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
+
+  @@index([assignedAgentId])
+}
+
+// ---------- Insurance module (stub) ----------
+
+enum InsuranceCategory {
+  HEALTH
+  AUTO
+  HOME
+  TRAVEL
+  LIFE
+}
+
+model InsurancePlan {
+  id             String            @id @default(uuid())
+  name           String
+  category       InsuranceCategory
+  provider       String
+  premiumMonthly Decimal           @db.Decimal(10, 2)
+  coverageAmount Decimal           @db.Decimal(12, 2)
+  description    String?
+
+  policies InsurancePolicy[]
+}
+
+enum PolicyStatus {
+  ACTIVE
+  PENDING
+  EXPIRED
+  CANCELLED
+}
+
+model InsurancePolicy {
+  id        String       @id @default(uuid())
+  userId    String
+  planId    String
+  status    PolicyStatus @default(PENDING)
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime     @default(now())
+
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan InsurancePlan @relation(fields: [planId], references: [id])
+}
+
+// ---------- Restaurant module (stub) ----------
+
+model Restaurant {
+  id      String  @id @default(uuid())
+  name    String
+  slug    String  @unique
+  logoUrl String?
+  cuisine String?
+  rating  Float   @default(0)
+  address String?
+  lat     Float?
+  lng     Float?
+
+  menuItems MenuItem[]
+  orders    RestaurantOrder[]
+}
+
+model MenuItem {
+  id           String  @id @default(uuid())
+  restaurantId String
+  name         String
+  description  String?
+  price        Decimal @db.Decimal(10, 2)
+  imageUrl     String?
+  category     String?
+
+  restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orderItems RestaurantOrderItem[]
+}
+
+// A restaurant order is placed against a single restaurant in one go (no
+// persistent server-side cart, unlike the ecommerce module) - the client
+// builds the item list locally and submits it as one request.
+model RestaurantOrder {
+  id           String      @id @default(uuid())
+  userId       String
+  restaurantId String
+  status       OrderStatus @default(PENDING)
+  total        Decimal     @db.Decimal(10, 2)
+  note         String?
+  createdAt    DateTime    @default(now())
+
+  user       User                  @relation(fields: [userId], references: [id])
+  restaurant Restaurant            @relation(fields: [restaurantId], references: [id])
+  items      RestaurantOrderItem[]
+}
+
+model RestaurantOrderItem {
+  id         String  @id @default(uuid())
+  orderId    String
+  menuItemId String
+  quantity   Int
+  price      Decimal @db.Decimal(10, 2)
+
+  order    RestaurantOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem        @relation(fields: [menuItemId], references: [id])
+}
+
+// ---------- Ride sharing module (stub) ----------
+
+enum VehicleType {
+  MOTO
+  ECONOMY
+  COMFORT
+}
+
+enum RideStatus {
+  REQUESTED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model RideRequest {
+  id              String      @id @default(uuid())
+  userId          String
+  pickupAddress   String
+  pickupLat       Float?
+  pickupLng       Float?
+  dropoffAddress  String
+  dropoffLat      Float?
+  dropoffLng      Float?
+  vehicleType     VehicleType @default(ECONOMY)
+  priceEstimate   Decimal?    @db.Decimal(10, 2)
+  status          RideStatus  @default(REQUESTED)
+  assignedRiderId String?
+  createdAt       DateTime    @default(now())
+
+  user          User  @relation("RideRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedRider User? @relation("AssignedRider", fields: [assignedRiderId], references: [id])
+
+  @@index([assignedRiderId])
+}
+
+// ---------- Mobile top-up / bill payment module ----------
+
+enum MobileServiceType {
+  AIRTIME
+  DATA_BUNDLE
+  BILL
+}
+
+enum BillCategory {
+  ELECTRICITY
+  WATER
+  TV
+  INTERNET
+  OTHER
+}
+
+// Catalog of top-up operators and billers - managed from the backend
+// (seeded here, editable via direct DB/admin access), not hardcoded in
+// either client, per the request that "mobile services will be added from
+// backend".
+model MobileService {
+  id            String            @id @default(uuid())
+  name          String
+  logoUrl       String?
+  type          MobileServiceType
+  billCategory  BillCategory?
+  // Phone prefixes used to auto-detect the operator from a typed number in
+  // the airtime flow (e.g. Orange CI: "07", "08", "09"). Empty for billers.
+  phonePrefixes String[]          @default([])
+  minAmount     Decimal?          @db.Decimal(10, 2)
+  maxAmount     Decimal?          @db.Decimal(10, 2)
+  isActive      Boolean           @default(true)
+
+  transactions MobileTransaction[]
+}
+
+enum MobileTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model MobileTransaction {
+  id            String                  @id @default(uuid())
+  userId        String
+  serviceId     String
+  type          MobileServiceType
+  phoneNumber   String?
+  accountNumber String?
+  amount        Decimal                 @db.Decimal(10, 2)
+  status        MobileTransactionStatus @default(SUCCESS)
+  reference     String                  @unique
+  createdAt     DateTime                @default(now())
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service MobileService @relation(fields: [serviceId], references: [id])
+}
+
+// ---------- Payments (PayDunya) ----------
+
+enum PaymentProvider {
+  PAYDUNYA
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+// What a payment is for. A plain string purposeId (not a typed FK) since
+// one Payment can point at rows in any of several unrelated tables -
+// ecommerce orders today, other modules as PayDunya gets wired into them.
+enum PaymentPurpose {
+  ECOMMERCE_ORDER
+  RESTAURANT_ORDER
+  MOBILE_TOPUP
+  MOBILE_BILL
+  INSURANCE_POLICY
+  DELIVERY_REQUEST
+  RIDE_REQUEST
+  WALLET_TOPUP
+  ANANDO_BOOKING
+}
+
+// ---------- Wallet ----------
+// One wallet per user regardless of role - customers, vendors and delivery
+// agents all use the same balance/top-up/history model. Funded by topping
+// up through PayDunya (WALLET_TOPUP payment purpose above); spendable as a
+// payment method wherever the app checks out (ecommerce first).
+
+enum WalletTransactionType {
+  TOPUP
+  PAYMENT
+  REFUND
+  ADJUSTMENT
+  EARNING
+}
+
+enum WalletTransactionDirection {
+  CREDIT
+  DEBIT
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Decimal  @default(0) @db.Decimal(12, 2)
+  currency  String   @default("XOF")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id           String                     @id @default(uuid())
+  walletId     String
+  type         WalletTransactionType
+  direction    WalletTransactionDirection
+  amount       Decimal                    @db.Decimal(12, 2)
+  balanceAfter Decimal                    @db.Decimal(12, 2)
+  // Freeform, mirroring Payment.purpose/purposeId - what this movement was
+  // for (e.g. "ECOMMERCE_ORDER" + an order id, or "WALLET_TOPUP" + the
+  // funding Payment's id). Nullable for plain admin adjustments.
+  purpose      String?
+  purposeId    String?
+  description  String?
+  createdAt    DateTime                   @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
+model Payment {
+  id            String          @id @default(uuid())
+  userId        String
+  provider      PaymentProvider @default(PAYDUNYA)
+  providerToken String?         @unique
+  checkoutUrl   String?
+  status        PaymentStatus   @default(PENDING)
+  amount        Decimal         @db.Decimal(10, 2)
+  currency      String          @default("XOF")
+  purpose       PaymentPurpose
+  purposeId     String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id])
+  order Order?
+
+  @@index([purpose, purposeId])
+}
+
+// ---------- Anando (peer-to-peer carpooling) ----------
+// Deliberately a separate module from Ride Sharing above, not an extension
+// of it - the two are inverted shapes. Ride Sharing: a passenger requests a
+// trip and any RIDER-role gig worker can accept it (1 request : 1 driver).
+// Anando: a driver (any regular user, no special role) posts a trip
+// they're already making with N seats, and any number of other users each
+// claim one (1 posting : many bookings) - so the concurrency-guarded
+// operation is a decrementing seat count, not a single-winner accept.
+
+enum RidePostingStatus {
+  OPEN
+  FULL
+  CANCELLED
+  DEPARTED
+}
+
+model RidePosting {
+  id                 String            @id @default(uuid())
+  driverId           String
+  originAddress      String
+  originLat          Float?
+  originLng          Float?
+  destinationAddress String
+  destinationLat     Float?
+  destinationLng     Float?
+  // For an instant posting (driver leaving right now, BlaBlaCar-style
+  // "instant" availability rather than a scheduled trip) this is set to
+  // the creation time rather than left null, so every posting still sorts
+  // and displays the same way regardless of isInstant.
+  departureAt        DateTime
+  isInstant          Boolean           @default(false)
+  seatsTotal         Int
+  seatsAvailable     Int
+  // Null = no in-app price - cost-sharing arranged off-platform (cash in
+  // person). Non-null still allows CASH as the settlement method below;
+  // it's just what the driver is asking passengers to pay.
+  pricePerSeat       Decimal?          @db.Decimal(10, 2)
+  note               String?
+  status             RidePostingStatus @default(OPEN)
+  createdAt          DateTime          @default(now())
+
+  driver   User          @relation("RidePostingDriver", fields: [driverId], references: [id], onDelete: Cascade)
+  bookings RideBooking[]
+
+  @@index([status, departureAt])
+}
+
+enum RideBookingPaymentMethod {
+  CASH
+  WALLET
+  PAYDUNYA
+}
+
+enum RideBookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model RideBooking {
+  id            String                   @id @default(uuid())
+  postingId     String
+  passengerId   String
+  seatsBooked   Int                      @default(1)
+  paymentMethod RideBookingPaymentMethod
+  // CASH settles off-platform, so `paid` just stays false as a record of
+  // intent rather than a real payment; WALLET debits synchronously so
+  // `paid` flips true immediately; PAYDUNYA starts false and flips true
+  // once payments.service's IPN handler confirms the invoice, same as
+  // ecommerce checkout.
+  paid          Boolean                  @default(false)
+  status        RideBookingStatus        @default(CONFIRMED)
+  createdAt     DateTime                 @default(now())
+
+  posting   RidePosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  passenger User        @relation("RideBookingPassenger", fields: [passengerId], references: [id], onDelete: Cascade)
+
+  @@index([postingId])
+  @@index([passengerId])
+}
+
+// ---------- Notifications ----------
+// Generic, cross-module in-app notifications - Anando is the first
+// consumer (new booking on your posting, posting full, posting
+// cancelled), written so any other module can create one the same way.
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  // Freeform pointer to whatever this is about, mirroring
+  // Payment.purpose/purposeId's loose-reference pattern above (e.g.
+  // { postingId, bookingId }).
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
