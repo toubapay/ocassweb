@@ -24,7 +24,7 @@ steps:
     waitFor: ["build-backend"]
 
   - id: deploy-backend
-    name: gcr.io/google.com/cloudsdk/cloud-sdk
+    name: gcr.io/cloud-builders/gcloud
     entrypoint: gcloud
     args:
       - run
@@ -46,7 +46,7 @@ steps:
     waitFor: ["build-frontend"]
 
   - id: deploy-frontend
-    name: gcr.io/google.com/cloudsdk/cloud-sdk
+    name: gcr.io/cloud-builders/gcloud
     entrypoint: gcloud
     args:
       - run
