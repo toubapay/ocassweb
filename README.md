@@ -35,8 +35,18 @@ cp .env.example .env        # point DATABASE_URL at your Postgres instance
 npm install
 npm run prisma:migrate      # creates tables
 npm run seed                # loads sample categories/products/restaurants/plans
+npm run seed:test-data      # optional: login-ready test accounts + sample orders/postings/notifications in every module
 npm run dev                 # http://localhost:5000
 ```
+
+`seed:test-data` adds one user per role (customer, vendor, delivery agent,
+rider) plus a customer who's posted Anando rides, each with a wallet
+balance and some sample activity (an order, a restaurant order, an
+insurance policy, delivery/ride requests, Anando postings/bookings,
+notifications) so the app isn't empty when you browse it. Safe to
+re-run - it checks for existing data before inserting. Sign in with any
+of the phone numbers it prints; with `OTP_DEV_MODE=true` the OTP code
+comes back in the `/api/auth/request-otp` response instead of an SMS.
 
 Auth uses phone number + OTP. There's no SMS provider wired up yet, so with
 `OTP_DEV_MODE=true` (the default) requested codes are logged to the server
