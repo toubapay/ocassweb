@@ -25,6 +25,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Next's standalone-output file tracer doesn't reliably pick up every
+# @swc/helpers ESM helper file it needs at runtime (a known Next.js
+# tracing gap - see vercel/next.js#48737, #52735), so copy the whole
+# package in explicitly rather than relying on the trace.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@swc/helpers ./node_modules/@swc/helpers
+
 USER nextjs
 EXPOSE 8080
 CMD ["node", "server.js"]
