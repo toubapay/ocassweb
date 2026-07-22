@@ -1,5 +1,11 @@
 generator client {
   provider = "prisma-client-js"
+  // node:22-slim (Debian bookworm) has no `openssl` CLI, so Prisma can't
+  // probe the actual libssl version at build time and defaults to
+  // targeting openssl-1.1.x - a library the image doesn't have (it ships
+  // openssl 3.0 only). Pin the target explicitly rather than relying on
+  // that autodetection.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
