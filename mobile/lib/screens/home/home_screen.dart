@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 
@@ -8,6 +9,7 @@ import '../../models/category.dart';
 import '../../models/product.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/module_order_provider.dart';
+import '../../providers/notifications_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_bar.dart';
 import '../../widgets/header_wave.dart';
@@ -48,9 +50,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
     final modules = context.watch<ModuleOrderProvider>().modules;
     final firstName = user?.name?.split(' ').first;
+    final unreadCount =
+        auth.isAuthenticated ? context.watch<NotificationsProvider>().unreadCount : 0;
 
     return SingleChildScrollView(
       child: Column(
@@ -71,7 +76,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const AddressBar(address: 'Plateau, Dakar'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(child: AddressBar(address: 'Plateau, Dakar')),
+                        if (auth.isAuthenticated)
+                          IconButton(
+                            onPressed: () => context.push('/notifications'),
+                            style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.18)),
+                            icon: Badge(
+                              label: Text('$unreadCount'),
+                              isLabelVisible: unreadCount > 0,
+                              child: const Icon(Icons.notifications_rounded, color: Colors.white),
+                            ),
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 28),
                     ReorderableGridView.count(
                       shrinkWrap: true,

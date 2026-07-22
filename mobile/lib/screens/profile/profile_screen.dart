@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/notifications_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/language_switcher.dart';
@@ -134,6 +135,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: _updatingRole ? null : () => _changeRole('RIDER'),
                         child: Text(context.t('profile.becomeRider')),
                       ),
+                      OutlinedButton(
+                        onPressed: _updatingRole ? null : () => _changeRole('VENDOR'),
+                        child: Text(context.t('profile.becomeVendor')),
+                      ),
                     ],
                   ),
                 if (user.role == 'DELIVERY_AGENT')
@@ -166,6 +171,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
+                if (user.role == 'VENDOR')
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => context.push('/vendor'),
+                        child: Text(context.t('profile.vendorDashboard')),
+                      ),
+                      TextButton(
+                        onPressed: _updatingRole ? null : () => _changeRole('CUSTOMER'),
+                        child: Text(context.t('profile.stopGigWork')),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -178,6 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (context.mounted) {
                 context.read<CartProvider>().clear();
                 context.read<WishlistProvider>().clear();
+                context.read<NotificationsProvider>().clear();
                 context.go('/');
               }
             },

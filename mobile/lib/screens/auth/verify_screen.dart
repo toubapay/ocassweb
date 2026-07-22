@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/notifications_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../widgets/otp_input.dart';
 
@@ -46,6 +47,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
         context.read<CartProvider>().fetch(),
         context.read<WishlistProvider>().fetch(),
       ]);
+      context.read<NotificationsProvider>().startPolling();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

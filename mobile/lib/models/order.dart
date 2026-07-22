@@ -29,6 +29,10 @@ class Order {
   final double total;
   final DateTime createdAt;
   final List<OrderItem> items;
+  // Populated on vendor order listings (server includes the buyer via
+  // `user: {select: {id, name, phone}}`), null on the buyer's own /orders.
+  final String? buyerName;
+  final String? buyerPhone;
 
   Order({
     required this.id,
@@ -36,6 +40,8 @@ class Order {
     required this.total,
     required this.createdAt,
     this.items = const [],
+    this.buyerName,
+    this.buyerPhone,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
@@ -46,5 +52,7 @@ class Order {
         items: (json['items'] as List<dynamic>? ?? [])
             .map((i) => OrderItem.fromJson(i as Map<String, dynamic>))
             .toList(),
+        buyerName: (json['user'] as Map<String, dynamic>?)?['name'] as String?,
+        buyerPhone: (json['user'] as Map<String, dynamic>?)?['phone'] as String?,
       );
 }

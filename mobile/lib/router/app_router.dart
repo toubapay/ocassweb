@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import 'app_shell.dart';
+import '../models/ride_posting.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/verify_screen.dart';
@@ -22,6 +23,13 @@ import '../screens/rideshare/ride_sharing_driver_screen.dart';
 import '../screens/topup/topup_screen.dart';
 import '../screens/wallet/wallet_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/anando/anando_screen.dart';
+import '../screens/anando/anando_post_screen.dart';
+import '../screens/anando/anando_book_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
+import '../screens/vendor/vendor_dashboard_screen.dart';
+import '../screens/vendor/vendor_products_screen.dart';
+import '../screens/vendor/vendor_orders_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -41,6 +49,11 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/ecommerce/cart', builder: (context, state) => const CartScreen()),
     GoRoute(path: '/ecommerce/checkout', builder: (context, state) => const CheckoutScreen()),
+    GoRoute(path: '/anando/post', builder: (context, state) => const AnandoPostScreen()),
+    GoRoute(
+      path: '/anando/book',
+      builder: (context, state) => AnandoBookScreen(posting: state.extra as RidePosting),
+    ),
 
     // Everything else keeps the bottom tab bar.
     ShellRoute(
@@ -61,6 +74,11 @@ final GoRouter appRouter = GoRouter(
               TopupScreen(initialTab: state.uri.queryParameters['tab']),
         ),
         GoRoute(path: '/wallet', builder: (context, state) => const WalletScreen()),
+        GoRoute(path: '/anando', builder: (context, state) => const AnandoScreen()),
+        GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+        GoRoute(path: '/vendor', builder: (context, state) => const VendorDashboardScreen()),
+        GoRoute(path: '/vendor/products', builder: (context, state) => const VendorProductsScreen()),
+        GoRoute(path: '/vendor/orders', builder: (context, state) => const VendorOrdersScreen()),
 
         // Static /ecommerce/* siblings must come before the dynamic
         // /ecommerce/:categorySlug catch-all below, or the catch-all would
