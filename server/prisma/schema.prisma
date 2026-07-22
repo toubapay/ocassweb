@@ -1,11 +1,14 @@
 generator client {
   provider = "prisma-client-js"
   // node:22-slim (Debian bookworm) has no `openssl` CLI, so Prisma can't
-  // probe the actual libssl version at build time and defaults to
-  // targeting openssl-1.1.x - a library the image doesn't have (it ships
-  // openssl 3.0 only). Pin the target explicitly rather than relying on
-  // that autodetection.
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  // probe the actual libssl version - not just at `prisma generate` time,
+  // but also in the running container's own engine-selection logic, which
+  // also silently mis-detects "native" as openssl-1.1.x (a library the
+  // image doesn't have; it ships openssl 3.0 only) even when the correct
+  // engine is also bundled alongside it. Deliberately NOT listing "native"
+  // here - it's the wrong engine in this specific base image, and its
+  // presence gets picked over the correct one at runtime.
+  binaryTargets = ["debian-openssl-3.0.x"]
 }
 
 datasource db {
