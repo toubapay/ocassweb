@@ -114,9 +114,9 @@ yarn dev                    # http://localhost:3000
   languages instantly and the choice persists (redux-persist) across
   reloads. See "Internationalization" below for how to add new strings.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage as
-  the web app, including French/English i18n and the delivery/ride dispatch
-  system (see `mobile/README.md`). The vendor marketplace and Anando are
-  web-only so far; syncing them to Flutter hasn't been done yet.
+  the web app, including French/English i18n, the delivery/ride dispatch
+  system, the vendor marketplace, Anando, and in-app notifications (see
+  `mobile/README.md`).
 
 ## Delivery & ride dispatch
 

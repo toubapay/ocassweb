@@ -95,6 +95,15 @@ const List<AppModule> kModules = [
     color: AppColors.orange,
     bg: AppColors.orangeSoft,
   ),
+  AppModule(
+    id: 'anando',
+    label: 'Anando',
+    fullLabel: 'Anando',
+    route: '/anando',
+    icon: Icons.directions_car_filled_rounded,
+    color: AppColors.pink,
+    bg: AppColors.pinkSoft,
+  ),
 ];
 
 AppModule moduleById(String id) => kModules.firstWhere((m) => m.id == id);

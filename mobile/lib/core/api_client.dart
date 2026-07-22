@@ -15,6 +15,9 @@ import '../models/ride_request.dart';
 import '../models/mobile_service.dart';
 import '../models/mobile_transaction.dart';
 import '../models/wallet.dart';
+import '../models/ride_posting.dart';
+import '../models/app_notification.dart';
+import '../models/store.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -424,6 +427,161 @@ class ApiClient {
     final res = await _dio.get('/mobile/transactions');
     return (_data(res)['transactions'] as List<dynamic>)
         .map((t) => MobileTransaction.fromJson(t as Map<String, dynamic>))
+        .toList();
+  }
+
+  // ---------------- Anando (peer-to-peer carpooling) ----------------
+
+  Future<List<RidePosting>> fetchAvailablePostings() async {
+    final res = await _dio.get('/anando/postings/available');
+    return (_data(res)['postings'] as List<dynamic>)
+        .map((p) => RidePosting.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<RidePosting>> fetchMyPostings() async {
+    final res = await _dio.get('/anando/postings/mine');
+    return (_data(res)['postings'] as List<dynamic>)
+        .map((p) => RidePosting.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<RideBooking>> fetchMyBookings() async {
+    final res = await _dio.get('/anando/bookings/mine');
+    return (_data(res)['bookings'] as List<dynamic>)
+        .map((b) => RideBooking.fromJson(b as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<RidePosting> createPosting({
+    required String originAddress,
+    required String destinationAddress,
+    double? originLat,
+    double? originLng,
+    double? destinationLat,
+    double? destinationLng,
+    required bool isInstant,
+    DateTime? departureAt,
+    required int seatsTotal,
+    double? pricePerSeat,
+    String? note,
+  }) async {
+    final res = await _dio.post('/anando/postings', data: {
+      'originAddress': originAddress,
+      'destinationAddress': destinationAddress,
+      if (originLat != null) 'originLat': originLat,
+      if (originLng != null) 'originLng': originLng,
+      if (destinationLat != null) 'destinationLat': destinationLat,
+      if (destinationLng != null) 'destinationLng': destinationLng,
+      'isInstant': isInstant,
+      if (departureAt != null) 'departureAt': departureAt.toUtc().toIso8601String(),
+      'seatsTotal': seatsTotal,
+      if (pricePerSeat != null) 'pricePerSeat': pricePerSeat,
+      if (note != null && note.isNotEmpty) 'note': note,
+    });
+    return RidePosting.fromJson(_data(res)['posting'] as Map<String, dynamic>);
+  }
+
+  Future<void> cancelPosting(String id) => _dio.patch('/anando/postings/$id/cancel');
+
+  Future<RidePosting> departPosting(String id) async {
+    final res = await _dio.post('/anando/postings/$id/depart');
+    return RidePosting.fromJson(_data(res)['posting'] as Map<String, dynamic>);
+  }
+
+  /// Throws a [DioException] with the server's 409 message ("Not enough
+  /// seats available") if another passenger claimed the remaining seats
+  /// first - the caller should surface `error.response.data.message`.
+  Future<void> bookSeat(String postingId, {required int seatsBooked, required String paymentMethod}) =>
+      _dio.post('/anando/postings/$postingId/book', data: {
+        'seatsBooked': seatsBooked,
+        'paymentMethod': paymentMethod,
+      });
+
+  Future<void> cancelBooking(String id) => _dio.patch('/anando/bookings/$id/cancel');
+
+  // ---------------- Notifications ----------------
+
+  Future<List<AppNotification>> fetchNotifications() async {
+    final res = await _dio.get('/notifications');
+    return (_data(res)['notifications'] as List<dynamic>)
+        .map((n) => AppNotification.fromJson(n as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<int> fetchUnreadNotificationCount() async {
+    final res = await _dio.get('/notifications/unread-count');
+    return _data(res)['count'] as int;
+  }
+
+  Future<void> markNotificationRead(String id) => _dio.patch('/notifications/$id/read');
+
+  Future<void> markAllNotificationsRead() => _dio.patch('/notifications/read-all');
+
+  // ---------------- Vendor (self-service store owner) ----------------
+
+  Future<Store?> fetchMyStore() async {
+    final res = await _dio.get('/vendor/store');
+    final store = _data(res)['store'];
+    return store == null ? null : Store.fromJson(store as Map<String, dynamic>);
+  }
+
+  Future<Store> createVendorStore({
+    required String name,
+    String? logoUrl,
+    String? address,
+    double? lat,
+    double? lng,
+  }) async {
+    final res = await _dio.post('/vendor/store', data: {
+      'name': name,
+      if (logoUrl != null && logoUrl.isNotEmpty) 'logoUrl': logoUrl,
+      if (address != null && address.isNotEmpty) 'address': address,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+    });
+    return Store.fromJson(_data(res)['store'] as Map<String, dynamic>);
+  }
+
+  Future<List<Product>> fetchMyVendorProducts() async {
+    final res = await _dio.get('/vendor/products');
+    return (_data(res)['products'] as List<dynamic>)
+        .map((p) => Product.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Product> createVendorProduct({
+    required String categoryId,
+    required String name,
+    String? description,
+    List<String> images = const [],
+    required double price,
+    double? discountPrice,
+    int stock = 0,
+    List<String> tags = const [],
+  }) async {
+    final res = await _dio.post('/vendor/products', data: {
+      'categoryId': categoryId,
+      'name': name,
+      if (description != null && description.isNotEmpty) 'description': description,
+      'images': images,
+      'price': price,
+      if (discountPrice != null) 'discountPrice': discountPrice,
+      'stock': stock,
+      'tags': tags,
+    });
+    return Product.fromJson(_data(res)['product'] as Map<String, dynamic>);
+  }
+
+  Future<Product> deactivateVendorProduct(String id) async {
+    final res = await _dio.delete('/vendor/products/$id');
+    return Product.fromJson(_data(res)['product'] as Map<String, dynamic>);
+  }
+
+  Future<List<Order>> fetchMyVendorOrders() async {
+    final res = await _dio.get('/vendor/orders');
+    return (_data(res)['orders'] as List<dynamic>)
+        .map((o) => Order.fromJson(o as Map<String, dynamic>))
         .toList();
   }
 }

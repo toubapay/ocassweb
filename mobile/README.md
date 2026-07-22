@@ -1,9 +1,9 @@
 # Ocass Mobile (Flutter)
 
-Native iOS/Android client for the Ocass super app, covering the same 6
+Native iOS/Android client for the Ocass super app, covering the same
 modules as the web app (Ecommerce, Restaurant, Delivery, Ride Sharing,
-Insurance, Airtime Top-up & Bill Payment) against the same backend
-(`/server`).
+Insurance, Airtime Top-up & Bill Payment, the Vendor marketplace, Anando
+carpooling, and in-app notifications) against the same backend (`/server`).
 
 ## ⚠️ Before you start: this code has not been compiled
 
@@ -145,6 +145,29 @@ backend endpoints and race-safe accept as the web app. The "use my
 location" pickup button (`lib/core/geo.dart`, via the `geolocator` package)
 mirrors the web's `navigator.geolocation` button: pickup-only, no
 geocoding, since there's no maps API key configured anywhere in this app.
+
+**Vendor marketplace**: any user can opt into the `VENDOR` role from the
+profile screen, create/edit a store, add products (category, price,
+discount price, stock - no image upload, same as the store logo field: a
+plain URL), and view orders containing their products. Matches
+`pages/vendor/*.js` on the web.
+
+**Anando** (peer-to-peer carpooling), independent of the `RIDER` gig-work
+role above - any user can post a ride they're already making (scheduled
+or "leaving now" instant availability, BlaBlaCar-style) and/or book a seat
+on someone else's, paying cash, wallet, or PayDunya. The hub
+(`/anando`) has Available/My rides/My bookings tabs; posting and booking
+are separate pushed screens (`/anando/post`, `/anando/book`) rather than
+web's modal dialogs. Since there's no `GET /anando/postings/:id` backend
+endpoint, the booking screen receives the full posting via go_router's
+`extra` parameter from the postings list it was opened from, rather than
+re-fetching it.
+
+**In-app notifications**: a bell + unread badge in `TopBar` and the home
+screen header (`NotificationsProvider` polls the unread count every 30s
+while signed in, matching the web's `refetchInterval: 30000`), and a
+`/notifications` list screen with mark-read/mark-all-read. Anando booking
+notifications deep-link to `/anando` on tap, same as the web app.
 
 PayDunya's hosted checkout (used by both ecommerce checkout and wallet
 top-up) opens in the device's external browser via `url_launcher` rather
