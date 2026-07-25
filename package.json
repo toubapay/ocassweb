@@ -23,7 +23,6 @@
     "@mui/material": "^5.10.17",
     "@mui/styles": "^5.11.0",
     "@mui/system": "^5.10.17",
-    "@mui/x-date-pickers": "^6.5.0",
     "@react-google-maps/api": "^2.17.1",
     "@reduxjs/toolkit": "^1.9.1",
     "@swc/helpers": "^0.5.0",
@@ -47,16 +46,12 @@
     "nprogress": "^0.2.0",
     "prop-types": "^15.8.1",
     "react": "^19.1.0",
-    "react-apple-login": "^1.1.6",
     "react-countdown": "^2.3.5",
     "react-date-range": "^2.0.1",
     "react-dom": "^19.1.0",
-    "react-facebook-login": "^4.1.1",
     "react-geolocated": "^4.0.3",
     "react-hot-toast": "^2.4.0",
     "react-i18next": "^12.1.1",
-    "react-image-magnifiers": "^1.4.0",
-    "react-image-magnify": "^2.7.4",
     "react-intersection-observer": "^9.8.1",
     "react-lottie": "^1.2.10",
     "react-otp-input": "^3.1.1",
@@ -66,11 +61,8 @@
     "react-query": "^3.39.2",
     "react-redux": "^8.0.5",
     "react-share": "^5.0.3",
-    "react-slick": "^0.29.0",
     "react-transition-group": "^4.4.5",
     "redux-persist": "^6.0.0",
-    "simplebar-react": "^2.4.3",
-    "slick-carousel": "^1.8.1",
     "stylis-plugin-rtl": "^2.1.1",
     "yarn": "^1.22.22",
     "yup": "^0.32.11"
@@ -81,12 +73,25 @@
     "@types/nprogress": "^0.2.3",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "@types/react-slick": "^0.23.13",
     "@types/react-transition-group": "^4.4.12",
     "prettier": "2.8.0",
     "typescript": "5.9.3"
   },
   "resolutions": {
     "@swc/helpers": "^0.5.0"
+  },
+  "overrides": {
+    "react-query": {
+      "react": "$react"
+    },
+    "react-redux": {
+      "react": "$react",
+      "react-dom": "$react-dom",
+      "@types/react": "$@types/react",
+      "@types/react-dom": "$@types/react-dom"
+    },
+    "@reduxjs/toolkit": {
+      "react": "$react"
+    }
   }
 }
