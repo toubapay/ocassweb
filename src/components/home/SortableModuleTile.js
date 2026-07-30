@@ -17,6 +17,11 @@ export default function SortableModuleTile({ module, size }) {
     // instead of the browser starting a page scroll on touch devices.
     touchAction: "none",
     cursor: "grab",
+    // Grid items default to min-width: auto, which lets a track grow past
+    // its 1fr share to fit this item's content instead of shrinking - that
+    // was pushing the 3rd column off narrow phone screens. minWidth: 0
+    // forces it to respect the column's actual allotted width.
+    minWidth: 0,
   };
 
   return (

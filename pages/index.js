@@ -5,10 +5,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
-import CardGiftcardRoundedIcon from "@mui/icons-material/CardGiftcardRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import CheckroomRoundedIcon from "@mui/icons-material/CheckroomRounded";
 import DevicesOtherRoundedIcon from "@mui/icons-material/DevicesOtherRounded";
 import LocalGroceryStoreRoundedIcon from "@mui/icons-material/LocalGroceryStoreRounded";
@@ -48,7 +45,7 @@ const DEFAULT_CATEGORY_ICON = { icon: StorefrontRoundedIcon, color: "#8B5CF6", b
 export default function Home() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const dispatch = useDispatch();
   const savedOrder = useSelector((state) => state.layout.moduleOrder);
   const { data } = useQuery("home-products", () => fetchProducts({ pageSize: 6 }));
@@ -57,14 +54,13 @@ export default function Home() {
     enabled: isAuthenticated,
     refetchInterval: 30000,
   });
-  const firstName = user?.name?.split(" ")[0];
 
   const orderedModules = useMemo(() => getOrderedModules(savedOrder), [savedOrder]);
-  // A fixed 4-column grid (rather than two hardcoded 3/4 row slices) scales
-  // to any module count without re-tuning the split by hand; the tile size
-  // shrinks a touch once there are more than 6 so four still fit per row on
-  // narrow phones without overflowing the 480px mobile frame.
-  const tileSize = orderedModules.length > 6 ? 76 : 92;
+  // A fixed 3-column grid (rather than two hardcoded row-count slices) scales
+  // to any module count without re-tuning the split by hand. Three per row
+  // (instead of four) leaves enough width per tile to render icon + label at
+  // a noticeably larger size without overflowing the 480px mobile frame.
+  const tileSize = orderedModules.length > 6 ? 88 : 104;
 
   // Delay-based activation (long-press) rather than distance-based: dnd-kit's
   // distance constraint calls preventDefault() on pointerdown immediately,
@@ -115,9 +111,9 @@ export default function Home() {
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
+                gridTemplateColumns: "repeat(3, 1fr)",
                 justifyItems: "center",
-                rowGap: 4.5,
+                rowGap: 5,
                 columnGap: 1,
                 mt: 4.5,
               }}
@@ -139,16 +135,7 @@ export default function Home() {
         <HeaderWave />
       </Box>
 
-      <Box sx={{ px: 2.5, pt: 3, pb: 1 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 20 }}>
-            {firstName ? t("home.greeting", { name: firstName }) : t("home.exploreOcass")}
-          </Typography>
-          <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
-        </Box>
-      </Box>
-
-      <Box sx={{ px: 2.5, pb: 3, display: "flex", gap: 1.5, overflowX: "auto" }}>
+      <Box sx={{ px: 2.5, pt: 3, pb: 3, display: "flex", gap: 1.5, overflowX: "auto" }}>
         {(categories || []).map((cat) => {
           const conf = CATEGORY_ICONS[cat.slug] || DEFAULT_CATEGORY_ICON;
           return (
@@ -174,59 +161,6 @@ export default function Home() {
               <ProductCard product={product} />
             </Box>
           ))}
-        </Box>
-      </Box>
-
-      <Box sx={{ px: 2.5, pb: 3 }}>
-        <Box
-          sx={{
-            position: "relative",
-            background: "linear-gradient(135deg, #E7F7EE 0%, #FFF6E5 100%)",
-            borderRadius: 4,
-            p: 2.5,
-            pr: 11,
-            overflow: "visible",
-          }}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            {t("home.freeDeliveryTitle")}
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            {t("home.freeDeliverySubtitle")}
-          </Typography>
-
-          <Box
-            sx={{
-              position: "absolute",
-              right: 18,
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: 68,
-              height: 68,
-              borderRadius: "50%",
-              bgcolor: "primary.main",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 6px 16px rgba(15,174,88,0.35)",
-            }}
-          >
-            <CardGiftcardRoundedIcon sx={{ color: "#fff", fontSize: 32 }} />
-          </Box>
-
-          <IconButton
-            size="small"
-            sx={{
-              position: "absolute",
-              bottom: 10,
-              right: 10,
-              bgcolor: "#fff",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-              "&:hover": { bgcolor: "#fff" },
-            }}
-          >
-            <ArrowForwardRoundedIcon fontSize="small" sx={{ color: "primary.main" }} />
-          </IconButton>
         </Box>
       </Box>
     </Box>

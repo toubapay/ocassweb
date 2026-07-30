@@ -33,24 +33,39 @@ export default function ModuleTile({ module, size = 92 }) {
               boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
             }}
           >
-            <Icon sx={{ color: module.color, fontSize: size * 0.36 }} />
+            <Icon sx={{ color: module.color, fontSize: size * 0.42 }} />
           </Box>
 
           <Box
             sx={{
               position: "absolute",
-              bottom: -13,
+              bottom: -15,
               left: "50%",
               transform: "translateX(-50%)",
+              // Capped so a long label (e.g. "Livraison", "Assurance") can
+              // never grow the pill wider than the tile's own grid column -
+              // it truncates with an ellipsis instead of bleeding into the
+              // neighboring column or off the edge of the screen.
+              maxWidth: size + 28,
               bgcolor: "#FFFFFF",
               borderRadius: 999,
               px: 1.5,
-              py: 0.4,
+              py: 0.5,
               boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-              whiteSpace: "nowrap",
             }}
           >
-            <Typography variant="caption" sx={{ fontWeight: 800, color: "#1A1A1A", fontSize: 11.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                fontWeight: 800,
+                color: "#1A1A1A",
+                fontSize: 13,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               {t(`modules.${module.id}.label`)}
             </Typography>
           </Box>
