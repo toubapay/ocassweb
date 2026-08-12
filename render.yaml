@@ -1,0 +1,79 @@
+# Render Blueprint - infra-as-code equivalent of DEPLOY_RENDER.md's manual
+# steps. Deploy via "New +" -> "Blueprint" in the Render dashboard, pointing
+# at this repo; Render reads this file and provisions everything below in
+# one go. Editing this file after the first deploy and pushing updates the
+# existing services/database rather than creating new ones (Render matches
+# on the `name` fields).
+#
+# This was not run from this environment - render.com and api.render.com
+# are both unreachable from this sandbox's network policy, so nothing here
+# could be executed or verified against a live deploy. It's written from
+# Render's documented Blueprint spec (https://render.com/docs/blueprint-spec).
+#
+# Reuses the same Dockerfile / server/Dockerfile written for the Cloud Run
+# guide (see DEPLOY_GCP.md) - Render builds a Dockerfile the same way
+# Cloud Run and Railway do, no separate buildpack config needed.
+
+databases:
+  - name: ocass-db
+    plan: free
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: ocass-backend
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: free
+    healthCheckPath: /api/health
+    # Runs before each deploy's new instance takes traffic - same purpose as
+    # the seed/migrate step called out manually in DEPLOY_RAILWAY.md, but
+    # automatic here since Render has a dedicated hook for it.
+    preDeployCommand: npx prisma migrate deploy
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ocass-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: OTP_DEV_MODE
+        value: "true"
+      - key: OTP_TTL_MINUTES
+        value: "5"
+      - key: CORS_ORIGIN
+        value: "*"
+      # Render's blueprint spec has no string-concatenation/templating for
+      # envVars, and `fromService` only resolves to the bare hostname (no
+      # https:// scheme) - not usable as-is for a full URL. Set these two
+      # by hand in the dashboard after the first deploy, once both services
+      # have live *.onrender.com URLs (see step 4 of DEPLOY_RENDER.md).
+      - key: APP_FRONTEND_URL
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: PAYDUNYA_MODE
+        value: test
+      - key: PAYDUNYA_MASTER_KEY
+        sync: false
+      - key: PAYDUNYA_PRIVATE_KEY
+        sync: false
+      - key: PAYDUNYA_PUBLIC_KEY
+        sync: false
+      - key: PAYDUNYA_TOKEN
+        sync: false
+
+  - type: web
+    name: ocass-frontend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      # Same templating limitation as APP_FRONTEND_URL/APP_BASE_URL above -
+      # set this by hand once ocass-backend has a live URL (step 4).
+      - key: BACKEND_URL
+        sync: false
