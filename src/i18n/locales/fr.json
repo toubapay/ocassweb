@@ -3,6 +3,7 @@
     "appName": "Ocass",
     "loading": "Chargement...",
     "cancel": "Annuler",
+    "save": "Enregistrer",
     "logIn": "Se connecter",
     "logInToContinue": "Connectez-vous pour continuer",
     "backToCart": "Retour au panier",
@@ -121,7 +122,8 @@
       "deliveryRequests": "Demandes de livraison",
       "myRides": "Mes courses",
       "myInsurancePolicies": "Mes polices d'assurance",
-      "topupsAndBills": "Recharges et factures"
+      "topupsAndBills": "Recharges et factures",
+      "admin": "Panneau d'administration"
     },
     "logOut": "Se déconnecter",
     "languageSectionTitle": "Langue",
@@ -561,5 +563,90 @@
     "title": "Notifications",
     "markAllRead": "Tout marquer comme lu",
     "empty": "Aucune notification pour le moment."
+  },
+  "admin": {
+    "title": "Panneau d'administration",
+    "notAuthorized": "Vous n'avez pas accès au panneau d'administration.",
+    "tabs": {
+      "dashboard": "Tableau de bord",
+      "users": "Utilisateurs",
+      "modules": "Modules et frais",
+      "zones": "Zones",
+      "providers": "Fournisseurs",
+      "services": "Services"
+    },
+    "stats": {
+      "totalUsers": "Utilisateurs au total",
+      "totalOrders": "Commandes au total",
+      "pendingDeliveries": "Livraisons en attente",
+      "activeRides": "Courses actives",
+      "totalStores": "Boutiques vendeurs",
+      "totalRidePostings": "Trajets Anando ouverts",
+      "usersByRole": "Utilisateurs par rôle"
+    },
+    "users": {
+      "searchPlaceholder": "Rechercher nom, téléphone ou e-mail",
+      "allRoles": "Tous les rôles",
+      "name": "Nom",
+      "phone": "Téléphone",
+      "role": "Rôle",
+      "active": "Actif",
+      "updated": "Utilisateur mis à jour",
+      "updateFailed": "Impossible de mettre à jour l'utilisateur"
+    },
+    "modules": {
+      "fees": "Frais",
+      "editFees": "Modifier les frais - {{module}}",
+      "feesSaved": "Frais enregistrés",
+      "feesSaveFailed": "Impossible d'enregistrer les frais",
+      "toggleFailed": "Impossible de mettre à jour le module"
+    },
+    "zones": {
+      "newZone": "Nouvelle zone",
+      "name": "Nom de la zone",
+      "feeMultiplier": "Multiplicateur de frais",
+      "drawHint": "Dessinez un polygone sur la carte pour définir les limites de cette zone.",
+      "pointsCaptured": "{{count}} point capturé",
+      "pointsCaptured_other": "{{count}} points capturés",
+      "noMapKey": "Aucune clé API Google Maps configurée (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) - collez plutôt les points de la limite au format JSON.",
+      "invalidJson": "Ce n'est pas un JSON valide",
+      "needsBoundary": "Donnez un nom à la zone et au moins 3 points de limite",
+      "save": "Enregistrer la zone",
+      "created": "Zone créée",
+      "saveFailed": "Impossible d'enregistrer la zone",
+      "deleted": "Zone supprimée",
+      "existing": "Zones existantes",
+      "points": "points"
+    },
+    "providers": {
+      "newProvider": "Nouveau fournisseur",
+      "smsHint": "Seuls les fournisseurs SMS sont réellement connectés aujourd'hui (utilisés pour l'envoi des codes OTP) - les autres catégories ne sont pour l'instant que du stockage étiqueté.",
+      "category": "Catégorie",
+      "name": "Nom",
+      "active": "Actif",
+      "default": "Par défaut pour la catégorie",
+      "configHelp": "Modèle de requête pour ce fournisseur - {phone}, {code} et {message} sont substitués au moment de l'envoi.",
+      "save": "Enregistrer le fournisseur",
+      "created": "Fournisseur créé",
+      "saveFailed": "Impossible d'enregistrer le fournisseur",
+      "deleted": "Fournisseur supprimé",
+      "nameRequired": "Le nom est requis",
+      "existing": "Fournisseurs existants",
+      "defaultBadge": "Par défaut"
+    },
+    "services": {
+      "mobileTitle": "Services de recharge et factures",
+      "insuranceTitle": "Formules d'assurance",
+      "name": "Nom",
+      "provider": "Fournisseur",
+      "premiumMonthly": "Prime/mois",
+      "coverageAmount": "Couverture",
+      "phonePrefixes": "Préfixes téléphoniques",
+      "add": "Ajouter",
+      "created": "Service créé",
+      "saveFailed": "Impossible d'enregistrer",
+      "nameRequired": "Le nom est requis",
+      "allFieldsRequired": "Tous les champs sont requis"
+    }
   }
 }

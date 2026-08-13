@@ -64,6 +64,11 @@ npm install
 yarn dev                    # http://localhost:3000
 ```
 
+Optional: set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to enable the interactive
+polygon-drawing map on the admin panel's Zones tab (see "Admin panel"
+below) - the only place in this app that uses a Google Maps key. Without
+it, that tab still works via a manual JSON boundary entry fallback.
+
 ## What's implemented
 
 - **Ecommerce** — full flow: category browse (sidebar + grid, matching the
@@ -370,6 +375,93 @@ takes one `return_url` per invoice, `/payments/return` is shared across
 every purpose and picks its message/destination off the confirmed
 payment's `purpose` field (`DESTINATIONS` map in `pages/payments/return.js`)
 - add an entry there for any new purpose that needs its own landing copy.
+
+## Admin panel
+
+`/admin` (web only) - every route under `server/src/modules/admin/` is
+gated `requireAuth` + `requireRole("ADMIN")`. There's no self-service way
+to become an ADMIN (unlike `VENDOR`/`RIDER`/`DELIVERY_AGENT` - see
+`PATCH /api/auth/role`, which deliberately excludes it), since that would
+make the gate meaningless. For local dev, `npm run seed:test-data` (see
+`server/prisma/seed-test-data.js`) creates a ready-to-use ADMIN account at
+`+221771000006` alongside its one-per-role test users. Otherwise, promote
+the first admin directly in the database:
+
+```sql
+UPDATE "User" SET role = 'ADMIN' WHERE phone = '+221...';
+```
+
+After that, other admins can be promoted from the panel's Users tab
+itself. `requireAuth` re-fetches the user from the DB on every request, so
+a role change (or `active: false` suspension) takes effect on the user's
+very next request - no re-login needed, and no way for a suspended user to
+keep using a still-valid token.
+
+**Users**: search/filter, change role (including to/from `ADMIN`), and
+suspend (`active: false` - `requireAuth` rejects every request from a
+suspended user with 403). An admin can't deactivate their own account
+(guarded server-side, not just hidden in the UI).
+
+**Modules & fees**: `ModuleConfig` (one row per module, key matching
+`server/src/modules/<key>`) has an `enabled` toggle that's actually
+enforced - `requireModuleEnabled(key)` (see `app.js`) sits in front of
+every module's routes and returns `503` when disabled, and
+`GET /api/modules/status` (public, unauthenticated) lets the web/mobile
+clients hide a disabled module's nav entry. Only `delivery` and
+`rideshare` have a real fee editor, because those are the only two
+modules whose pricing code (`estimatePrice` in each controller) actually
+reads `ModuleConfig.feeConfig` (base fare, rate/km, driver/agent payout
+share) - every other module's toggle only controls availability, not
+price, since there's no fee math anywhere else yet to hook a fee config
+into.
+
+**Zones**: `ServiceZone` stores a named polygon (points, module key, an
+optional fee multiplier) drawn on a Google Map if
+`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is set (falls back to pasting boundary
+points as JSON if it isn't - this is the first thing in the whole repo
+that needs a Maps key, so it's untested from this sandbox either way, no
+network path to `maps.googleapis.com` here). **Storage and CRUD only** -
+nothing in delivery/rideshare/ecommerce checks yet whether a request's
+coordinates fall inside a zone; point-in-polygon enforcement against
+these is the natural next step once zones exist to enforce against.
+
+**Providers**: a generic `Provider` model (`category` is free text, not an
+enum, so admins can label new kinds without a migration) for
+credentials/config an admin fills in rather than the app hardcoding a
+vendor. **Only `category: "SMS"` has real behavior wired to it** -
+`server/src/utils/otp.js` sends OTP codes through whatever `Provider` row
+has `category: "SMS"`, `isActive: true` (preferring one with
+`isDefault: true`) via `server/src/utils/smsGateway.js`, a generic
+HTTP-request sender: `config` describes one request (method, url,
+headers, body/params) with `{phone}`, `{code}`, `{message}` placeholders
+substituted at send time. There's no gateway hardcoded (ProMobile or
+otherwise) because each one's real API contract - auth scheme, GET vs
+POST, JSON vs form body - has to come from that gateway's own docs; add
+one as a Provider once you have them. Example config for a POST/JSON
+gateway:
+
+```json
+{
+  "method": "POST",
+  "url": "https://api.example.com/sms/send",
+  "headers": { "Authorization": "Bearer sk_live_..." },
+  "bodyType": "json",
+  "body": { "to": "{phone}", "text": "{message}", "sender": "OCASS" }
+}
+```
+
+When `OTP_DEV_MODE=true` (see `server/.env.example`) no SMS is sent at
+all regardless of Providers configured - the code is logged and echoed in
+the API response, same as before this module existed.
+
+**Services**: admin CRUD for `MobileService` (the airtime/bill catalog -
+previously seed-only, now editable without a redeploy) and `InsurancePlan`
+(create/edit; no delete, since removing a plan with existing
+`InsurancePolicy` rows would violate a foreign key with no
+soft-delete/reassignment flow built for that yet).
+
+**Dashboard**: `GET /admin/stats` - user/order/role counts, pending
+deliveries, active rides, vendor stores, open Anando postings. Read-only.
 
 ## Deploying
 

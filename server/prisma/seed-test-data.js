@@ -43,6 +43,14 @@ async function main() {
     update: {},
     create: { phone: "+221771000005", name: "Cheikh Ba", email: "cheikh.ba@example.com", role: "CUSTOMER" },
   });
+  // No self-service path to ADMIN exists (see PATCH /api/auth/role) - this
+  // is the only way a fresh dev environment gets one without hand-editing
+  // the database (see README's "Admin panel" section).
+  const admin = await prisma.user.upsert({
+    where: { phone: "+221771000006" },
+    update: {},
+    create: { phone: "+221771000006", name: "Admin", email: "admin@example.com", role: "ADMIN" },
+  });
 
   // ---------- Wallets ----------
   async function ensureWallet(userId, balance, earnings) {
@@ -327,7 +335,7 @@ async function main() {
 
   console.log("Test data seed complete.\n");
   console.log("Sign in with OTP_DEV_MODE using any of these phone numbers (OTP comes back in the API response):");
-  [customer, vendor, agent, rider, anandoDriver].forEach((u) => {
+  [customer, vendor, agent, rider, anandoDriver, admin].forEach((u) => {
     console.log(`  ${u.phone}  ${u.name}  (${u.role})`);
   });
 }

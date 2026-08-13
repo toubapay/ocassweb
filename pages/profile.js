@@ -18,6 +18,7 @@ import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
 import HealthAndSafetyRoundedIcon from "@mui/icons-material/HealthAndSafetyRounded";
 import SimCardRoundedIcon from "@mui/icons-material/SimCardRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import TopBar from "../src/components/layout/TopBar";
 import LanguageSwitcher from "../src/components/settings/LanguageSwitcher";
@@ -56,6 +57,9 @@ export default function Profile() {
     { label: t("profile.links.myRides"), icon: TwoWheelerRoundedIcon, href: "/ride-sharing" },
     { label: t("profile.links.myInsurancePolicies"), icon: HealthAndSafetyRoundedIcon, href: "/insurance" },
     { label: t("profile.links.topupsAndBills"), icon: SimCardRoundedIcon, href: "/topup" },
+    ...(user?.role === "ADMIN"
+      ? [{ label: t("profile.links.admin"), icon: AdminPanelSettingsRoundedIcon, href: "/admin" }]
+      : []),
   ];
 
   return (

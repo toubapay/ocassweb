@@ -2,6 +2,7 @@ const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
+const { getModuleFeeConfig } = require("../../utils/feeConfig");
 
 const createSchema = z.object({
   pickupAddress: z.string().min(3),
@@ -13,23 +14,27 @@ const createSchema = z.object({
   packageNote: z.string().optional(),
 });
 
-const BASE_FARE = 500;
-const RATE_PER_KM = 300;
-// Share of the fare credited to the delivery agent on completion; the rest
-// is an implicit platform fee (not tracked as its own ledger anywhere yet).
-const AGENT_SHARE = 0.8;
+// Falls back to these when an admin hasn't set ModuleConfig("delivery").
+// feeConfig, or has only set some of these fields (see getModuleFeeConfig).
+const DEFAULT_FEE_CONFIG = {
+  baseFare: 500,
+  ratePerKm: 300,
+  // Percent of the fare credited to the delivery agent on completion; the
+  // rest is an implicit platform fee (not tracked as its own ledger yet).
+  agentSharePercent: 80,
+};
 
 /**
  * Real distance-based pricing when both pickup and dropoff coordinates are
  * available (e.g. from the browser's Geolocation API - there's no
  * geocoding in this app, so a typed address alone never has coordinates).
- * Falls back to the original flat-ish random estimate otherwise, so the
- * flow still works without location permission.
+ * Falls back to a flat-ish random estimate otherwise, so the flow still
+ * works without location permission.
  */
-function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng }) {
+function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng }, feeConfig) {
   if (hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)) {
     const km = haversineDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
-    return Math.round(BASE_FARE + km * RATE_PER_KM);
+    return Math.round(feeConfig.baseFare + km * feeConfig.ratePerKm);
   }
   return 1500 + Math.round(Math.random() * 2000);
 }
@@ -49,8 +54,9 @@ async function listMyRequests(req, res, next) {
 async function createRequest(req, res, next) {
   try {
     const data = createSchema.parse(req.body);
+    const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
     const request = await prisma.deliveryRequest.create({
-      data: { ...data, userId: req.user.id, priceEstimate: estimatePrice(data) },
+      data: { ...data, userId: req.user.id, priceEstimate: estimatePrice(data, feeConfig) },
     });
     res.status(201).json({ request });
   } catch (err) {
@@ -153,9 +159,10 @@ async function markDelivered(req, res, next) {
       data: { status: "DELIVERED" },
     });
     if (existing.priceEstimate) {
+      const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
       await walletService.credit({
         userId: req.user.id,
-        amount: Number(existing.priceEstimate) * AGENT_SHARE,
+        amount: Number(existing.priceEstimate) * (feeConfig.agentSharePercent / 100),
         type: "EARNING",
         purpose: "DELIVERY_REQUEST",
         purposeId: request.id,
