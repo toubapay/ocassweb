@@ -3,6 +3,7 @@
     "appName": "Ocass",
     "loading": "Loading...",
     "cancel": "Cancel",
+    "save": "Save",
     "logIn": "Log in",
     "logInToContinue": "Log in to continue",
     "backToCart": "Back to cart",
@@ -121,7 +122,8 @@
       "deliveryRequests": "Delivery requests",
       "myRides": "My rides",
       "myInsurancePolicies": "My insurance policies",
-      "topupsAndBills": "Top-ups & bills"
+      "topupsAndBills": "Top-ups & bills",
+      "admin": "Admin panel"
     },
     "logOut": "Log out",
     "languageSectionTitle": "Language",
@@ -561,5 +563,90 @@
     "title": "Notifications",
     "markAllRead": "Mark all as read",
     "empty": "No notifications yet."
+  },
+  "admin": {
+    "title": "Admin panel",
+    "notAuthorized": "You don't have access to the admin panel.",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "modules": "Modules & fees",
+      "zones": "Zones",
+      "providers": "Providers",
+      "services": "Services"
+    },
+    "stats": {
+      "totalUsers": "Total users",
+      "totalOrders": "Total orders",
+      "pendingDeliveries": "Pending deliveries",
+      "activeRides": "Active rides",
+      "totalStores": "Vendor stores",
+      "totalRidePostings": "Open Anando postings",
+      "usersByRole": "Users by role"
+    },
+    "users": {
+      "searchPlaceholder": "Search name, phone, or email",
+      "allRoles": "All roles",
+      "name": "Name",
+      "phone": "Phone",
+      "role": "Role",
+      "active": "Active",
+      "updated": "User updated",
+      "updateFailed": "Could not update user"
+    },
+    "modules": {
+      "fees": "Fees",
+      "editFees": "Edit fees - {{module}}",
+      "feesSaved": "Fees saved",
+      "feesSaveFailed": "Could not save fees",
+      "toggleFailed": "Could not update module"
+    },
+    "zones": {
+      "newZone": "New zone",
+      "name": "Zone name",
+      "feeMultiplier": "Fee multiplier",
+      "drawHint": "Draw a polygon on the map to set this zone's boundary.",
+      "pointsCaptured": "{{count}} point captured",
+      "pointsCaptured_other": "{{count}} points captured",
+      "noMapKey": "No Google Maps API key configured (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) - paste boundary points as JSON instead.",
+      "invalidJson": "That's not valid JSON",
+      "needsBoundary": "Give the zone a name and at least 3 boundary points",
+      "save": "Save zone",
+      "created": "Zone created",
+      "saveFailed": "Could not save zone",
+      "deleted": "Zone deleted",
+      "existing": "Existing zones",
+      "points": "points"
+    },
+    "providers": {
+      "newProvider": "New provider",
+      "smsHint": "Only SMS providers are wired to real behavior today (used for OTP delivery) - other categories are just labeled storage for now.",
+      "category": "Category",
+      "name": "Name",
+      "active": "Active",
+      "default": "Default for category",
+      "configHelp": "Request template for this provider - {phone}, {code}, and {message} are substituted at send time.",
+      "save": "Save provider",
+      "created": "Provider created",
+      "saveFailed": "Could not save provider",
+      "deleted": "Provider deleted",
+      "nameRequired": "Name is required",
+      "existing": "Existing providers",
+      "defaultBadge": "Default"
+    },
+    "services": {
+      "mobileTitle": "Airtime & bill services",
+      "insuranceTitle": "Insurance plans",
+      "name": "Name",
+      "provider": "Provider",
+      "premiumMonthly": "Premium/mo",
+      "coverageAmount": "Coverage",
+      "phonePrefixes": "Phone prefixes",
+      "add": "Add",
+      "created": "Service created",
+      "saveFailed": "Could not save",
+      "nameRequired": "Name is required",
+      "allFieldsRequired": "All fields are required"
+    }
   }
 }

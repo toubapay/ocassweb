@@ -2,6 +2,7 @@ const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
+const { getModuleFeeConfig } = require("../../utils/feeConfig");
 
 const createSchema = z.object({
   pickupAddress: z.string().min(3),
@@ -13,11 +14,15 @@ const createSchema = z.object({
   vehicleType: z.enum(["MOTO", "ECONOMY", "COMFORT"]).default("ECONOMY"),
 });
 
-const BASE_FARE = 500;
-const RATE_PER_KM = { MOTO: 150, ECONOMY: 250, COMFORT: 400 };
-// Share of the fare credited to the rider on completion; the rest is an
-// implicit platform fee (not tracked as its own ledger anywhere yet).
-const RIDER_SHARE = 0.8;
+// Falls back to these when an admin hasn't set ModuleConfig("rideshare").
+// feeConfig, or has only set some of these fields (see getModuleFeeConfig).
+const DEFAULT_FEE_CONFIG = {
+  baseFare: 500,
+  ratePerKmByVehicle: { MOTO: 150, ECONOMY: 250, COMFORT: 400 },
+  // Percent of the fare credited to the rider on completion; the rest is
+  // an implicit platform fee (not tracked as its own ledger anywhere yet).
+  riderSharePercent: 80,
+};
 
 /**
  * Real distance-based pricing when both pickup and dropoff coordinates are
@@ -26,14 +31,15 @@ const RIDER_SHARE = 0.8;
  * Falls back to the original simulated-distance estimate otherwise, so the
  * flow still works without location permission.
  */
-function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng, vehicleType }) {
-  const rate = RATE_PER_KM[vehicleType] || RATE_PER_KM.ECONOMY;
+function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng, vehicleType }, feeConfig) {
+  const ratesByVehicle = feeConfig.ratePerKmByVehicle || DEFAULT_FEE_CONFIG.ratePerKmByVehicle;
+  const rate = ratesByVehicle[vehicleType] || ratesByVehicle.ECONOMY;
   if (hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)) {
     const km = haversineDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
-    return Math.round(BASE_FARE + km * rate);
+    return Math.round(feeConfig.baseFare + km * rate);
   }
   const simulatedKm = 3 + Math.round(Math.random() * 7);
-  return BASE_FARE + simulatedKm * rate;
+  return feeConfig.baseFare + simulatedKm * rate;
 }
 
 async function listMyRides(req, res, next) {
@@ -51,8 +57,9 @@ async function listMyRides(req, res, next) {
 async function createRide(req, res, next) {
   try {
     const data = createSchema.parse(req.body);
+    const feeConfig = await getModuleFeeConfig("rideshare", DEFAULT_FEE_CONFIG);
     const ride = await prisma.rideRequest.create({
-      data: { ...data, userId: req.user.id, priceEstimate: estimatePrice(data) },
+      data: { ...data, userId: req.user.id, priceEstimate: estimatePrice(data, feeConfig) },
     });
     res.status(201).json({ ride });
   } catch (err) {
@@ -154,9 +161,10 @@ async function completeRide(req, res, next) {
       data: { status: "COMPLETED" },
     });
     if (existing.priceEstimate) {
+      const feeConfig = await getModuleFeeConfig("rideshare", DEFAULT_FEE_CONFIG);
       await walletService.credit({
         userId: req.user.id,
-        amount: Number(existing.priceEstimate) * RIDER_SHARE,
+        amount: Number(existing.priceEstimate) * (feeConfig.riderSharePercent / 100),
         type: "EARNING",
         purpose: "RIDE_REQUEST",
         purposeId: ride.id,

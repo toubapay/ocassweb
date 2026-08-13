@@ -13,6 +13,9 @@ async function requireAuth(req, res, next) {
     const payload = verifyToken(token);
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) return res.status(401).json({ message: "Invalid session" });
+    if (!user.active) {
+      return res.status(403).json({ message: "This account has been suspended" });
+    }
     req.user = user;
     next();
   } catch (err) {

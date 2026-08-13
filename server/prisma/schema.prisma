@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // node:22-slim (Debian bookworm) has no `openssl` CLI, so Prisma can't
   // probe the actual libssl version - not just at `prisma generate` time,
   // but also in the running container's own engine-selection logic, which
@@ -33,6 +33,10 @@ model User {
   email     String?  @unique
   avatarUrl String?
   role      UserRole @default(CUSTOMER)
+  // Admin suspend/ban switch (see PATCH /api/admin/users/:id) - requireAuth
+  // rejects any request from an inactive user with 403, independent of
+  // whether their token is still otherwise valid.
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -656,4 +660,66 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+}
+
+// ---------- Admin ----------
+// Lets an ADMIN toggle each module on/off app-wide and, for the modules
+// that have real fee math (delivery/rideshare), tune it without a code
+// deploy. `key` matches the module boundaries used elsewhere in this repo
+// (server/src/modules/<key>) - "mobile" covers both the airtime and
+// bill-payment tiles on the web/mobile home screens, since they share one
+// backend module and Prisma model (MobileService).
+model ModuleConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  label     String
+  enabled   Boolean  @default(true)
+  // Shape is module-specific and only actually read by delivery/rideshare
+  // pricing today (see estimatePrice in each controller) - other modules
+  // don't have configurable fee params yet, so this stays null for them.
+  feeConfig Json?
+  updatedAt DateTime @updatedAt
+}
+
+// Named service areas an admin draws on a map (see /admin/zones) - storage
+// + CRUD only for now. Nothing in delivery/rideshare/ecommerce yet checks
+// whether a request's coordinates fall inside a zone; point-in-polygon
+// enforcement against these is the natural next step once zones exist to
+// enforce against.
+model ServiceZone {
+  id            String   @id @default(uuid())
+  name          String
+  moduleKey     String
+  // Array of {lat, lng} points closing an implicit polygon (first/last
+  // point not repeated), drawn via the Google Maps JS Drawing library on
+  // the admin zones page and stored as plain JSON rather than a PostGIS
+  // geometry type - this app has no geospatial querying anywhere yet.
+  boundary      Json
+  feeMultiplier Float?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([moduleKey])
+}
+
+// Generic external-service credential/config store an admin fills in from
+// /admin/providers - e.g. an SMS gateway. `category` is a free-text label
+// (not an enum) so admins can add new kinds of provider without a schema
+// migration; only category "SMS" has real behavior wired to it today (see
+// server/src/utils/smsGateway.js, used by utils/otp.js when
+// OTP_DEV_MODE=false). `config`'s shape for SMS describes a single HTTP
+// request template with {phone}/{code}/{message} placeholders - see
+// smsGateway.js for the exact fields it reads.
+model Provider {
+  id        String   @id @default(uuid())
+  category  String
+  name      String
+  isActive  Boolean  @default(false)
+  isDefault Boolean  @default(false)
+  config    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, isActive])
 }
