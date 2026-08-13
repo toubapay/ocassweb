@@ -123,8 +123,7 @@ export default function Profile() {
             <Button
               variant="outlined"
               size="small"
-              disabled={roleMutation.isLoading}
-              onClick={() => roleMutation.mutate("VENDOR")}
+              onClick={() => router.push("/vendor/register")}
               sx={{ fontWeight: 700 }}
             >
               {t("profile.becomeVendor")}

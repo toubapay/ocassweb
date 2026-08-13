@@ -494,6 +494,32 @@
       "CONFIRMED": "Confirmée",
       "DELIVERED": "Livrée",
       "CANCELLED": "Annulée"
+    },
+    "register": {
+      "title": "Vendre sur Ocass",
+      "heroTitle": "Amenez votre entreprise sur Ocass",
+      "heroSubtitle": "Ouvrez une boutique, publiez votre catalogue et touchez des clients dans toute l'app - gratuit pour commencer.",
+      "pitchStoreTitle": "Votre propre boutique",
+      "pitchStoreBody": "Une page à l'image de votre entreprise, consultable et partageable par tous sur Ocass.",
+      "pitchCatalogTitle": "Gérez votre catalogue",
+      "pitchCatalogBody": "Ajoutez des produits, fixez prix et remises, suivez le stock - tout depuis votre téléphone.",
+      "pitchReachTitle": "Touchez plus de clients",
+      "pitchReachBody": "Vos produits apparaissent dans la recherche et la navigation par catégorie comme ceux des autres vendeurs.",
+      "getStarted": "Commencer",
+      "alreadyHaveStore": "Vous avez déjà une boutique ? Connectez-vous",
+      "formTitle": "Parlez-nous de votre entreprise",
+      "formSubtitle": "Vous pourrez modifier ces informations à tout moment depuis votre tableau de bord vendeur.",
+      "submit": "Enregistrer mon entreprise",
+      "nameRequired": "Entrez le nom de votre entreprise",
+      "success": "Votre entreprise est configurée"
+    },
+    "login": {
+      "title": "Connexion vendeur",
+      "heading": "Bon retour",
+      "subheading": "Connectez-vous pour gérer votre boutique, votre catalogue et vos commandes.",
+      "logIn": "Se connecter",
+      "newBusiness": "Nouvelle entreprise ? Inscrivez-vous",
+      "notAVendorYet": "Ce compte n'est pas encore configuré comme vendeur."
     }
   },
   "anando": {
