@@ -648,5 +648,11 @@
       "nameRequired": "Name is required",
       "allFieldsRequired": "All fields are required"
     }
+  },
+  "pwa": {
+    "installTitle": "Install Ocass",
+    "installHint": "Add it to your home screen for the full-screen app experience.",
+    "installHintIos": "Tap Share, then \"Add to Home Screen\".",
+    "install": "Install"
   }
 }

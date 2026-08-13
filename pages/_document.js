@@ -11,6 +11,15 @@ export default class MyDocument extends Document {
           <meta charSet="utf-8" />
           <meta name="theme-color" content="#0FAE58" />
           <link rel="icon" href="/favicon.ico" />
+          <link rel="manifest" href="/manifest.webmanifest" />
+          {/* Installable on Android/desktop Chrome via the manifest above;
+              iOS Safari ignores it and needs these tags instead to behave
+              like an installed app (own icon, no browser chrome) once
+              added to the home screen via Share > Add to Home Screen. */}
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+          <meta name="apple-mobile-web-app-title" content="Ocass" />
           <link
             rel="preconnect"
             href="https://fonts.googleapis.com"

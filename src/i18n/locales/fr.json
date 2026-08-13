@@ -648,5 +648,11 @@
       "nameRequired": "Le nom est requis",
       "allFieldsRequired": "Tous les champs sont requis"
     }
+  },
+  "pwa": {
+    "installTitle": "Installer Ocass",
+    "installHint": "Ajoutez l'app à votre écran d'accueil pour l'expérience plein écran.",
+    "installHintIos": "Appuyez sur Partager, puis « Sur l'écran d'accueil ».",
+    "install": "Installer"
   }
 }

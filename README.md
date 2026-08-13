@@ -69,6 +69,54 @@ polygon-drawing map on the admin panel's Zones tab (see "Admin panel"
 below) - the only place in this app that uses a Google Maps key. Without
 it, that tab still works via a manual JSON boundary entry fallback.
 
+## Progressive Web App
+
+The web app is installable on mobile (Android/desktop Chrome via the
+native install prompt; iOS Safari via Share → Add to Home Screen) and
+works without a network connection to the extent an almost entirely
+live-data app reasonably can:
+
+- `public/manifest.webmanifest` - name, icons, `display: "standalone"`
+  (no browser chrome once installed), theme color matching the app's
+  brand green. Linked from `pages/_document.js`, along with the
+  `apple-touch-icon`/`apple-mobile-web-app-*` tags iOS needs to behave
+  like an installed app (it ignores the manifest entirely).
+- `public/sw.js` - a small hand-rolled service worker (no `next-pwa`/
+  Workbox dependency, same reasoning as this repo's hand-rolled i18n).
+  Two jobs only: satisfy the browser's installability requirement (a
+  registered SW with a fetch handler), and show `public/offline.html`
+  instead of the browser's default error page when there's no network.
+  **Deliberately does not cache `/api/*` or page HTML** - this app is
+  almost entirely live data (cart, wallet balance, order status, OTP...),
+  so serving a stale cached response would be actively misleading.
+  Hashed static assets (`/_next/static/*`, icons) are cached opportunistically
+  as they're fetched, since a hashed filename's content never changes.
+- `src/hooks/usePwaInstall.js` + `src/components/pwa/InstallPwaBanner.js` -
+  registers the service worker, listens for the browser's
+  `beforeinstallprompt` event, and shows a dismissible banner (14-day
+  cooldown once dismissed, not permanent) prompting install - Chrome
+  hides its own default install UI unless a site handles this itself. On
+  iOS, where `beforeinstallprompt` doesn't exist at all, the banner shows
+  manual "Share → Add to Home Screen" instructions instead.
+- `scripts/generate-pwa-icons.py` - generates the icon set (`public/icons/`,
+  `public/apple-touch-icon.png`, `public/favicon.ico`) from scratch with
+  Pillow, since no source logo file exists in this repo. Re-run it
+  (`pip install pillow && python3 scripts/generate-pwa-icons.py`) after
+  changing the brand color or wordmark rather than hand-editing the PNGs.
+
+**Verified in this sandbox**: production build, manifest/icons/service
+worker all serve correctly, the SW registers and activates in a real
+browser (Playwright), `/offline.html` is confirmed precached, and the
+service worker's exact network-then-cache-fallback logic was exercised
+directly against an unreachable address and correctly returned the cached
+offline page. **Not verified**: a true end-to-end offline page load in
+this specific sandbox - Chrome DevTools Protocol's offline emulation
+(used by both this sandbox's testing and typically Lighthouse-in-CI
+setups) doesn't reliably reach service-worker-initiated `fetch()` calls,
+a known Chromium limitation independent of this app's code. Confirm with
+real airplane-mode testing on a device before relying on the offline
+fallback in production.
+
 ## What's implemented
 
 - **Ecommerce** — full flow: category browse (sidebar + grid, matching the
