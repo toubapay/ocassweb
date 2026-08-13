@@ -28,9 +28,14 @@ the database in one file - Render's infra-as-code equivalent of
    branch `main` (or whichever branch you deploy from). Render parses
    `render.yaml` and shows a plan: 1 database (`ocass-db`), 2 web services
    (`ocass-backend`, `ocass-frontend`).
-2. Apply it. Render provisions the database first, then builds and deploys
+2. `render.yaml` deliberately leaves `plan` unset on all three resources,
+   so Render applies its own current default plan for each rather than
+   this file hardcoding a tier that might get renamed or retired later.
+   Review the plan Render preselects for each resource on this screen and
+   change it if you want something else - see Costs below.
+3. Apply it. Render provisions the database first, then builds and deploys
    both services from their respective Dockerfiles.
-3. A few env vars in `render.yaml` are intentionally marked `sync: false`
+4. A few env vars in `render.yaml` are intentionally marked `sync: false`
    (PayDunya keys, plus `BACKEND_URL`/`APP_FRONTEND_URL`/`APP_BASE_URL`) -
    Render's Blueprint spec has no way to concatenate a `https://` scheme
    onto a `fromService` hostname reference, so these need one manual pass
@@ -124,9 +129,13 @@ service is connected, no extra config needed beyond what's already in
 
 ## Costs
 
-Render's free tier web services spin down after periods of inactivity
-(cold start on the next request) and free Postgres instances expire after
-a set number of days - fine for testing, not for production. Check
-[render.com/pricing](https://render.com/pricing) for current paid-tier
-numbers before going live, since this sandbox couldn't reach render.com to
-confirm them.
+`render.yaml` doesn't pin a `plan` for `ocass-db`, `ocass-backend`, or
+`ocass-frontend`, so whatever Render defaults to at deploy time is what
+you get unless you change it (in the Blueprint's preview screen before
+applying, or later per-resource in the dashboard). Render's lowest web
+service and Postgres tiers are meant for testing, not production - among
+other limits, low-tier web services spin down after inactivity (cold
+start on the next request) and low-tier Postgres instances expire after a
+set number of days. Check [render.com/pricing](https://render.com/pricing)
+for current plan names, limits, and numbers before going live, since this
+sandbox couldn't reach render.com to confirm them.

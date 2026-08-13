@@ -13,10 +13,17 @@
 # Reuses the same Dockerfile / server/Dockerfile written for the Cloud Run
 # guide (see DEPLOY_GCP.md) - Render builds a Dockerfile the same way
 # Cloud Run and Railway do, no separate buildpack config needed.
+#
+# `plan` is deliberately omitted on every resource below rather than
+# hardcoded - Render applies its own current default plan for each
+# resource type (web service vs. Postgres) when none is set, so this
+# blueprint doesn't go stale if Render renames or retires a plan tier.
+# Review/change the plan for each service and the database in the Render
+# dashboard after the first deploy if the default isn't what you want -
+# see the Costs section of DEPLOY_RENDER.md.
 
 databases:
   - name: ocass-db
-    plan: free
     postgresMajorVersion: 16
 
 services:
@@ -25,7 +32,6 @@ services:
     runtime: docker
     dockerfilePath: ./server/Dockerfile
     dockerContext: ./server
-    plan: free
     healthCheckPath: /api/health
     # Runs before each deploy's new instance takes traffic - same purpose as
     # the seed/migrate step called out manually in DEPLOY_RAILWAY.md, but
@@ -71,7 +77,6 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    plan: free
     envVars:
       # Same templating limitation as APP_FRONTEND_URL/APP_BASE_URL above -
       # set this by hand once ocass-backend has a live URL (step 4).
