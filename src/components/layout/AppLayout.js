@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import Box from "@mui/material/Box";
 import BottomNav from "./BottomNav";
+import InstallPwaBanner from "../pwa/InstallPwaBanner";
 
 // Pages that render their own fixed bottom action bar (add to cart, checkout,
 // place order) hide the global tab bar so the two fixed elements don't overlap.
@@ -31,6 +32,7 @@ export default function AppLayout({ children }) {
     >
       <Box sx={{ pb: hideNav ? 0 : "72px" }}>{children}</Box>
       {!hideNav && <BottomNav />}
+      <InstallPwaBanner bottomOffset={hideNav ? 16 : 88} />
     </Box>
   );
 }

@@ -11,6 +11,17 @@ async function requireOwnStore(req, res) {
   return store;
 }
 
+/** Public - powers the /store/[slug] storefront page (see pages/store/[slug].js). */
+async function getStoreBySlug(req, res, next) {
+  try {
+    const store = await prisma.store.findUnique({ where: { slug: req.params.slug } });
+    if (!store) return res.status(404).json({ message: "Store not found" });
+    res.json({ store });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getMyStore(req, res, next) {
   try {
     const store = await prisma.store.findUnique({ where: { ownerId: req.user.id } });
@@ -218,6 +229,7 @@ async function listMyOrders(req, res, next) {
 }
 
 module.exports = {
+  getStoreBySlug,
   getMyStore,
   createStore,
   updateStore,

@@ -2,6 +2,7 @@ const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const paymentsService = require("../payments/payments.service");
 const walletService = require("../wallet/wallet.service");
+const { payoutVendorsForOrder } = require("../vendor/vendor.service");
 
 const createOrderSchema = z.object({
   deliveryAddressId: z.string().uuid().optional(),
@@ -85,6 +86,13 @@ async function createOrder(req, res, next) {
           include: { items: { include: { product: true } } },
         }),
       ]);
+      await payoutVendorsForOrder(order.id).catch((err) => {
+        // Never fail the customer's order over a payout bookkeeping
+        // error - log and move on, same as the notification-send
+        // best-effort pattern used elsewhere (e.g. Anando's
+        // ANANDO_BOOKING_PAID notify in payments.service.js).
+        console.error(`[vendor payout] order ${order.id}:`, err);
+      });
 
       return res.status(201).json({ order: updatedOrder, paymentUrl: null });
     }
