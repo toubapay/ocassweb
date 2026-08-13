@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const { requireAuth, requireRole } = require("../../middleware/auth");
 const {
+  getStoreBySlug,
   getMyStore,
   createStore,
   updateStore,
@@ -12,6 +13,11 @@ const {
 } = require("./vendor.controller");
 
 const router = Router();
+
+// Public - before the auth/role gate below, for shoppers browsing a
+// vendor's storefront (see pages/store/[slug].js).
+router.get("/stores/:slug", getStoreBySlug);
+
 router.use(requireAuth, requireRole("VENDOR"));
 
 router.get("/store", getMyStore);

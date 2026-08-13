@@ -2,6 +2,7 @@ const prisma = require("../../lib/prisma");
 const paydunya = require("./paydunya.service");
 const walletService = require("../wallet/wallet.service");
 const notificationsService = require("../notifications/notifications.service");
+const { payoutVendorsForOrder } = require("../vendor/vendor.service");
 
 /**
  * Creates a Payment record and a matching PayDunya invoice for it. Callers
@@ -72,6 +73,11 @@ async function applyPaymentSideEffects(payment) {
         where: { paymentId: payment.id },
         data: { paid: true, status: "CONFIRMED" },
       });
+      if (payment.purposeId) {
+        await payoutVendorsForOrder(payment.purposeId).catch((err) => {
+          console.error(`[vendor payout] order ${payment.purposeId}:`, err);
+        });
+      }
       break;
     case "WALLET_TOPUP":
       await walletService.credit({

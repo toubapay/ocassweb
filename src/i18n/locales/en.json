@@ -649,6 +649,11 @@
       "allFieldsRequired": "All fields are required"
     }
   },
+  "store": {
+    "title": "Store",
+    "notFound": "This store doesn't exist.",
+    "noProducts": "This store has no products yet."
+  },
   "pwa": {
     "installTitle": "Install Ocass",
     "installHint": "Add it to your home screen for the full-screen app experience.",

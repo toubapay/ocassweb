@@ -2,6 +2,14 @@ const prisma = require("../lib/prisma");
 const { sendSms } = require("./smsGateway");
 
 function generateCode() {
+  // Lets testing always use the same code (e.g. "000000") instead of a
+  // fresh random one every request - handy for admin login testing or any
+  // repeated manual OTP flow. Only ever honored in dev mode; in
+  // production OTP_DEV_MODE is unset/false so this branch never runs
+  // regardless of what OTP_DEV_FIXED_CODE happens to be set to.
+  if (process.env.OTP_DEV_MODE === "true" && process.env.OTP_DEV_FIXED_CODE) {
+    return process.env.OTP_DEV_FIXED_CODE;
+  }
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 

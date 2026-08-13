@@ -107,7 +107,7 @@ export default function CategoryBrowse() {
               {stores.map((store) => (
                 <Box
                   key={store.id}
-                  onClick={() => router.push(`/ecommerce/${categorySlug}?store=${store.slug}`)}
+                  onClick={() => router.push(`/store/${store.slug}`)}
                   sx={{
                     display: "flex",
                     alignItems: "center",

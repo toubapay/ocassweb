@@ -116,10 +116,17 @@ async function listMyJobs(req, res, next) {
  * Claims an unassigned ride. The conditional updateMany (status +
  * assignedRiderId both still unset) is the concurrency guard - if two
  * riders tap "accept" on the same request at once, only the first write
- * wins; the second gets count 0 and a clean 409.
+ * wins; the second gets count 0 and a clean 409. The self-request check
+ * above it is a separate, non-racy guard (ownership never changes after
+ * creation, unlike the accept race) - without it, a user who is both a
+ * customer and a RIDER could accept and "fulfill" their own ride request.
  */
 async function acceptRide(req, res, next) {
   try {
+    const existing = await prisma.rideRequest.findUnique({ where: { id: req.params.id } });
+    if (existing?.userId === req.user.id) {
+      return res.status(400).json({ message: "You can't accept your own ride request" });
+    }
     const result = await prisma.rideRequest.updateMany({
       where: { id: req.params.id, status: "REQUESTED", assignedRiderId: null },
       data: { assignedRiderId: req.user.id, status: "ACCEPTED" },

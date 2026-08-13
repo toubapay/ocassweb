@@ -202,10 +202,12 @@ Maps, Mapbox, or self-hosted Nominatim) and turn-by-turn distance is left
 as a follow-up requiring a real API key and live network access to build
 against.
 
-**Not built**: any visual map, an approval/verification flow for becoming an
-agent or rider (this is deliberately a self-service MVP toggle), and a
-"don't let someone accept their own request" check - a user with both a
-customer order and an agent role can currently accept their own delivery.
+**Not built**: any visual map, and an approval/verification flow for
+becoming an agent or rider (this is deliberately a self-service MVP
+toggle). A user with both a customer order/ride and an agent/rider role
+*can't* accept their own request - `acceptRequest`/`acceptRide` check
+`existing.userId !== req.user.id` before the race-safe conditional
+`updateMany`, alongside the normal "was this already taken" guard.
 
 ## Vendor marketplace
 
@@ -238,15 +240,33 @@ dispatch roles above:
    vendor's own line items - an order can in principle span multiple
    stores, and a vendor should never see another store's items.
 
+A shopper-facing storefront (`/store/[slug]`, `pages/store/[slug].js`) lets
+anyone browse a specific vendor's catalog - store header (name, logo,
+rating, address) from a new public `GET /api/vendor/stores/:slug`, product
+grid from the existing `GET /api/ecommerce/products?store=<slug>`. Linked
+from the category browse page's "Stores" tab (previously a dead click -
+it built a URL with a `?store=` query param the category page never
+actually read).
+
+A vendor's sales are credited to their wallet automatically
+(`server/src/modules/vendor/vendor.service.js`'s `payoutVendorsForOrder`,
+called from both order-settlement paths - the synchronous wallet-payment
+branch in `orders.controller.js` and the PayDunya IPN handler in
+`payments.service.js`) once an order is confirmed paid: each vendor whose
+products are in the order gets 85% of their line items' total credited as
+an `EARNING` wallet transaction (`purpose: "VENDOR_SALE"`), the platform
+keeping the rest - same "share" pattern as the delivery/rideshare payout
+split, hardcoded for now rather than wired into `ModuleConfig.feeConfig`
+like those two. Idempotent per (order, store), so a retried webhook or
+duplicate call never double-pays. Orders containing products from an
+admin/seed-managed store (`Store.ownerId: null`) are skipped for that
+store - there's no vendor wallet to credit.
+
 **Not built**: an approval/verification flow for becoming a vendor (same
-self-service MVP tradeoff as delivery/ride), payouts/settlement (a vendor's
-sales aren't credited to their wallet automatically - see "Wallet" below),
-storefront pages for browsing a specific vendor's catalog as a shopper
-(products already carry `storeId`/`store`, so `GET
-/api/ecommerce/products?store=<slug>` works today, there's just no
-dedicated `/store/[slug]` page yet), and multi-vendor cart/checkout
-splitting (checkout is unchanged - one cart, one order, regardless of how
-many stores its items come from).
+self-service MVP tradeoff as delivery/ride), and multi-vendor
+cart/checkout splitting (checkout is unchanged - one cart, one order,
+regardless of how many stores its items come from; payouts still split
+correctly per store even though the checkout UI doesn't).
 
 ## Anando
 
@@ -290,12 +310,21 @@ it, because the two are inverted shapes:
    moved through the app, and there's no PayDunya refund flow built
    anywhere in the app yet.
 
+Old scheduled postings are corrected to `DEPARTED` without a background
+job/cron - there's no such infrastructure anywhere in this app, so
+`flipStalePostings()` runs lazily instead, at the top of the two listing
+endpoints (`GET /anando/postings/available`, `GET /anando/postings/mine`):
+any non-instant `OPEN`/`FULL` posting more than 2 hours past its
+`departureAt` flips to `DEPARTED` right before that read. Instant
+postings are excluded - their `departureAt` is set to *creation* time
+(see `createPosting`), not a real scheduled time, so this check would
+otherwise flip them almost immediately. The driver can still mark a
+posting departed manually at any time regardless.
+
 **Not built**: real geocoding (same limitation as Ride Sharing - a typed
 address never has coordinates on its own, no maps API key is reachable
-from this sandbox), a background job to auto-flip old scheduled postings
-to `DEPARTED` (the driver marks it manually), and a request/approval
-booking flow (deliberately instant-claim only, per the product decision
-behind this module).
+from this sandbox), and a request/approval booking flow (deliberately
+instant-claim only, per the product decision behind this module).
 
 ### Notifications
 
@@ -356,11 +385,8 @@ regardless of role - the same balance/top-up/spend model serves customers,
 vendors and delivery men.
 
 - **Funding**: top-up only, via a PayDunya invoice (`purpose: WALLET_TOPUP`),
-  plus the automatic delivery/ride earnings credit described in "Delivery &
-  ride dispatch" above. A vendor's wallet is **not** auto-credited from
-  their store's sales - `Store.ownerId` exists now (see "Vendor
-  marketplace" above), but wiring payouts on order completion is still a
-  follow-up, not yet built.
+  plus the automatic delivery/ride/vendor-sale earnings credit described in
+  "Delivery & ride dispatch" and "Vendor marketplace" above.
 - **Spending**: usable as a checkout payment method - `POST
   /api/ecommerce/orders` accepts `paymentMethod: "wallet" | "paydunya"`. A
   wallet debit settles synchronously (no redirect/IPN round trip): balance
@@ -427,13 +453,37 @@ payment's `purpose` field (`DESTINATIONS` map in `pages/payments/return.js`)
 ## Admin panel
 
 `/admin` (web only) - every route under `server/src/modules/admin/` is
-gated `requireAuth` + `requireRole("ADMIN")`. There's no self-service way
-to become an ADMIN (unlike `VENDOR`/`RIDER`/`DELIVERY_AGENT` - see
-`PATCH /api/auth/role`, which deliberately excludes it), since that would
-make the gate meaningless. For local dev, `npm run seed:test-data` (see
-`server/prisma/seed-test-data.js`) creates a ready-to-use ADMIN account at
-`+221771000006` alongside its one-per-role test users. Otherwise, promote
-the first admin directly in the database:
+gated `requireAuth` + `requireRole("ADMIN")`. It's not a separate
+deployable: it's just another page in the same Next.js app as everything
+else (`pages/admin/index.js`), so it ships automatically as part of the
+one `ocass-frontend` web service - on Render (see `render.yaml`) or any
+other deploy target, there's nothing extra to stand up or configure to
+get it live.
+
+There's no self-service way to become an ADMIN (unlike
+`VENDOR`/`RIDER`/`DELIVERY_AGENT` - see `PATCH /api/auth/role`, which
+deliberately excludes it), since that would make the gate meaningless.
+
+**Logging in, for local dev/testing:**
+
+1. `npm run seed:test-data` (from `server/`, see
+   `server/prisma/seed-test-data.js`) creates a ready-to-use ADMIN account
+   at `+221771000006`, alongside its one-per-role test users.
+2. With `OTP_DEV_MODE=true` (the default in `server/.env.example`), every
+   OTP is echoed back in the `/api/auth/otp/request` response instead of
+   actually being sent - no SMS account needed. Set
+   `OTP_DEV_FIXED_CODE=000000` (also in `.env.example`, commented out by
+   default) to make every OTP that same fixed code instead of a fresh
+   random one each time, so repeated manual testing doesn't mean copying
+   a new code every login - request an OTP for `+221771000006`, then
+   verify with `000000`, every time. Only ever honored when
+   `OTP_DEV_MODE=true`, so it's safe to leave set in a dev `.env`.
+3. Log in through the normal `/auth/login` flow with that phone number
+   and code, then open `/admin` (or Profile → Admin panel, shown only to
+   `ADMIN` users).
+
+In production, promote the first admin directly in the database (there's
+deliberately no other way in):
 
 ```sql
 UPDATE "User" SET role = 'ADMIN' WHERE phone = '+221...';

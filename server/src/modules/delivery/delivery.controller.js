@@ -114,10 +114,17 @@ async function listMyJobs(req, res, next) {
  * assignedAgentId both still unset) is the concurrency guard - if two
  * agents tap "accept" on the same job at once, only the first write wins;
  * the second gets count 0 and a clean 409 instead of silently overwriting
- * the first agent's claim.
+ * the first agent's claim. The self-request check above it is a separate,
+ * non-racy guard (ownership never changes after creation, unlike the
+ * accept race) - without it, a user who is both a customer and a
+ * DELIVERY_AGENT could accept and "fulfill" their own request.
  */
 async function acceptRequest(req, res, next) {
   try {
+    const existing = await prisma.deliveryRequest.findUnique({ where: { id: req.params.id } });
+    if (existing?.userId === req.user.id) {
+      return res.status(400).json({ message: "You can't accept your own delivery request" });
+    }
     const result = await prisma.deliveryRequest.updateMany({
       where: { id: req.params.id, status: "REQUESTED", assignedAgentId: null },
       data: { assignedAgentId: req.user.id, status: "ACCEPTED" },

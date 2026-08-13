@@ -6,6 +6,27 @@ const notificationsService = require("../notifications/notifications.service");
 
 const DRIVER_SELECT = { id: true, name: true, phone: true };
 
+// No cron/background-worker infrastructure exists anywhere in this app,
+// so a scheduled posting whose departure time has passed is corrected
+// lazily instead - on the next read, rather than the instant it's due,
+// via a grace window generous enough that a driver still mid-trip isn't
+// flipped out from under them. Only non-instant postings: an instant
+// posting's departureAt is set to its *creation* time (see createPosting
+// below), so treating that as a "scheduled time that passed" would flip
+// it almost immediately, which isn't what this is for.
+const STALE_POSTING_GRACE_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+async function flipStalePostings() {
+  await prisma.ridePosting.updateMany({
+    where: {
+      status: { in: ["OPEN", "FULL"] },
+      isInstant: false,
+      departureAt: { lt: new Date(Date.now() - STALE_POSTING_GRACE_MS) },
+    },
+    data: { status: "DEPARTED" },
+  });
+}
+
 const createPostingSchema = z.object({
   originAddress: z.string().min(3),
   originLat: z.number().optional(),
@@ -71,6 +92,7 @@ async function createPosting(req, res, next) {
  * your own listing has nowhere useful to go since you can't book it. */
 async function listAvailable(req, res, next) {
   try {
+    await flipStalePostings();
     const postings = await prisma.ridePosting.findMany({
       where: { status: "OPEN", seatsAvailable: { gt: 0 }, driverId: { not: req.user.id } },
       include: { driver: { select: DRIVER_SELECT } },
@@ -84,6 +106,7 @@ async function listAvailable(req, res, next) {
 
 async function listMyPostings(req, res, next) {
   try {
+    await flipStalePostings();
     const postings = await prisma.ridePosting.findMany({
       where: { driverId: req.user.id },
       include: {
