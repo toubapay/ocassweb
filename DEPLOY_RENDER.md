@@ -86,10 +86,15 @@ hand:
      ```
      BACKEND_URL = https://ocass-backend.onrender.com   (from step 2)
      ```
-     Read server-side by `next.config.js`'s rewrite (`/api/* →
-     BACKEND_URL/api/*`), same mechanism as the Cloud Run and Railway
-     guides - never baked into the client bundle, so it can change without
-     a rebuild.
+     Read server-side by `middleware.js` (`/api/* → BACKEND_URL/api/*`),
+     freshly on every request, same mechanism as the Cloud Run and Railway
+     guides - never baked into the client bundle, and (unlike using
+     `next.config.js`'s `rewrites()`, which bakes its destination in at
+     build time - this bit an earlier version of this guide, where the
+     proxy silently kept using its `localhost:5000` fallback in production
+     no matter what `BACKEND_URL` was set to) not baked into the build
+     either, so it can genuinely change without a rebuild - just save the
+     new value and Render's automatic redeploy picks it up.
    - Name this service `ocass-frontend`. Create it.
 
 ## 4. Wire the backend's callback URLs (both options)

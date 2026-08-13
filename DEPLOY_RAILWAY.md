@@ -73,8 +73,11 @@ since the top-level `Dockerfile` is already there):
   This is why the backend service needed a public domain and the name
   `backend` in step 2 - Railway resolves that reference to its live URL.
   Same mechanism as the Cloud Run guide's `BACKEND_URL`: it's read
-  server-side by `next.config.js`'s rewrite (`/api/* → BACKEND_URL/api/*`),
-  never baked into the client bundle, so it can change without a rebuild.
+  server-side by `middleware.js` (`/api/* → BACKEND_URL/api/*`), freshly
+  on every request - never baked into the client bundle, and (unlike an
+  approach using `next.config.js`'s `rewrites()`, which resolves once at
+  build time) not baked into the server build either, so it can genuinely
+  change without a rebuild.
 - **Settings → Networking → Generate Domain** for the frontend's own
   public URL - that's the live app.
 
