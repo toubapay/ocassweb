@@ -104,10 +104,17 @@ export BACKEND_URL=$(gcloud run services describe ocass-backend --region $REGION
 
 ## 4. Frontend - build, deploy
 
-The frontend doesn't need the backend URL at build time - `next.config.js`
-proxies `/api/*` to `BACKEND_URL` server-side at request time (see the
-rewrite in `next.config.js` and `src/api/client.js`), so the same image
-works in any environment; only the env var changes.
+The frontend doesn't need the backend URL at build time - `middleware.js`
+proxies `/api/*` to `BACKEND_URL` server-side, read fresh on every
+request (see `src/api/client.js` for the client side), so the same image
+works in any environment; only the env var changes. This is deliberately
+in middleware, not `next.config.js`'s `rewrites()` - Next.js resolves
+`rewrites()` once at `next build` time and freezes the destination into
+`.next/routes-manifest.json`, so on any platform where `BACKEND_URL` is
+only a runtime env var (true here - Cloud Run's `--set-env-vars` below
+only takes effect after the image is already built) that would
+permanently bake in the fallback regardless of what's set at deploy
+time. Middleware runs per-request, so it actually reads the current env.
 
 ```bash
 cd ..   # repo root

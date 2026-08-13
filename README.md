@@ -58,9 +58,14 @@ testable end-to-end without Twilio/etc. Swap in a real SMS provider in
 
 ```bash
 npm install
-# The browser calls same-origin /api/*, which next.config.js rewrites to
-# BACKEND_URL (defaults to http://localhost:5000) server-side - no
-# NEXT_PUBLIC_BASE_URL needed for local dev.
+# The browser calls same-origin /api/*, which middleware.js proxies to
+# BACKEND_URL (defaults to http://localhost:5000) server-side, read fresh
+# on every request - no NEXT_PUBLIC_BASE_URL needed for local dev. This is
+# deliberately in middleware.js, not next.config.js's rewrites() - see the
+# comment at the top of middleware.js for why (rewrites() bakes its
+# destination in at `next build` time, which broke BACKEND_URL in
+# production on every platform this app deploys to, since none of them
+# have it available as a Docker build-time value).
 yarn dev                    # http://localhost:3000
 ```
 

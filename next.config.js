@@ -6,15 +6,21 @@ const nextConfig = {
   experimental: {
     swcPlugins: [],
   },
-  // The browser calls same-origin /api/*, which the Next.js server proxies
-  // to the backend. This avoids CORS and keeps the backend's real URL as a
-  // server-only, runtime-configurable env var (BACKEND_URL) instead of a
-  // NEXT_PUBLIC_ value baked into the client bundle at build time - the
-  // backend's Cloud Run URL isn't known until after its own first deploy.
-  async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
-    return [{ source: "/api/:path*", destination: `${backendUrl}/api/:path*` }];
-  },
+  // The browser calls same-origin /api/*, proxied to the backend - see
+  // middleware.js for the actual proxy (NOT here). next.config.js's
+  // rewrites() looks like the natural place for this and used to live
+  // here, but Next.js resolves rewrites() once at `next build` time and
+  // freezes the result into .next/routes-manifest.json - confirmed by
+  // inspecting that file after a build with no BACKEND_URL set: it
+  // permanently bakes in the "http://localhost:5000" fallback. On a
+  // platform where BACKEND_URL is only known/set as a runtime env var on
+  // the deployed service (Render, Cloud Run) and isn't available during
+  // the Docker build step, that fallback is what ships forever, no matter
+  // what's set in the dashboard afterward - this bit us in production
+  // (proxy silently pointed at localhost regardless of BACKEND_URL).
+  // Middleware, unlike rewrites(), runs per-request and reads
+  // process.env.BACKEND_URL fresh every time, which is what "runtime-
+  // configurable" actually requires.
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'], // Keep error and warn, remove log, info, debug, etc.
