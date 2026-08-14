@@ -5,13 +5,26 @@ const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
 const { getModuleFeeConfig } = require("../../utils/feeConfig");
 
 const createSchema = z.object({
+  // Optional - falls back to the requester's own name/phone at creation
+  // time (see createRequest) when sending on their own behalf.
+  senderName: z.string().min(2).optional(),
+  senderPhone: z.string().min(6).optional(),
   pickupAddress: z.string().min(3),
   pickupLat: z.number().optional(),
   pickupLng: z.number().optional(),
+  // Required - unlike the sender, there's no account to fall back to for
+  // whoever's on the other end of the handoff.
+  receiverName: z.string().min(2),
+  receiverPhone: z.string().min(6),
   dropoffAddress: z.string().min(3),
   dropoffLat: z.number().optional(),
   dropoffLng: z.number().optional(),
   packageNote: z.string().optional(),
+});
+
+const locationSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
 });
 
 // Falls back to these when an admin hasn't set ModuleConfig("delivery").
@@ -43,9 +56,26 @@ async function listMyRequests(req, res, next) {
   try {
     const requests = await prisma.deliveryRequest.findMany({
       where: { userId: req.user.id },
+      include: { assignedAgent: { select: { id: true, name: true, phone: true } } },
       orderBy: { createdAt: "desc" },
     });
     res.json({ requests });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Single request, for the customer-facing live tracking page to poll. */
+async function getRequest(req, res, next) {
+  try {
+    const request = await prisma.deliveryRequest.findUnique({
+      where: { id: req.params.id },
+      include: { assignedAgent: { select: { id: true, name: true, phone: true } } },
+    });
+    if (!request || request.userId !== req.user.id) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+    res.json({ request });
   } catch (err) {
     next(err);
   }
@@ -56,7 +86,15 @@ async function createRequest(req, res, next) {
     const data = createSchema.parse(req.body);
     const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
     const request = await prisma.deliveryRequest.create({
-      data: { ...data, userId: req.user.id, priceEstimate: estimatePrice(data, feeConfig) },
+      data: {
+        ...data,
+        // Sending on your own behalf: default sender contact to the
+        // requester's own account rather than requiring them to retype it.
+        senderName: data.senderName || req.user.name || undefined,
+        senderPhone: data.senderPhone || req.user.phone,
+        userId: req.user.id,
+        priceEstimate: estimatePrice(data, feeConfig),
+      },
     });
     res.status(201).json({ request });
   } catch (err) {
@@ -84,10 +122,32 @@ async function cancelRequest(req, res, next) {
 }
 
 /** Unassigned, still-open requests any delivery agent can pick up. */
+// Sender/receiver phone numbers are withheld until an agent actually
+// accepts a job - browsing the open job board shouldn't expose contact
+// details for people who haven't agreed to anything yet. Names stay
+// visible (useful context for deciding whether to accept); listMyJobs
+// below returns full rows once the agent has committed.
+const AVAILABLE_JOB_FIELDS = {
+  id: true,
+  senderName: true,
+  pickupAddress: true,
+  pickupLat: true,
+  pickupLng: true,
+  receiverName: true,
+  dropoffAddress: true,
+  dropoffLat: true,
+  dropoffLng: true,
+  packageNote: true,
+  priceEstimate: true,
+  status: true,
+  createdAt: true,
+};
+
 async function listAvailable(req, res, next) {
   try {
     const requests = await prisma.deliveryRequest.findMany({
       where: { status: "REQUESTED", assignedAgentId: null },
+      select: AVAILABLE_JOB_FIELDS,
       orderBy: { createdAt: "asc" },
     });
     res.json({ requests });
@@ -182,8 +242,35 @@ async function markDelivered(req, res, next) {
   }
 }
 
+/**
+ * Agent's live GPS ping while a job is in progress - powers the customer's
+ * tracking map (see getRequest above). Restricted to ACCEPTED/PICKED_UP so
+ * a finished or cancelled job stops accepting updates, but the last known
+ * position is left in place rather than cleared (see schema.prisma).
+ */
+async function updateLocation(req, res, next) {
+  try {
+    const { lat, lng } = locationSchema.parse(req.body);
+    const result = await prisma.deliveryRequest.updateMany({
+      where: {
+        id: req.params.id,
+        assignedAgentId: req.user.id,
+        status: { in: ["ACCEPTED", "PICKED_UP"] },
+      },
+      data: { agentLat: lat, agentLng: lng, agentLocationAt: new Date() },
+    });
+    if (result.count === 0) {
+      return res.status(400).json({ message: "Job is not active for location updates" });
+    }
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listMyRequests,
+  getRequest,
   createRequest,
   cancelRequest,
   listAvailable,
@@ -191,4 +278,5 @@ module.exports = {
   acceptRequest,
   markPickedUp,
   markDelivered,
+  updateLocation,
 };

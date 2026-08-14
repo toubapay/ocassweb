@@ -251,9 +251,18 @@ enum DeliveryStatus {
 model DeliveryRequest {
   id              String         @id @default(uuid())
   userId          String
+  // Contact details for whoever's handing off / receiving the package -
+  // may differ from the requesting account (e.g. sending a package on
+  // someone else's behalf). Nullable: falls back to the requester's own
+  // User.name/phone at read time (see delivery.controller.js) rather than
+  // duplicating them here when the requester is also the sender.
+  senderName      String?
+  senderPhone     String?
   pickupAddress   String
   pickupLat       Float?
   pickupLng       Float?
+  receiverName    String?
+  receiverPhone   String?
   dropoffAddress  String
   dropoffLat      Float?
   dropoffLng      Float?
@@ -261,6 +270,13 @@ model DeliveryRequest {
   priceEstimate   Decimal?       @db.Decimal(10, 2)
   status          DeliveryStatus @default(REQUESTED)
   assignedAgentId String?
+  // Agent's last-reported GPS position while this job is ACCEPTED/PICKED_UP
+  // (see PATCH /delivery/jobs/:id/location) - powers the customer-facing
+  // live tracking map. Stays at its last value after DELIVERED rather than
+  // being cleared, as a cheap "where did it end up" record.
+  agentLat        Float?
+  agentLng        Float?
+  agentLocationAt DateTime?
   createdAt       DateTime       @default(now())
 
   user          User  @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)

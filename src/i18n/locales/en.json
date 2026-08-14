@@ -253,6 +253,12 @@
   "delivery": {
     "title": "Package Delivery",
     "heading": "Send a package across town",
+    "senderSectionTitle": "Sender",
+    "receiverSectionTitle": "Receiver",
+    "senderName": "Sender name",
+    "senderPhone": "Sender phone",
+    "receiverName": "Receiver name",
+    "receiverPhone": "Receiver phone",
     "pickupAddress": "Pickup address",
     "dropoffAddress": "Dropoff address",
     "packageNote": "What are you sending? (optional)",
@@ -260,12 +266,15 @@
     "getEstimate": "Get a price estimate",
     "loginToRequest": "Log in to request a delivery",
     "enterAddresses": "Enter pickup and dropoff addresses",
+    "enterReceiver": "Enter the receiver's name and phone number",
     "requestCreated": "Request created · estimate {{amount}}",
     "couldNotCreate": "Could not create request",
     "requestCancelled": "Request cancelled",
     "couldNotCancel": "Could not cancel request",
     "yourRequests": "Your requests",
     "estimate": "Estimate: {{amount}}",
+    "priceEstimateLabel": "Estimated price",
+    "track": "Track",
     "cancel": "Cancel",
     "status": {
       "REQUESTED": "Requested",
@@ -277,6 +286,18 @@
     "useMyLocation": "Use my location",
     "locationSet": "Pickup location set",
     "locationError": "Could not get your location",
+    "tracking": {
+      "title": "Track delivery",
+      "notFound": "Delivery request not found",
+      "waitingForAgent": "Looking for a delivery agent…",
+      "agentAssigned": "{{name}} is on the way",
+      "distanceAway": "{{km}} km from the dropoff",
+      "callAgent": "Call agent",
+      "receiver": "Receiver",
+      "noMapKey": "Live map requires a Google Maps API key to be configured.",
+      "mapError": "Google Maps failed to load.",
+      "mapLoading": "Loading map…"
+    },
     "agent": {
       "title": "Delivery agent",
       "availableTab": "Available",
@@ -289,7 +310,10 @@
       "accepted": "Job accepted",
       "alreadyTaken": "This job was already taken",
       "pickedUpToast": "Marked as picked up",
-      "deliveredToast": "Marked as delivered - earnings added to your wallet"
+      "deliveredToast": "Marked as delivered - earnings added to your wallet",
+      "sharingLocation": "Sharing your live location",
+      "sender": "Sender",
+      "receiver": "Receiver"
     }
   },
   "insurance": {

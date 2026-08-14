@@ -71,8 +71,11 @@ yarn dev                    # http://localhost:3000
 
 Optional: set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to enable the interactive
 polygon-drawing map on the admin panel's Zones tab (see "Admin panel"
-below) - the only place in this app that uses a Google Maps key. Without
-it, that tab still works via a manual JSON boundary entry fallback.
+below), and delivery's address autocomplete + live tracking map (see
+"Delivery & ride dispatch" below) - every Google Maps feature in this app
+shares one script load (`src/hooks/useGoogleMaps.js`). Without it, the
+Zones tab falls back to a manual JSON boundary entry and delivery's
+address fields fall back to plain text input with no coordinates.
 
 ## Progressive Web App
 
@@ -207,22 +210,60 @@ request-and-cancel:
 
 **Pricing**: real Haversine (straight-line) distance-based pricing when both
 pickup and dropoff coordinates are available, falling back to the original
-simulated estimate otherwise. In practice that means pickup only, via the
-"use my location" button (`navigator.geolocation`) on both request forms -
-**there's no geocoding**, so a typed address alone never has coordinates,
-and dropoff stays text-only. This sandbox's network blocks reaching
-geocoding services (confirmed against OpenStreetMap's free Nominatim API)
-to test one even with a key, so wiring up real geocoding/routing (Google
-Maps, Mapbox, or self-hosted Nominatim) and turn-by-turn distance is left
-as a follow-up requiring a real API key and live network access to build
-against.
+simulated estimate otherwise.
 
-**Not built**: any visual map, and an approval/verification flow for
-becoming an agent or rider (this is deliberately a self-service MVP
-toggle). A user with both a customer order/ride and an agent/rider role
-*can't* accept their own request - `acceptRequest`/`acceptRide` check
-`existing.userId !== req.user.id` before the race-safe conditional
-`updateMany`, alongside the normal "was this already taken" guard.
+**Not built**: an approval/verification flow for becoming an agent or rider
+(this is deliberately a self-service MVP toggle). A user with both a
+customer order/ride and an agent/rider role *can't* accept their own
+request - `acceptRequest`/`acceptRide` check `existing.userId !== req.user.id`
+before the race-safe conditional `updateMany`, alongside the normal "was
+this already taken" guard.
+
+### Delivery: address auto-pick + live map tracking
+
+Package delivery (`/delivery`) goes further than rideshare here, in a
+Yango-Delivery-style flow:
+
+- **Sender & receiver as distinct parties**: `DeliveryRequest` now carries
+  `senderName`/`senderPhone` (defaults to the requester's own account at
+  creation time - editable, for sending on someone else's behalf) and
+  required `receiverName`/`receiverPhone` for whoever's on the other end
+  of the handoff. Browsing the open job board (`GET /delivery/jobs/
+  available`) shows names but withholds both phone numbers until an agent
+  actually accepts (`AVAILABLE_JOB_FIELDS` in `delivery.controller.js`) -
+  `GET /delivery/jobs/mine` returns full contact details once committed.
+- **Address auto-pick**: both the pickup and dropoff fields
+  (`AddressAutocompleteField.js`) are Google Places Autocomplete fields
+  biased to Senegal, not free-typed text - picking a real suggestion gives
+  a geocoded lat/lng directly, which is what makes real distance-based
+  pricing (above) work for dropoff too, not just pickup-via-geolocation.
+  Falls back to an ordinary text field (still submittable, just without
+  coordinates) when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` isn't configured -
+  same fallback philosophy as the admin Zones tab's map, which shares the
+  same loader (`src/hooks/useGoogleMaps.js`, a single page-global script
+  load covering `places`+`drawing`+`geometry` so the two features don't
+  race to insert conflicting `<script>` tags).
+- **Live GPS tracking**: while a job is `ACCEPTED`/`PICKED_UP`, the agent
+  dashboard (`/delivery/agent`) pings `PATCH /delivery/jobs/:id/location`
+  with the browser's current position every 10s for every active job it
+  has (`useLiveLocationBroadcast` in `pages/delivery/agent.js`) - not
+  `watchPosition`, so updates land on a predictable cadence rather than
+  on every GPS jitter. The customer's tracking page (`/delivery/track/
+  [id]`, linked from a "Track" button once a job is accepted) polls
+  `GET /delivery/requests/:id` every 5s and renders pickup/dropoff/agent
+  pins on a live `LiveTrackingMap.js`, updating the agent marker in place
+  without re-fitting the map bounds on every poll (so it doesn't
+  re-zoom/pan under the user's thumb as the agent moves).
+- **No route line or ETA**: there's no Directions API integration in this
+  app, so drawing a route polyline or estimating arrival time would mean
+  fabricating one. The tracking page instead shows a straight-line
+  distance from the agent's last position to the dropoff - a real
+  Haversine calculation, the same honest-math approach as the pricing
+  above, just not turned into a time estimate.
+- This is delivery-specific for now; rideshare (`/ride-sharing`) still
+  uses pickup-only geolocation with no live tracking map, no autocomplete,
+  and no sender/receiver split - extending the same components there is a
+  natural follow-up.
 
 ## Vendor marketplace
 

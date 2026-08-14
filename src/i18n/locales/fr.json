@@ -253,6 +253,12 @@
   "delivery": {
     "title": "Livraison de colis",
     "heading": "Envoyez un colis à travers la ville",
+    "senderSectionTitle": "Expéditeur",
+    "receiverSectionTitle": "Destinataire",
+    "senderName": "Nom de l'expéditeur",
+    "senderPhone": "Téléphone de l'expéditeur",
+    "receiverName": "Nom du destinataire",
+    "receiverPhone": "Téléphone du destinataire",
     "pickupAddress": "Adresse de retrait",
     "dropoffAddress": "Adresse de livraison",
     "packageNote": "Que envoyez-vous ? (facultatif)",
@@ -260,12 +266,15 @@
     "getEstimate": "Obtenir une estimation de prix",
     "loginToRequest": "Connectez-vous pour demander une livraison",
     "enterAddresses": "Entrez les adresses de retrait et de livraison",
+    "enterReceiver": "Entrez le nom et le numéro de téléphone du destinataire",
     "requestCreated": "Demande créée · estimation {{amount}}",
     "couldNotCreate": "Impossible de créer la demande",
     "requestCancelled": "Demande annulée",
     "couldNotCancel": "Impossible d'annuler la demande",
     "yourRequests": "Vos demandes",
     "estimate": "Estimation : {{amount}}",
+    "priceEstimateLabel": "Prix estimé",
+    "track": "Suivre",
     "cancel": "Annuler",
     "status": {
       "REQUESTED": "Demandée",
@@ -277,6 +286,18 @@
     "useMyLocation": "Utiliser ma position",
     "locationSet": "Position de retrait définie",
     "locationError": "Impossible d'obtenir votre position",
+    "tracking": {
+      "title": "Suivre la livraison",
+      "notFound": "Demande de livraison introuvable",
+      "waitingForAgent": "Recherche d'un livreur…",
+      "agentAssigned": "{{name}} est en route",
+      "distanceAway": "{{km}} km de la livraison",
+      "callAgent": "Appeler le livreur",
+      "receiver": "Destinataire",
+      "noMapKey": "La carte en direct nécessite une clé API Google Maps configurée.",
+      "mapError": "Échec du chargement de Google Maps.",
+      "mapLoading": "Chargement de la carte…"
+    },
     "agent": {
       "title": "Livreur",
       "availableTab": "Disponibles",
@@ -289,7 +310,10 @@
       "accepted": "Livraison acceptée",
       "alreadyTaken": "Cette livraison a déjà été prise",
       "pickedUpToast": "Marquée comme récupérée",
-      "deliveredToast": "Marquée comme livrée - gains ajoutés à votre portefeuille"
+      "deliveredToast": "Marquée comme livrée - gains ajoutés à votre portefeuille",
+      "sharingLocation": "Partage de votre position en direct",
+      "sender": "Expéditeur",
+      "receiver": "Destinataire"
     }
   },
   "insurance": {

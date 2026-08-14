@@ -18,9 +18,12 @@ function haversineDistanceKm(lat1, lng1, lat2, lng2) {
 /**
  * True when all four coordinates are present and usable for a real
  * distance calculation. Both pickup and dropoff need real coordinates -
- * there's no geocoding in this app (no maps/geocoding API key configured),
- * so a typed address alone never has coordinates unless the caller
- * supplied them directly (e.g. via the browser's Geolocation API).
+ * this backend never geocodes an address itself, so a typed address only
+ * has coordinates if the client supplied them directly: either via the
+ * browser's Geolocation API (rideshare, and delivery's "use my location"),
+ * or by picking a real suggestion from delivery's Google Places
+ * Autocomplete field (see AddressAutocompleteField.js), which resolves to
+ * a geocoded lat/lng client-side before the request ever reaches here.
  */
 function hasCoordinates(...values) {
   return values.every((v) => typeof v === "number" && Number.isFinite(v));
