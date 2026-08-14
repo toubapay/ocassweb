@@ -124,8 +124,18 @@ fallback in production.
 
 ## What's implemented
 
-- **Ecommerce** — full flow: category browse (sidebar + grid, matching the
-  reference design), product detail, cart, wishlist, checkout, order history.
+- **Ecommerce** — full flow: a Jumia-style shop home page (`pages/ecommerce/
+  index.js` - hero banner carousel, category quick-nav, a "Ventes Flash"
+  band of the day's steepest discounts across every store, and one themed
+  horizontal-scroll band per top-level category), category browse (sidebar
+  + grid), product detail (with a "you may also like" related-products
+  row), cart, wishlist, checkout, order history. Two pieces of the home
+  page are deliberately cosmetic, not backend-driven: the hero banner
+  slides are a hardcoded array (no CMS/banner-management concept in this
+  app), and the flash-sale countdown just counts down to local midnight
+  (`GET /api/ecommerce/products?sort=discount` re-sorts by discount
+  percent each time, so what's shown does change day to day, but nothing
+  tracks a real per-deal expiry).
 - **Restaurant** — full ordering flow: per-restaurant quantity cart, place
   order, order history.
 - **Delivery, Ride Sharing** — request forms with a price estimate, a

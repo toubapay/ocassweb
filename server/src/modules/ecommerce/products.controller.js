@@ -2,7 +2,7 @@ const prisma = require("../../lib/prisma");
 
 async function listProducts(req, res, next) {
   try {
-    const { category, store, search, page = "1", pageSize = "20" } = req.query;
+    const { category, store, search, sort, page = "1", pageSize = "20" } = req.query;
     const take = Math.min(Number(pageSize) || 20, 50);
     const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
 
@@ -31,13 +31,18 @@ async function listProducts(req, res, next) {
       ...(search
         ? { name: { contains: String(search), mode: "insensitive" } }
         : {}),
+      // "Flash sale" home section: products actually on sale, biggest
+      // discount first - not tied to any real deal-expiry/inventory
+      // concept (this app doesn't have one), just today's steepest
+      // discounts.
+      ...(sort === "discount" ? { discountPercent: { not: null } } : {}),
     };
 
     const [items, total] = await Promise.all([
       prisma.product.findMany({
         where,
         include: { category: true, store: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: sort === "discount" ? { discountPercent: "desc" } : { createdAt: "desc" },
         take,
         skip,
       }),
