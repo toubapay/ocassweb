@@ -494,6 +494,32 @@
       "CONFIRMED": "Confirmed",
       "DELIVERED": "Delivered",
       "CANCELLED": "Cancelled"
+    },
+    "register": {
+      "title": "Sell on Ocass",
+      "heroTitle": "Bring your business to Ocass",
+      "heroSubtitle": "Open a storefront, list your catalog, and reach customers across the app - free to get started.",
+      "pitchStoreTitle": "Your own storefront",
+      "pitchStoreBody": "A branded page for your business, shareable and browsable by anyone on Ocass.",
+      "pitchCatalogTitle": "Manage your catalog",
+      "pitchCatalogBody": "Add products, set prices and discounts, track stock - all from your phone.",
+      "pitchReachTitle": "Reach more customers",
+      "pitchReachBody": "Your products show up in search and category browsing right alongside everyone else's.",
+      "getStarted": "Get started",
+      "alreadyHaveStore": "Already have a store? Log in",
+      "formTitle": "Tell us about your business",
+      "formSubtitle": "You can edit these details anytime from your vendor dashboard.",
+      "submit": "Register my business",
+      "nameRequired": "Enter your business name",
+      "success": "Your business is set up"
+    },
+    "login": {
+      "title": "Vendor login",
+      "heading": "Welcome back",
+      "subheading": "Log in to manage your storefront, catalog, and orders.",
+      "logIn": "Log in",
+      "newBusiness": "New business? Register here",
+      "notAVendorYet": "This account isn't set up as a vendor yet."
     }
   },
   "anando": {

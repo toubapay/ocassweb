@@ -31,7 +31,10 @@ export default function Login() {
       } else {
         toast.success(t("auth.login.codeSent"));
       }
-      router.push(`/auth/verify?phone=${encodeURIComponent(`+${phone}`)}`);
+      const redirect = typeof router.query.redirect === "string" ? router.query.redirect : "/";
+      router.push(
+        `/auth/verify?phone=${encodeURIComponent(`+${phone}`)}&redirect=${encodeURIComponent(redirect)}`
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || t("auth.login.couldNotSendCode"));
     } finally {

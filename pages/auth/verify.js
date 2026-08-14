@@ -13,6 +13,7 @@ export default function Verify() {
   const router = useRouter();
   const { t } = useTranslation();
   const { phone } = router.query;
+  const redirect = typeof router.query.redirect === "string" ? router.query.redirect : "/";
   const { verifyOtp, requestOtp } = useAuth();
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -27,7 +28,7 @@ export default function Verify() {
     try {
       const user = await verifyOtp(phone, code, name || undefined);
       toast.success(t("auth.verify.welcome", { name: user.name ? `, ${user.name}` : "" }));
-      router.push("/");
+      router.push(redirect);
     } catch (err) {
       toast.error(err.response?.data?.message || t("auth.verify.invalidCode"));
     } finally {

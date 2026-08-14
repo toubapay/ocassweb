@@ -82,8 +82,8 @@ export default function VendorDashboard() {
         <TopBar title={t("vendor.title")} showCart={false} showSearch={false} />
         <Box sx={{ p: 4, textAlign: "center" }}>
           <Typography sx={{ mb: 2 }}>{t("profile.becomeVendor")}</Typography>
-          <Button variant="contained" onClick={() => router.push("/profile")}>
-            {t("nav.profile")}
+          <Button variant="contained" onClick={() => router.push("/vendor/register")}>
+            {t("vendor.register.getStarted")}
           </Button>
         </Box>
       </Box>
