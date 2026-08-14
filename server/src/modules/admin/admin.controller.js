@@ -132,6 +132,70 @@ async function updateModule(req, res, next) {
   }
 }
 
+// ---------------- Vendors ----------------
+
+async function listVendorStores(req, res, next) {
+  try {
+    const { q, page = "1", pageSize = "20" } = req.query;
+    const take = Math.min(Number(pageSize) || 20, 100);
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+
+    const where = {
+      // Admin/seed-managed stores have no owner and nothing to suspend -
+      // this tab is for actual vendor-owned stores.
+      ownerId: { not: null },
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: String(q), mode: "insensitive" } },
+              { owner: { name: { contains: String(q), mode: "insensitive" } } },
+              { owner: { phone: { contains: String(q) } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [stores, total] = await Promise.all([
+      prisma.store.findMany({
+        where,
+        include: {
+          owner: { select: { id: true, name: true, phone: true } },
+          _count: { select: { products: true } },
+        },
+        orderBy: { name: "asc" },
+        take,
+        skip,
+      }),
+      prisma.store.count({ where }),
+    ]);
+
+    res.json({ stores, total, page: Number(page) || 1, pageSize: take });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const updateVendorStoreSchema = z.object({
+  isActive: z.boolean(),
+});
+
+async function updateVendorStore(req, res, next) {
+  try {
+    const data = updateVendorStoreSchema.parse(req.body);
+    const store = await prisma.store.update({
+      where: { id: req.params.id },
+      data,
+      include: {
+        owner: { select: { id: true, name: true, phone: true } },
+        _count: { select: { products: true } },
+      },
+    });
+    res.json({ store });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Service zones (Google Maps) ----------------
 
 const pointSchema = z.object({ lat: z.number(), lng: z.number() });
@@ -399,6 +463,8 @@ module.exports = {
   updateUser,
   listModules,
   updateModule,
+  listVendorStores,
+  updateVendorStore,
   listZones,
   createZone,
   updateZone,

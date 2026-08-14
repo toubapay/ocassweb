@@ -27,7 +27,10 @@ async function listProducts(req, res, next) {
     const where = {
       isActive: true,
       ...(categoryFilter || {}),
-      ...(store ? { store: { slug: store } } : {}),
+      // Suspended vendors' products (see Store.isActive / AdminVendorsTab.js)
+      // drop out of every public listing, including a direct storefront
+      // browse (store slug still filters within the isActive requirement).
+      store: { isActive: true, ...(store ? { slug: store } : {}) },
       ...(search
         ? { name: { contains: String(search), mode: "insensitive" } }
         : {}),
@@ -65,7 +68,9 @@ async function getProduct(req, res, next) {
         reviews: { include: { user: { select: { id: true, name: true } } } },
       },
     });
-    if (!product || !product.isActive) return res.status(404).json({ message: "Product not found" });
+    if (!product || !product.isActive || !product.store.isActive) {
+      return res.status(404).json({ message: "Product not found" });
+    }
     res.json({ product });
   } catch (err) {
     next(err);

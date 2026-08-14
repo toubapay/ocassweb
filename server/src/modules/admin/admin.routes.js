@@ -5,6 +5,8 @@ const {
   updateUser,
   listModules,
   updateModule,
+  listVendorStores,
+  updateVendorStore,
   listZones,
   createZone,
   updateZone,
@@ -34,6 +36,9 @@ router.patch("/users/:id", updateUser);
 
 router.get("/modules", listModules);
 router.patch("/modules/:key", updateModule);
+
+router.get("/vendors", listVendorStores);
+router.patch("/vendors/:id", updateVendorStore);
 
 router.get("/zones", listZones);
 router.post("/zones", createZone);

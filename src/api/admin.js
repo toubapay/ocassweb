@@ -16,6 +16,12 @@ export const fetchAdminModules = () =>
 export const updateAdminModule = (key, payload) =>
   apiClient.patch(`/admin/modules/${key}`, payload).then((res) => res.data.module);
 
+// Vendors
+export const fetchAdminVendors = (params) =>
+  apiClient.get("/admin/vendors", { params }).then((res) => res.data);
+export const updateAdminVendorStore = (id, payload) =>
+  apiClient.patch(`/admin/vendors/${id}`, payload).then((res) => res.data.store);
+
 // Service zones
 export const fetchAdminZones = (moduleKey) =>
   apiClient

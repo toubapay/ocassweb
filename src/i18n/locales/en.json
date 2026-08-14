@@ -618,6 +618,7 @@
       "dashboard": "Dashboard",
       "users": "Users",
       "modules": "Modules & fees",
+      "vendors": "Vendors",
       "zones": "Zones",
       "providers": "Providers",
       "services": "Services"
@@ -647,6 +648,17 @@
       "feesSaved": "Fees saved",
       "feesSaveFailed": "Could not save fees",
       "toggleFailed": "Could not update module"
+    },
+    "vendors": {
+      "hint": "Suspending a store hides its products from every listing and shows shoppers an \"unavailable\" page - the vendor's data isn't deleted.",
+      "searchPlaceholder": "Search store, owner name, or phone",
+      "store": "Store",
+      "owner": "Owner",
+      "products": "Products",
+      "active": "Active",
+      "none": "No vendor stores found",
+      "updated": "Store updated",
+      "updateFailed": "Could not update store"
     },
     "zones": {
       "newZone": "New zone",
@@ -699,7 +711,8 @@
   "store": {
     "title": "Store",
     "notFound": "This store doesn't exist.",
-    "noProducts": "This store has no products yet."
+    "noProducts": "This store has no products yet.",
+    "unavailable": "This store is currently unavailable."
   },
   "pwa": {
     "installTitle": "Install Ocass",

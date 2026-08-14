@@ -268,14 +268,20 @@ A vendor's sales are credited to their wallet automatically
 called from both order-settlement paths - the synchronous wallet-payment
 branch in `orders.controller.js` and the PayDunya IPN handler in
 `payments.service.js`) once an order is confirmed paid: each vendor whose
-products are in the order gets 85% of their line items' total credited as
-an `EARNING` wallet transaction (`purpose: "VENDOR_SALE"`), the platform
-keeping the rest - same "share" pattern as the delivery/rideshare payout
-split, hardcoded for now rather than wired into `ModuleConfig.feeConfig`
-like those two. Idempotent per (order, store), so a retried webhook or
+products are in the order gets their line items' total credited as an
+`EARNING` wallet transaction (`purpose: "VENDOR_SALE"`), the platform
+keeping the rest as its commission - same "share" pattern as the
+delivery/rideshare payout split, and (like those two) admin-configurable
+via `ModuleConfig("vendor").feeConfig.vendorSharePercent` from the admin
+panel's Modules & fees tab (defaults to 85% to the vendor if never
+configured). Idempotent per (order, store), so a retried webhook or
 duplicate call never double-pays. Orders containing products from an
 admin/seed-managed store (`Store.ownerId: null`) are skipped for that
 store - there's no vendor wallet to credit.
+
+A vendor's store can be suspended from the admin panel's Vendors tab
+(`Store.isActive`) - see "Admin panel" below for what that does to the
+store's visibility.
 
 **Not built**: an approval/verification flow for becoming a vendor (same
 self-service MVP tradeoff as delivery/ride), and multi-vendor
@@ -510,23 +516,40 @@ a role change (or `active: false` suspension) takes effect on the user's
 very next request - no re-login needed, and no way for a suspended user to
 keep using a still-valid token.
 
-**Users**: search/filter, change role (including to/from `ADMIN`), and
-suspend (`active: false` - `requireAuth` rejects every request from a
-suspended user with 403). An admin can't deactivate their own account
-(guarded server-side, not just hidden in the UI).
+**Users**: search/filter (text search, plus one-tap role chips -
+Customer/Vendor/Rider/Delivery Agent/Admin - both hit the same
+`GET /admin/users?role=` the text search uses), change role (including
+to/from `ADMIN`), and suspend (`active: false` - `requireAuth` rejects
+every request from a suspended user with 403). An admin can't deactivate
+their own account (guarded server-side, not just hidden in the UI). This
+tab is also how delivery agents and riders get managed day-to-day - there's
+no separate "delivery men" screen, since a delivery agent is just a `User`
+with `role: "DELIVERY_AGENT"`.
 
 **Modules & fees**: `ModuleConfig` (one row per module, key matching
 `server/src/modules/<key>`) has an `enabled` toggle that's actually
 enforced - `requireModuleEnabled(key)` (see `app.js`) sits in front of
 every module's routes and returns `503` when disabled, and
 `GET /api/modules/status` (public, unauthenticated) lets the web/mobile
-clients hide a disabled module's nav entry. Only `delivery` and
-`rideshare` have a real fee editor, because those are the only two
-modules whose pricing code (`estimatePrice` in each controller) actually
-reads `ModuleConfig.feeConfig` (base fare, rate/km, driver/agent payout
-share) - every other module's toggle only controls availability, not
-price, since there's no fee math anywhere else yet to hook a fee config
-into.
+clients hide a disabled module's nav entry. `delivery`, `rideshare`, and
+`vendor` have a real fee editor, because those are the only modules whose
+pricing/payout code actually reads `ModuleConfig.feeConfig` - `delivery`/
+`rideshare`'s `estimatePrice` (base fare, rate/km, driver/agent payout
+share), and `vendor.service.js`'s `payoutVendorsForOrder`
+(`vendorSharePercent`, defaulting to 85% - the rest is the platform's
+implicit commission on every sale). Every other module's toggle only
+controls availability, not price, since there's no fee math anywhere else
+yet to hook a fee config into.
+
+**Vendors**: lists every vendor-owned `Store` (admin/seed-managed stores
+with no `ownerId` don't show here - there's nothing to suspend) with its
+owner and product count, and a switch for `Store.isActive`. Suspending a
+store hides all of its products from every public listing
+(`GET /ecommerce/products`, including a direct `?store=` browse) and from
+direct product-page access, and its `/store/[slug]` storefront shows an
+"unavailable" message instead of its catalog - without deleting the
+vendor's store, products, or order history. This is the platform's only
+vendor-suspension lever today; there's no separate ban/warning workflow.
 
 **Zones**: `ServiceZone` stores a named polygon (points, module key, an
 optional fee multiplier) drawn on a Google Map if
@@ -541,8 +564,20 @@ these is the natural next step once zones exist to enforce against.
 **Providers**: a generic `Provider` model (`category` is free text, not an
 enum, so admins can label new kinds without a migration) for
 credentials/config an admin fills in rather than the app hardcoding a
-vendor. **Only `category: "SMS"` has real behavior wired to it** -
-`server/src/utils/otp.js` sends OTP codes through whatever `Provider` row
+vendor. The category field offers `SMS`, `PAYMENT`, `MAPS`, `EMAIL`,
+`FIREBASE`, `OPENAI`, `GEMINI`, and `CLAUDE` as presets (free text still
+accepts anything else). **Only `category: "SMS"` has real behavior wired
+to it** - the four AI/Firebase presets exist purely as labeled credential
+storage: there is no AI feature, chatbot, or Firebase integration
+anywhere in this app that reads a Provider row in these categories yet.
+Adding the preset makes it possible to *store* an API key for a future
+integration without a schema change; it does not, by itself, make Ocass
+call OpenAI/Gemini/Claude/Firebase for anything. Wiring an actual
+feature to one of these keys (e.g. an AI product-description generator,
+or Firebase push notifications) is future work with its own scope.
+
+For the `SMS` category specifically, `server/src/utils/otp.js` sends OTP
+codes through whatever `Provider` row
 has `category: "SMS"`, `isActive: true` (preferring one with
 `isDefault: true`) via `server/src/utils/smsGateway.js`, a generic
 HTTP-request sender: `config` describes one request (method, url,
@@ -575,6 +610,19 @@ soft-delete/reassignment flow built for that yet).
 
 **Dashboard**: `GET /admin/stats` - user/order/role counts, pending
 deliveries, active rides, vendor stores, open Anando postings. Read-only.
+
+**What the admin panel deliberately does *not* do**: there's no "backup"
+button here. Database backups are handled at the hosting/infra layer, not
+as an app feature - Render's managed Postgres (see `DEPLOY_RENDER.md`)
+takes automatic daily backups with point-in-time recovery on paid plans,
+and the equivalents on Cloud SQL / Railway are documented in the other
+`DEPLOY_*.md` guides. Building a custom in-app backup feature would mean
+either re-implementing what the managed Postgres already does, or shipping
+something worse (an app-level export with no point-in-time recovery,
+running on the same box it's meant to protect). If a scheduled *export*
+(e.g. a nightly CSV/JSON dump to object storage, distinct from
+infra-level backups) is wanted later, that's a separate, well-scoped
+feature to design on its own.
 
 ## Deploying
 

@@ -31,7 +31,16 @@ const SMS_CONFIG_EXAMPLE = JSON.stringify(
   2
 );
 
-const CATEGORY_PRESETS = ["SMS", "PAYMENT", "MAPS", "EMAIL"];
+const CATEGORY_PRESETS = [
+  "SMS",
+  "PAYMENT",
+  "MAPS",
+  "EMAIL",
+  "FIREBASE",
+  "OPENAI",
+  "GEMINI",
+  "CLAUDE",
+];
 
 export default function AdminProvidersTab() {
   const { t } = useTranslation();

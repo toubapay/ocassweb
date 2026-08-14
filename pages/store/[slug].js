@@ -51,6 +51,17 @@ export default function StoreBrowse() {
     );
   }
 
+  if (store && store.isActive === false) {
+    return (
+      <Box>
+        <TopBar title={store.name} />
+        <Box sx={{ p: 4, textAlign: "center" }}>
+          <Typography sx={{ color: "text.secondary" }}>{t("store.unavailable")}</Typography>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ pb: 3 }}>
       <TopBar title={store?.name || t("store.title")} />

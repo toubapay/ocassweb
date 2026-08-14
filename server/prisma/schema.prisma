@@ -117,6 +117,10 @@ model Store {
   lat      Float?
   lng      Float?
   rating   Float     @default(0)
+  // Admin suspension switch (see AdminVendorsTab.js): suspended stores'
+  // products drop out of every public product listing and the storefront
+  // shows an "unavailable" state, without deleting the vendor's data.
+  isActive Boolean   @default(true)
   // Nullable + unique: null for admin/seed-managed stores (no self-service
   // owner), unique among non-null values so a vendor can own at most one
   // store (Postgres unique constraints allow any number of NULLs).

@@ -618,6 +618,7 @@
       "dashboard": "Tableau de bord",
       "users": "Utilisateurs",
       "modules": "Modules et frais",
+      "vendors": "Vendeurs",
       "zones": "Zones",
       "providers": "Fournisseurs",
       "services": "Services"
@@ -647,6 +648,17 @@
       "feesSaved": "Frais enregistrés",
       "feesSaveFailed": "Impossible d'enregistrer les frais",
       "toggleFailed": "Impossible de mettre à jour le module"
+    },
+    "vendors": {
+      "hint": "Suspendre une boutique masque ses produits de toutes les listes et affiche une page « indisponible » aux acheteurs - les données du vendeur ne sont pas supprimées.",
+      "searchPlaceholder": "Rechercher boutique, nom ou téléphone du propriétaire",
+      "store": "Boutique",
+      "owner": "Propriétaire",
+      "products": "Produits",
+      "active": "Actif",
+      "none": "Aucune boutique vendeur trouvée",
+      "updated": "Boutique mise à jour",
+      "updateFailed": "Impossible de mettre à jour la boutique"
     },
     "zones": {
       "newZone": "Nouvelle zone",
@@ -699,7 +711,8 @@
   "store": {
     "title": "Boutique",
     "notFound": "Cette boutique n'existe pas.",
-    "noProducts": "Cette boutique n'a pas encore de produits."
+    "noProducts": "Cette boutique n'a pas encore de produits.",
+    "unavailable": "Cette boutique est actuellement indisponible."
   },
   "pwa": {
     "installTitle": "Installer Ocass",
