@@ -1,13 +1,14 @@
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "react-query";
+import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
-import { fetchRestaurantOrders } from "../../src/api/modules";
+import { fetchRestaurantOrders, cancelRestaurantOrder } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
 
 const STATUS_COLOR = {
@@ -19,12 +20,24 @@ const STATUS_COLOR = {
   CANCELLED: "error",
 };
 
+const CANCELLABLE_STATUSES = ["CONFIRMED", "PREPARING"];
+
 export default function RestaurantOrders() {
   const router = useRouter();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const { data: orders, isLoading } = useQuery("restaurant-orders", fetchRestaurantOrders, {
     enabled: isAuthenticated,
+  });
+
+  const cancelMutation = useMutation((id) => cancelRestaurantOrder(id), {
+    onSuccess: () => {
+      toast.success(t("restaurant.orders.cancelled"));
+      queryClient.invalidateQueries("restaurant-orders");
+      queryClient.invalidateQueries("wallet");
+    },
+    onError: (err) => toast.error(err.response?.data?.message || t("restaurant.orders.couldNotCancel")),
   });
 
   if (!isAuthenticated) {
@@ -85,9 +98,34 @@ export default function RestaurantOrders() {
                 {t("restaurant.orders.note", { note: order.note })}
               </Typography>
             )}
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 1 }}>
-              {t("restaurant.orders.total", { amount: formatCfa(order.total) })}
-            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                {t("restaurant.orders.total", { amount: formatCfa(order.total) })}
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1.5 }}>
+                {order.status === "OUT_FOR_DELIVERY" && order.deliveryRequestId && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => router.push(`/delivery/track/${order.deliveryRequestId}`)}
+                    sx={{ fontWeight: 700, minWidth: 0, py: 0.25 }}
+                  >
+                    {t("restaurant.orders.track")}
+                  </Button>
+                )}
+                {CANCELLABLE_STATUSES.includes(order.status) && (
+                  <Button
+                    size="small"
+                    color="error"
+                    disabled={cancelMutation.isLoading}
+                    onClick={() => cancelMutation.mutate(order.id)}
+                    sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
+                  >
+                    {t("restaurant.orders.cancel")}
+                  </Button>
+                )}
+              </Box>
+            </Box>
           </Box>
         ))}
       </Box>

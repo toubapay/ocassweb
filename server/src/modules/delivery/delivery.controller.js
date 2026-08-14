@@ -236,6 +236,15 @@ async function markDelivered(req, res, next) {
         description: "Delivery earnings",
       });
     }
+    // If this delivery job came from a restaurant order (see
+    // dispatchForDelivery in restaurant/orders.controller.js), the agent
+    // confirming the handoff here is also what makes that order DELIVERED -
+    // it's never set any other way, so "delivered" always reflects a real
+    // completed dropoff, not just the restaurant marking it ready.
+    await prisma.restaurantOrder.updateMany({
+      where: { deliveryRequestId: request.id },
+      data: { status: "DELIVERED" },
+    });
     res.json({ request });
   } catch (err) {
     next(err);

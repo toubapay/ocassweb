@@ -7,6 +7,8 @@ const {
   updateModule,
   listVendorStores,
   updateVendorStore,
+  listRestaurantsAdmin,
+  updateRestaurantAdmin,
   listZones,
   createZone,
   updateZone,
@@ -39,6 +41,9 @@ router.patch("/modules/:key", updateModule);
 
 router.get("/vendors", listVendorStores);
 router.patch("/vendors/:id", updateVendorStore);
+
+router.get("/restaurants", listRestaurantsAdmin);
+router.patch("/restaurants/:id", updateRestaurantAdmin);
 
 router.get("/zones", listZones);
 router.post("/zones", createZone);

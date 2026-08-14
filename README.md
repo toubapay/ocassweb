@@ -139,8 +139,13 @@ fallback in production.
   (`GET /api/ecommerce/products?sort=discount` re-sorts by discount
   percent each time, so what's shown does change day to day, but nothing
   tracks a real per-deal expiry).
-- **Restaurant** — full ordering flow: per-restaurant quantity cart, place
-  order, order history.
+- **Restaurant** — full Yassir-Food-style flow: any user can self-serve into
+  the `RESTAURANT_OWNER` role, create one restaurant, and manage its menu
+  and incoming orders. Customers browse, order, and pay by wallet at
+  checkout; the restaurant walks an order through CONFIRMED → PREPARING →
+  OUT_FOR_DELIVERY, and that last step hands it straight to the delivery
+  module - the exact same agent job board and live tracking map used for
+  standalone package delivery. See "Restaurant marketplace" below.
 - **Delivery, Ride Sharing** — request forms with a price estimate, a
   history list, cancelling a still-pending request/ride, and a full dispatch
   loop: any user can self-serve into the `DELIVERY_AGENT`/`RIDER` role from
@@ -329,6 +334,76 @@ self-service MVP tradeoff as delivery/ride), and multi-vendor
 cart/checkout splitting (checkout is unchanged - one cart, one order,
 regardless of how many stores its items come from; payouts still split
 correctly per store even though the checkout UI doesn't).
+
+## Restaurant marketplace
+
+Same self-service ownership pattern as the vendor marketplace, applied to
+food delivery (Yassir Food-style, not just an order-and-forget menu):
+
+1. **Self-service onboarding** (`/restaurant/register`): any user can opt
+   into `RESTAURANT_OWNER` (`PATCH /api/auth/role`) and create one
+   restaurant (`Restaurant.ownerId`, nullable + unique - same "at most one
+   per user" pattern as `Store.ownerId`). A restaurant's `address`/`lat`/
+   `lng` double as its delivery pickup point, so an owner without an
+   address set can't dispatch an order (see step 3).
+2. **Menu management** (`/restaurant/manage/items`): create/edit/soft-
+   delete menu items (`MenuItem.isActive`), same shape as vendor product
+   management.
+3. **Order lifecycle** (`/restaurant/manage/orders`): a paid order starts
+   `CONFIRMED`, and the owner walks it through `PREPARING` →
+   `OUT_FOR_DELIVERY` (or cancels from either state, refunding the
+   customer's wallet). That last transition
+   (`dispatchForDelivery` in `server/src/modules/restaurant/orders.
+   controller.js`) is the entire "use the delivery module" integration:
+   it creates an ordinary `DeliveryRequest` - pickup = the restaurant,
+   dropoff = the order's delivery address, sender = the restaurant/owner,
+   receiver = the customer - with no agent pre-assigned, so it shows up on
+   the exact same open job board any delivery agent already sees
+   (`GET /delivery/jobs/available`), no parallel dispatch system. `DELIVERED`
+   is never set by the owner - it only ever arrives via that
+   `DeliveryRequest`'s own completion (see `markDelivered`'s cascade in
+   `delivery.controller.js`, which flips any `RestaurantOrder` linked by
+   `deliveryRequestId`), so "delivered" always reflects a real agent-
+   confirmed handoff, not the restaurant's own say-so. Once dispatched, the
+   customer gets the identical live-tracking experience described in
+   "Delivery: address auto-pick + live map tracking" above (`/delivery/
+   track/[id]`, linked from a "Track" button on their food order).
+4. **Checkout & payment**: customers pick a delivery address via the same
+   `AddressAutocompleteField` the delivery module uses, and pay by wallet
+   at order time - the only payment method wired up here today (unlike
+   ecommerce, which also offers a PayDunya redirect; that's a documented
+   gap, not a silent one). The delivery fee itself is estimated the same
+   way a standalone package delivery is (real distance-based pricing when
+   both ends have coordinates), but isn't itemized onto the order total -
+   it's platform-absorbed for now, so the agent is still paid their normal
+   share out of that estimate without the customer being charged for it
+   twice. Adding a real delivery-fee line item to the order total is a
+   natural follow-up.
+5. **Commission**: like vendor sales, a restaurant owner's share of each
+   paid order is credited to their wallet automatically
+   (`server/src/modules/restaurant/restaurant.service.js`'s
+   `payoutOwnerForOrder`, called right after the wallet debit settles),
+   admin-configurable via `ModuleConfig("restaurant").feeConfig.
+   ownerSharePercent` from the admin panel's Modules & fees tab (defaults
+   to 85% to the owner). Idempotent per order, same pattern as vendor
+   payout.
+6. **Admin management** (admin panel's Restaurants tab): lists every
+   owner-run restaurant with its menu-item and order counts, and a switch
+   for `Restaurant.isActive` - suspending one hides it from public
+   browsing and its own page shows an "unavailable" state, without
+   deleting the owner's menu or order history (identical behavior to the
+   Vendors tab's `Store.isActive`).
+
+**Job-board privacy**: unlike vendor product listings, an available
+delivery job's sender/receiver phone numbers are withheld until an agent
+accepts (`AVAILABLE_JOB_FIELDS` in `delivery.controller.js`) - this
+already applied to every delivery job, restaurant-dispatched or not, from
+the delivery module build.
+
+**Not built**: an approval/verification flow for becoming a restaurant
+owner (same self-service MVP tradeoff as vendor/delivery/ride), a PayDunya
+checkout option (wallet-only for now, as noted above), and itemizing the
+delivery fee onto the customer's order total.
 
 ## Anando
 
@@ -572,15 +647,16 @@ with `role: "DELIVERY_AGENT"`.
 enforced - `requireModuleEnabled(key)` (see `app.js`) sits in front of
 every module's routes and returns `503` when disabled, and
 `GET /api/modules/status` (public, unauthenticated) lets the web/mobile
-clients hide a disabled module's nav entry. `delivery`, `rideshare`, and
-`vendor` have a real fee editor, because those are the only modules whose
-pricing/payout code actually reads `ModuleConfig.feeConfig` - `delivery`/
-`rideshare`'s `estimatePrice` (base fare, rate/km, driver/agent payout
-share), and `vendor.service.js`'s `payoutVendorsForOrder`
-(`vendorSharePercent`, defaulting to 85% - the rest is the platform's
-implicit commission on every sale). Every other module's toggle only
-controls availability, not price, since there's no fee math anywhere else
-yet to hook a fee config into.
+clients hide a disabled module's nav entry. `delivery`, `rideshare`,
+`vendor`, and `restaurant` have a real fee editor, because those are the
+only modules whose pricing/payout code actually reads `ModuleConfig.
+feeConfig` - `delivery`/`rideshare`'s `estimatePrice` (base fare, rate/km,
+driver/agent payout share), `vendor.service.js`'s `payoutVendorsForOrder`
+(`vendorSharePercent`), and `restaurant.service.js`'s `payoutOwnerForOrder`
+(`ownerSharePercent`) - both default to 85% to the seller, the rest being
+the platform's implicit commission on every sale. Every other module's
+toggle only controls availability, not price, since there's no fee math
+anywhere else yet to hook a fee config into.
 
 **Vendors**: lists every vendor-owned `Store` (admin/seed-managed stores
 with no `ownerId` don't show here - there's nothing to suspend) with its
@@ -591,6 +667,14 @@ direct product-page access, and its `/store/[slug]` storefront shows an
 "unavailable" message instead of its catalog - without deleting the
 vendor's store, products, or order history. This is the platform's only
 vendor-suspension lever today; there's no separate ban/warning workflow.
+
+**Restaurants**: identical pattern for `Restaurant.isActive` - lists every
+owner-run restaurant (again, admin/seed-managed ones with no `ownerId`
+don't show here) with its owner, menu-item count, and order count.
+Suspending one hides it from public browsing and its `/restaurant/[slug]`
+page shows an "unavailable" state instead of its menu, without deleting
+the owner's menu or order history. See "Restaurant marketplace" above for
+the full self-service flow this tab moderates.
 
 **Zones**: `ServiceZone` stores a named polygon (points, module key, an
 optional fee multiplier) drawn on a Google Map if

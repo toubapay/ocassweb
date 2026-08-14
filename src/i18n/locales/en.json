@@ -131,10 +131,12 @@
     "becomeAgent": "Become a delivery agent",
     "becomeRider": "Become a rider",
     "becomeVendor": "Become a vendor",
+    "becomeRestaurantOwner": "Add your restaurant",
     "stopGigWork": "Switch back to customer",
     "agentDashboard": "Delivery agent dashboard",
     "driverDashboard": "Driver dashboard",
     "vendorDashboard": "Vendor dashboard",
+    "restaurantDashboard": "Restaurant dashboard",
     "roleUpdated": "Role updated",
     "couldNotUpdateRole": "Could not update role"
   },
@@ -345,6 +347,14 @@
     }
   },
   "restaurant": {
+    "name": "Restaurant name",
+    "cuisine": "Cuisine",
+    "address": "Address",
+    "addressHelp": "Used as the pickup point when a delivery agent picks up an order.",
+    "logoUrl": "Logo URL",
+    "created": "Restaurant created",
+    "updated": "Restaurant updated",
+    "couldNotSaveRestaurant": "Could not save restaurant",
     "list": {
       "title": "Restaurants",
       "loading": "Loading restaurants..."
@@ -353,12 +363,19 @@
       "title": "Restaurant",
       "loading": "Loading...",
       "add": "ADD",
+      "unavailable": "This restaurant is currently unavailable.",
       "orderPlaced": "Order placed!",
       "couldNotPlaceOrder": "Could not place order",
       "loginToOrder": "Log in to order",
       "placingOrder": "Placing order...",
       "placeOrder_one": "Place order · {{count}} item · {{total}}",
-      "placeOrder_other": "Place order · {{count}} items · {{total}}"
+      "placeOrder_other": "Place order · {{count}} items · {{total}}",
+      "checkoutTitle": "Confirm your order",
+      "checkoutSubtitle": "Where should this be delivered?",
+      "deliveryAddress": "Delivery address",
+      "enterDeliveryAddress": "Enter a delivery address",
+      "payWithWallet": "Pay {{amount}} with wallet",
+      "confirmAndPay": "Confirm & pay"
     },
     "orders": {
       "title": "Your food orders",
@@ -367,7 +384,65 @@
       "empty": "No food orders yet.",
       "browseRestaurants": "Browse restaurants",
       "note": "Note: {{note}}",
-      "total": "Total: {{amount}}"
+      "total": "Total: {{amount}}",
+      "track": "Track",
+      "cancel": "Cancel",
+      "cancelled": "Order cancelled",
+      "couldNotCancel": "Could not cancel order"
+    },
+    "manage": {
+      "title": "My restaurant",
+      "suspended": "Suspended by admin - not visible to customers",
+      "editRestaurant": "Edit restaurant",
+      "manageMenu": "Manage menu",
+      "viewOrders": "View orders",
+      "createTitle": "Create your restaurant",
+      "createSubtitle": "Set up your restaurant profile to start selling.",
+      "createRestaurant": "Create restaurant",
+      "menuItems": "Menu items",
+      "itemCreated": "Item added",
+      "itemUpdated": "Item updated",
+      "itemDeactivated": "Item removed from menu",
+      "couldNotSaveItem": "Could not save item",
+      "fillRequiredFields": "Fill in the required fields",
+      "noItems": "No menu items yet.",
+      "editItem": "Edit item",
+      "newItem": "New item",
+      "itemName": "Item name",
+      "itemDescription": "Description",
+      "itemCategory": "Category",
+      "itemCategoryPlaceholder": "e.g. Starters, Mains, Drinks",
+      "itemImageUrl": "Image URL",
+      "orders": "Orders",
+      "noOrders": "No orders yet.",
+      "deliverTo": "Deliver to: {{address}}",
+      "deliveryStatus": "Delivery: {{status}}",
+      "cancel": "Cancel",
+      "startPreparing": "Start preparing",
+      "readyForDelivery": "Ready for delivery",
+      "couldNotUpdateStatus": "Could not update order status",
+      "statusSet": {
+        "PREPARING": "Order marked as preparing",
+        "OUT_FOR_DELIVERY": "Order handed off for delivery",
+        "CANCELLED": "Order cancelled"
+      }
+    },
+    "register": {
+      "title": "Sell on Ocass",
+      "heroTitle": "Bring your restaurant online",
+      "heroSubtitle": "List your menu, take orders, and have them delivered - all from one dashboard.",
+      "pitchListingTitle": "Get discovered",
+      "pitchListingBody": "Your restaurant shows up for every customer browsing food delivery.",
+      "pitchMenuTitle": "Manage your menu",
+      "pitchMenuBody": "Add, edit, or take items off the menu any time, no reprint needed.",
+      "pitchDeliveryTitle": "Delivery handled for you",
+      "pitchDeliveryBody": "Mark an order ready and it goes straight to the delivery agent job board.",
+      "getStarted": "Get started",
+      "formTitle": "Tell us about your restaurant",
+      "formSubtitle": "You can edit this any time from your dashboard.",
+      "nameRequired": "Restaurant name is required",
+      "submit": "Create restaurant",
+      "success": "Restaurant created"
     }
   },
   "rideSharing": {
@@ -643,6 +718,7 @@
       "users": "Users",
       "modules": "Modules & fees",
       "vendors": "Vendors",
+      "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Providers",
       "services": "Services"
@@ -683,6 +759,18 @@
       "none": "No vendor stores found",
       "updated": "Store updated",
       "updateFailed": "Could not update store"
+    },
+    "restaurants": {
+      "hint": "Suspending a restaurant hides it from browsing and shows customers an \"unavailable\" page - the owner's menu and order history aren't deleted.",
+      "searchPlaceholder": "Search restaurant, owner name, or phone",
+      "restaurant": "Restaurant",
+      "owner": "Owner",
+      "menuItems": "Menu items",
+      "orders": "Orders",
+      "active": "Active",
+      "none": "No restaurants found",
+      "updated": "Restaurant updated",
+      "updateFailed": "Could not update restaurant"
     },
     "zones": {
       "newZone": "New zone",

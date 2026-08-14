@@ -128,6 +128,14 @@ export default function Profile() {
             >
               {t("profile.becomeVendor")}
             </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => router.push("/restaurant/register")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.becomeRestaurantOwner")}
+            </Button>
           </Box>
         )}
         {user?.role === "DELIVERY_AGENT" && (
@@ -179,6 +187,26 @@ export default function Profile() {
               sx={{ fontWeight: 700 }}
             >
               {t("profile.vendorDashboard")}
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              disabled={roleMutation.isLoading}
+              onClick={() => roleMutation.mutate("CUSTOMER")}
+            >
+              {t("profile.stopGigWork")}
+            </Button>
+          </Box>
+        )}
+        {user?.role === "RESTAURANT_OWNER" && (
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => router.push("/restaurant/manage")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.restaurantDashboard")}
             </Button>
             <Button
               variant="text"

@@ -21,6 +21,7 @@ datasource db {
 enum UserRole {
   CUSTOMER
   VENDOR
+  RESTAURANT_OWNER
   RIDER
   DELIVERY_AGENT
   ADMIN
@@ -59,6 +60,7 @@ model User {
   assignedDeliveries DeliveryRequest[]   @relation("DeliveryAgent")
   assignedRides      RideRequest[]       @relation("AssignedRider")
   store              Store?              @relation("StoreOwner")
+  restaurant         Restaurant?         @relation("RestaurantOwner")
   // Anando (peer-to-peer carpooling) - any user can post a ride they're
   // already making (as driver) and/or book a seat on someone else's (as
   // passenger); this is independent of the RIDER gig-work role above.
@@ -281,6 +283,10 @@ model DeliveryRequest {
 
   user          User  @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
   assignedAgent User? @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
+  // Back-relation for RestaurantOrder.deliveryRequestId - lets a dispatched
+  // restaurant order's DeliveryRequest be traced back to it (see
+  // markDelivered's status cascade in delivery.controller.js).
+  restaurantOrder RestaurantOrder?
 
   @@index([assignedAgentId])
 }
@@ -330,16 +336,26 @@ model InsurancePolicy {
 // ---------- Restaurant module (stub) ----------
 
 model Restaurant {
-  id      String  @id @default(uuid())
-  name    String
-  slug    String  @unique
-  logoUrl String?
-  cuisine String?
-  rating  Float   @default(0)
-  address String?
-  lat     Float?
-  lng     Float?
+  id       String  @id @default(uuid())
+  name     String
+  slug     String  @unique
+  logoUrl  String?
+  cuisine  String?
+  rating   Float   @default(0)
+  address  String?
+  lat      Float?
+  lng      Float?
+  // Admin suspension switch (see AdminRestaurantsTab.js) - same pattern as
+  // Store.isActive: a suspended restaurant drops out of public browsing
+  // and its page shows an "unavailable" state, without deleting the
+  // owner's menu/order history.
+  isActive Boolean @default(true)
+  // Nullable + unique: null for admin/seed-managed restaurants (no self-
+  // service owner), unique among non-null values so a restaurant owner
+  // runs at most one restaurant (mirrors Store.ownerId).
+  ownerId  String? @unique
 
+  owner     User?             @relation("RestaurantOwner", fields: [ownerId], references: [id])
   menuItems MenuItem[]
   orders    RestaurantOrder[]
 }
@@ -352,6 +368,10 @@ model MenuItem {
   price        Decimal @db.Decimal(10, 2)
   imageUrl     String?
   category     String?
+  // Soft delete, mirrors Product.isActive - existing order line items
+  // reference a menu item by id, so removing one from the menu flips
+  // this off instead of deleting the row.
+  isActive     Boolean @default(true)
 
   restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   orderItems RestaurantOrderItem[]
@@ -367,11 +387,28 @@ model RestaurantOrder {
   status       OrderStatus @default(PENDING)
   total        Decimal     @db.Decimal(10, 2)
   note         String?
-  createdAt    DateTime    @default(now())
+  // Tracked separately from fulfillment status, same split as Order.paid -
+  // only true once wallet payment settles at checkout (see
+  // orders.controller.js's createOrder).
+  paid         Boolean     @default(false)
+  // Where this order gets delivered - required at checkout. This module
+  // is delivery-only for now (no in-app "pickup at restaurant" option),
+  // so every order needs a real dropoff to hand to the delivery module.
+  deliveryAddress String?
+  deliveryLat     Float?
+  deliveryLng     Float?
+  // Set once the restaurant marks the order ready and a DeliveryRequest is
+  // auto-created for it, so it travels through the same agent dispatch
+  // board as any other package delivery (see dispatchForDelivery in
+  // orders.controller.js). Nullable/unique: null until dispatched, at
+  // most one DeliveryRequest per order.
+  deliveryRequestId String?  @unique
+  createdAt          DateTime @default(now())
 
-  user       User                  @relation(fields: [userId], references: [id])
-  restaurant Restaurant            @relation(fields: [restaurantId], references: [id])
-  items      RestaurantOrderItem[]
+  user            User                  @relation(fields: [userId], references: [id])
+  restaurant      Restaurant            @relation(fields: [restaurantId], references: [id])
+  deliveryRequest DeliveryRequest?      @relation(fields: [deliveryRequestId], references: [id])
+  items           RestaurantOrderItem[]
 }
 
 model RestaurantOrderItem {

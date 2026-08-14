@@ -8,9 +8,14 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Rating from "@mui/material/Rating";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import TopBar from "../../src/components/layout/TopBar";
+import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import useAuth from "../../src/hooks/useAuth";
 import { fetchRestaurant, createRestaurantOrder } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
@@ -22,6 +27,9 @@ export default function RestaurantDetail() {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [quantities, setQuantities] = useState({});
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryCoords, setDeliveryCoords] = useState(null);
 
   const { data: restaurant, isLoading } = useQuery(
     ["restaurant", slug],
@@ -44,15 +52,21 @@ export default function RestaurantDetail() {
 
   const orderMutation = useMutation(
     () =>
-      createRestaurantOrder(
-        slug,
-        cartEntries.map(([menuItemId, quantity]) => ({ menuItemId, quantity }))
-      ),
+      createRestaurantOrder(slug, {
+        items: cartEntries.map(([menuItemId, quantity]) => ({ menuItemId, quantity })),
+        deliveryAddress,
+        deliveryLat: deliveryCoords?.lat,
+        deliveryLng: deliveryCoords?.lng,
+      }),
     {
       onSuccess: () => {
         toast.success(t("restaurant.detail.orderPlaced"));
         queryClient.invalidateQueries("restaurant-orders");
+        queryClient.invalidateQueries("wallet");
         setQuantities({});
+        setCheckoutOpen(false);
+        setDeliveryAddress("");
+        setDeliveryCoords(null);
         router.push("/restaurant/orders");
       },
       onError: (err) => toast.error(err.response?.data?.message || t("restaurant.detail.couldNotPlaceOrder")),
@@ -68,6 +82,14 @@ export default function RestaurantDetail() {
     setQuantities((prev) => ({ ...prev, [itemId]: Math.max(0, qty) }));
   };
 
+  const handleConfirmOrder = () => {
+    if (!deliveryAddress.trim()) {
+      toast.error(t("restaurant.detail.enterDeliveryAddress"));
+      return;
+    }
+    orderMutation.mutate();
+  };
+
   if (isLoading || !restaurant) {
     return (
       <Box>
@@ -75,6 +97,17 @@ export default function RestaurantDetail() {
         <Typography variant="body2" sx={{ color: "text.secondary", p: 2 }}>
           {t("restaurant.detail.loading")}
         </Typography>
+      </Box>
+    );
+  }
+
+  if (restaurant.isActive === false) {
+    return (
+      <Box>
+        <TopBar title={restaurant.name} showCart={false} showSearch={false} />
+        <Box sx={{ p: 4, textAlign: "center" }}>
+          <Typography sx={{ color: "text.secondary" }}>{t("restaurant.detail.unavailable")}</Typography>
+        </Box>
       </Box>
     );
   }
@@ -151,16 +184,49 @@ export default function RestaurantDetail() {
             variant="contained"
             fullWidth
             size="large"
-            disabled={orderMutation.isLoading}
-            onClick={() => orderMutation.mutate()}
+            onClick={() => setCheckoutOpen(true)}
             sx={{ fontWeight: 800, py: 1.25 }}
           >
-            {orderMutation.isLoading
-              ? t("restaurant.detail.placingOrder")
-              : t("restaurant.detail.placeOrder", { count: itemCount, total: formatCfa(total) })}
+            {t("restaurant.detail.placeOrder", { count: itemCount, total: formatCfa(total) })}
           </Button>
         </Box>
       )}
+
+      <Dialog open={checkoutOpen} onClose={() => setCheckoutOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontWeight: 800 }}>{t("restaurant.detail.checkoutTitle")}</DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            {t("restaurant.detail.checkoutSubtitle")}
+          </Typography>
+          <AddressAutocompleteField
+            label={t("restaurant.detail.deliveryAddress")}
+            fullWidth
+            value={deliveryAddress}
+            onTextChange={(v) => {
+              setDeliveryAddress(v);
+              setDeliveryCoords(null);
+            }}
+            onPlaceSelected={({ address, lat, lng }) => {
+              setDeliveryAddress(address);
+              setDeliveryCoords({ lat, lng });
+            }}
+          />
+          <Typography variant="body2" sx={{ fontWeight: 800, mt: 2 }}>
+            {t("restaurant.detail.payWithWallet", { amount: formatCfa(total) })}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setCheckoutOpen(false)}>{t("vendor.cancel")}</Button>
+          <Button
+            variant="contained"
+            disabled={orderMutation.isLoading}
+            onClick={handleConfirmOrder}
+            sx={{ fontWeight: 700 }}
+          >
+            {orderMutation.isLoading ? t("restaurant.detail.placingOrder") : t("restaurant.detail.confirmAndPay")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -131,10 +131,12 @@
     "becomeAgent": "Devenir livreur",
     "becomeRider": "Devenir chauffeur",
     "becomeVendor": "Devenir vendeur",
+    "becomeRestaurantOwner": "Ajouter votre restaurant",
     "stopGigWork": "Repasser en client",
     "agentDashboard": "Tableau de bord livreur",
     "driverDashboard": "Tableau de bord chauffeur",
     "vendorDashboard": "Tableau de bord vendeur",
+    "restaurantDashboard": "Tableau de bord restaurant",
     "roleUpdated": "Rôle mis à jour",
     "couldNotUpdateRole": "Impossible de mettre à jour le rôle"
   },
@@ -345,6 +347,14 @@
     }
   },
   "restaurant": {
+    "name": "Nom du restaurant",
+    "cuisine": "Cuisine",
+    "address": "Adresse",
+    "addressHelp": "Utilisée comme point de retrait quand un livreur récupère une commande.",
+    "logoUrl": "URL du logo",
+    "created": "Restaurant créé",
+    "updated": "Restaurant mis à jour",
+    "couldNotSaveRestaurant": "Impossible d'enregistrer le restaurant",
     "list": {
       "title": "Restaurants",
       "loading": "Chargement des restaurants..."
@@ -353,12 +363,19 @@
       "title": "Restaurant",
       "loading": "Chargement...",
       "add": "AJOUTER",
+      "unavailable": "Ce restaurant est actuellement indisponible.",
       "orderPlaced": "Commande passée !",
       "couldNotPlaceOrder": "Impossible de passer la commande",
       "loginToOrder": "Connectez-vous pour commander",
       "placingOrder": "Passage de la commande...",
       "placeOrder_one": "Passer la commande · {{count}} article · {{total}}",
-      "placeOrder_other": "Passer la commande · {{count}} articles · {{total}}"
+      "placeOrder_other": "Passer la commande · {{count}} articles · {{total}}",
+      "checkoutTitle": "Confirmez votre commande",
+      "checkoutSubtitle": "Où souhaitez-vous être livré ?",
+      "deliveryAddress": "Adresse de livraison",
+      "enterDeliveryAddress": "Entrez une adresse de livraison",
+      "payWithWallet": "Payer {{amount}} avec le portefeuille",
+      "confirmAndPay": "Confirmer et payer"
     },
     "orders": {
       "title": "Vos commandes de repas",
@@ -367,7 +384,65 @@
       "empty": "Aucune commande de repas pour l'instant.",
       "browseRestaurants": "Parcourir les restaurants",
       "note": "Remarque : {{note}}",
-      "total": "Total : {{amount}}"
+      "total": "Total : {{amount}}",
+      "track": "Suivre",
+      "cancel": "Annuler",
+      "cancelled": "Commande annulée",
+      "couldNotCancel": "Impossible d'annuler la commande"
+    },
+    "manage": {
+      "title": "Mon restaurant",
+      "suspended": "Suspendu par l'administrateur - non visible par les clients",
+      "editRestaurant": "Modifier le restaurant",
+      "manageMenu": "Gérer le menu",
+      "viewOrders": "Voir les commandes",
+      "createTitle": "Créez votre restaurant",
+      "createSubtitle": "Configurez votre profil de restaurant pour commencer à vendre.",
+      "createRestaurant": "Créer le restaurant",
+      "menuItems": "Articles du menu",
+      "itemCreated": "Article ajouté",
+      "itemUpdated": "Article mis à jour",
+      "itemDeactivated": "Article retiré du menu",
+      "couldNotSaveItem": "Impossible d'enregistrer l'article",
+      "fillRequiredFields": "Remplissez les champs requis",
+      "noItems": "Aucun article au menu pour l'instant.",
+      "editItem": "Modifier l'article",
+      "newItem": "Nouvel article",
+      "itemName": "Nom de l'article",
+      "itemDescription": "Description",
+      "itemCategory": "Catégorie",
+      "itemCategoryPlaceholder": "ex. Entrées, Plats, Boissons",
+      "itemImageUrl": "URL de l'image",
+      "orders": "Commandes",
+      "noOrders": "Aucune commande pour l'instant.",
+      "deliverTo": "Livrer à : {{address}}",
+      "deliveryStatus": "Livraison : {{status}}",
+      "cancel": "Annuler",
+      "startPreparing": "Commencer la préparation",
+      "readyForDelivery": "Prête pour la livraison",
+      "couldNotUpdateStatus": "Impossible de mettre à jour le statut de la commande",
+      "statusSet": {
+        "PREPARING": "Commande marquée en préparation",
+        "OUT_FOR_DELIVERY": "Commande remise pour livraison",
+        "CANCELLED": "Commande annulée"
+      }
+    },
+    "register": {
+      "title": "Vendre sur Ocass",
+      "heroTitle": "Mettez votre restaurant en ligne",
+      "heroSubtitle": "Publiez votre menu, recevez des commandes et faites-les livrer - le tout depuis un seul tableau de bord.",
+      "pitchListingTitle": "Soyez visible",
+      "pitchListingBody": "Votre restaurant apparaît pour chaque client qui parcourt la livraison de repas.",
+      "pitchMenuTitle": "Gérez votre menu",
+      "pitchMenuBody": "Ajoutez, modifiez ou retirez des articles du menu à tout moment, sans réimpression.",
+      "pitchDeliveryTitle": "Livraison prise en charge",
+      "pitchDeliveryBody": "Marquez une commande prête et elle part directement sur le tableau des livreurs.",
+      "getStarted": "Commencer",
+      "formTitle": "Parlez-nous de votre restaurant",
+      "formSubtitle": "Vous pourrez modifier ces informations à tout moment depuis votre tableau de bord.",
+      "nameRequired": "Le nom du restaurant est requis",
+      "submit": "Créer le restaurant",
+      "success": "Restaurant créé"
     }
   },
   "rideSharing": {
@@ -643,6 +718,7 @@
       "users": "Utilisateurs",
       "modules": "Modules et frais",
       "vendors": "Vendeurs",
+      "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Fournisseurs",
       "services": "Services"
@@ -683,6 +759,18 @@
       "none": "Aucune boutique vendeur trouvée",
       "updated": "Boutique mise à jour",
       "updateFailed": "Impossible de mettre à jour la boutique"
+    },
+    "restaurants": {
+      "hint": "Suspendre un restaurant le masque de la navigation et affiche une page « indisponible » aux clients - le menu et l'historique des commandes du propriétaire ne sont pas supprimés.",
+      "searchPlaceholder": "Rechercher restaurant, nom ou téléphone du propriétaire",
+      "restaurant": "Restaurant",
+      "owner": "Propriétaire",
+      "menuItems": "Articles du menu",
+      "orders": "Commandes",
+      "active": "Actif",
+      "none": "Aucun restaurant trouvé",
+      "updated": "Restaurant mis à jour",
+      "updateFailed": "Impossible de mettre à jour le restaurant"
     },
     "zones": {
       "newZone": "Nouvelle zone",

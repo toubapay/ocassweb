@@ -17,7 +17,7 @@ import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import { fetchAdminUsers, updateAdminUser } from "../../api/admin";
 
-const ROLES = ["CUSTOMER", "VENDOR", "RIDER", "DELIVERY_AGENT", "ADMIN"];
+const ROLES = ["CUSTOMER", "VENDOR", "RESTAURANT_OWNER", "RIDER", "DELIVERY_AGENT", "ADMIN"];
 
 export default function AdminUsersTab() {
   const { t } = useTranslation();

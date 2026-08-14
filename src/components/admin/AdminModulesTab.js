@@ -15,9 +15,10 @@ import { fetchAdminModules, updateAdminModule } from "../../api/admin";
 
 // Only modules with real fee math wired up server-side get an editor here
 // (see estimatePrice in delivery.controller.js / rideshare.controller.js,
-// and payoutVendorsForOrder in vendor.service.js) - every other module
-// only has the enable/disable toggle above, since a fee editor for a
-// module with nothing reading it would just be decorative.
+// and payoutVendorsForOrder / payoutOwnerForOrder in vendor.service.js /
+// restaurant.service.js) - every other module only has the enable/disable
+// toggle above, since a fee editor for a module with nothing reading it
+// would just be decorative.
 const FEE_EDITORS = {
   delivery: [
     { key: "baseFare", label: "Base fare (CFA)" },
@@ -32,6 +33,7 @@ const FEE_EDITORS = {
     { key: "ratePerKmByVehicle.COMFORT", label: "Rate/km - Comfort (CFA)" },
   ],
   vendor: [{ key: "vendorSharePercent", label: "Vendor share (%)" }],
+  restaurant: [{ key: "ownerSharePercent", label: "Restaurant owner share (%)" }],
 };
 
 function getAtPath(obj, path) {

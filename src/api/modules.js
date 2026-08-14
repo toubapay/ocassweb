@@ -43,12 +43,12 @@ export const fetchRestaurants = (search) =>
     .then((res) => res.data.restaurants);
 export const fetchRestaurant = (slug) =>
   apiClient.get(`/restaurants/${slug}`).then((res) => res.data.restaurant);
-export const createRestaurantOrder = (slug, items, note) =>
-  apiClient
-    .post(`/restaurants/${slug}/orders`, { items, ...(note ? { note } : {}) })
-    .then((res) => res.data.order);
+export const createRestaurantOrder = (slug, payload) =>
+  apiClient.post(`/restaurants/${slug}/orders`, payload).then((res) => res.data.order);
 export const fetchRestaurantOrders = () =>
   apiClient.get("/restaurants/orders").then((res) => res.data.orders);
+export const cancelRestaurantOrder = (id) =>
+  apiClient.patch(`/restaurants/orders/${id}/cancel`).then((res) => res.data.order);
 
 // Ride sharing
 export const fetchMyRides = () =>
