@@ -11,6 +11,7 @@ import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import DeliveryDiningRoundedIcon from "@mui/icons-material/DeliveryDiningRounded";
 import TopBar from "../../src/components/layout/TopBar";
+import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import useAuth from "../../src/hooks/useAuth";
 import { fetchMyRestaurant, createMyRestaurant } from "../../src/api/restaurantOwner";
 
@@ -57,6 +58,7 @@ export default function RestaurantRegister() {
   const [name, setName] = useState("");
   const [cuisine, setCuisine] = useState("");
   const [address, setAddress] = useState("");
+  const [addressCoords, setAddressCoords] = useState(null);
   const [logoUrl, setLogoUrl] = useState("");
 
   const { data: restaurant, isLoading: restaurantLoading } = useQuery(
@@ -82,6 +84,8 @@ export default function RestaurantRegister() {
         name,
         cuisine: cuisine || undefined,
         address: address || undefined,
+        lat: addressCoords?.lat,
+        lng: addressCoords?.lng,
         logoUrl: logoUrl || undefined,
       });
     },
@@ -180,11 +184,18 @@ export default function RestaurantRegister() {
           onChange={(e) => setCuisine(e.target.value)}
           sx={{ mb: 2 }}
         />
-        <TextField
+        <AddressAutocompleteField
           label={t("restaurant.address")}
           fullWidth
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
+          onTextChange={(v) => {
+            setAddress(v);
+            setAddressCoords(null);
+          }}
+          onPlaceSelected={({ address: picked, lat, lng }) => {
+            setAddress(picked);
+            setAddressCoords({ lat, lng });
+          }}
           helperText={t("restaurant.addressHelp")}
           sx={{ mb: 2 }}
         />

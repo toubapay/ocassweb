@@ -224,12 +224,11 @@ function estimateDeliveryPrice({ pickupLat, pickupLng, dropoffLat, dropoffLng },
  * out of that estimate); charging it through to the order total is a
  * documented follow-up, not silently dropped.
  */
-async function dispatchForDelivery(order) {
+async function dispatchForDelivery(order, ownerPhone) {
   const restaurant = order.restaurant;
   if (!restaurant.address) {
     throw Object.assign(new Error("Restaurant has no pickup address configured"), { status: 400 });
   }
-  const owner = await prisma.user.findUnique({ where: { id: restaurant.ownerId } });
   const feeConfig = await getModuleFeeConfig("delivery", DELIVERY_DEFAULT_FEE_CONFIG);
   const pickup = { pickupLat: restaurant.lat, pickupLng: restaurant.lng, dropoffLat: order.deliveryLat, dropoffLng: order.deliveryLng };
 
@@ -237,7 +236,7 @@ async function dispatchForDelivery(order) {
     data: {
       userId: order.userId,
       senderName: restaurant.name,
-      senderPhone: owner?.phone,
+      senderPhone: ownerPhone,
       pickupAddress: restaurant.address,
       pickupLat: restaurant.lat,
       pickupLng: restaurant.lng,
@@ -292,27 +291,42 @@ async function updateOrderStatus(req, res, next) {
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: `Cannot move an order from ${existing.status} to ${status}` });
     }
+    // Precondition checked before claiming the transition below, not
+    // after - failing here leaves the order untouched, whereas failing
+    // after the claim would strand it at OUT_FOR_DELIVERY with no
+    // DeliveryRequest and no way to retry (OWNER_TRANSITIONS has no
+    // entry for that state).
+    if (status === "OUT_FOR_DELIVERY" && !restaurant.address) {
+      return res.status(400).json({ message: "Restaurant has no pickup address configured" });
+    }
+
+    // Conditional updateMany as the concurrency guard (same pattern as
+    // delivery's acceptRequest and this module's own cancelOrder) - claims
+    // the transition atomically against the exact status just read, so two
+    // racing requests (double-click, retry) can't both pass: one would
+    // otherwise double-refund a cancellation, or double-dispatch a
+    // delivery (two DeliveryRequest rows for one order, the second
+    // orphaned but still live on the agent job board).
+    const claimed = await prisma.restaurantOrder.updateMany({
+      where: { id: existing.id, restaurantId: restaurant.id, status: existing.status },
+      data: { status },
+    });
+    if (claimed.count === 0) {
+      return res.status(409).json({ message: "Order status changed - please refresh" });
+    }
 
     if (status === "CANCELLED") {
       await refundIfPaid(existing);
-      const order = await prisma.restaurantOrder.update({
-        where: { id: existing.id },
-        data: { status: "CANCELLED" },
-        include: ORDER_INCLUDE,
-      });
+      const order = await prisma.restaurantOrder.findUnique({ where: { id: existing.id }, include: ORDER_INCLUDE });
       return res.json({ order });
     }
 
     if (status === "OUT_FOR_DELIVERY") {
-      const order = await dispatchForDelivery(existing);
+      const order = await dispatchForDelivery(existing, req.user.phone);
       return res.json({ order });
     }
 
-    const order = await prisma.restaurantOrder.update({
-      where: { id: existing.id },
-      data: { status },
-      include: ORDER_INCLUDE,
-    });
+    const order = await prisma.restaurantOrder.findUnique({ where: { id: existing.id }, include: ORDER_INCLUDE });
     res.json({ order });
   } catch (err) {
     if (err.status === 400) {

@@ -12,6 +12,7 @@ import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import TopBar from "../../../src/components/layout/TopBar";
+import AddressAutocompleteField from "../../../src/components/maps/AddressAutocompleteField";
 import useAuth from "../../../src/hooks/useAuth";
 import { fetchMyRestaurant, createMyRestaurant, updateMyRestaurant } from "../../../src/api/restaurantOwner";
 
@@ -25,6 +26,7 @@ export default function RestaurantManageDashboard() {
   const [name, setName] = useState("");
   const [cuisine, setCuisine] = useState("");
   const [address, setAddress] = useState("");
+  const [addressCoords, setAddressCoords] = useState(null);
   const [logoUrl, setLogoUrl] = useState("");
   const [editing, setEditing] = useState(false);
 
@@ -37,6 +39,7 @@ export default function RestaurantManageDashboard() {
       setName(restaurant.name || "");
       setCuisine(restaurant.cuisine || "");
       setAddress(restaurant.address || "");
+      setAddressCoords(restaurant.lat != null ? { lat: restaurant.lat, lng: restaurant.lng } : null);
       setLogoUrl(restaurant.logoUrl || "");
     }
   }, [restaurant]);
@@ -47,6 +50,8 @@ export default function RestaurantManageDashboard() {
         name,
         cuisine: cuisine || undefined,
         address: address || undefined,
+        lat: addressCoords?.lat,
+        lng: addressCoords?.lng,
         logoUrl: logoUrl || undefined,
       }),
     {
@@ -59,7 +64,15 @@ export default function RestaurantManageDashboard() {
   );
 
   const updateMutation = useMutation(
-    () => updateMyRestaurant({ name, cuisine: cuisine || "", address: address || "", logoUrl: logoUrl || "" }),
+    () =>
+      updateMyRestaurant({
+        name,
+        cuisine: cuisine || "",
+        address: address || "",
+        lat: addressCoords?.lat,
+        lng: addressCoords?.lng,
+        logoUrl: logoUrl || "",
+      }),
     {
       onSuccess: () => {
         toast.success(t("restaurant.updated"));
@@ -188,11 +201,18 @@ export default function RestaurantManageDashboard() {
             onChange={(e) => setCuisine(e.target.value)}
             sx={{ mb: 2 }}
           />
-          <TextField
+          <AddressAutocompleteField
             label={t("restaurant.address")}
             fullWidth
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            onTextChange={(v) => {
+              setAddress(v);
+              setAddressCoords(null);
+            }}
+            onPlaceSelected={({ address: picked, lat, lng }) => {
+              setAddress(picked);
+              setAddressCoords({ lat, lng });
+            }}
             helperText={t("restaurant.addressHelp")}
             sx={{ mb: 2 }}
           />
@@ -212,6 +232,7 @@ export default function RestaurantManageDashboard() {
                   setName(restaurant.name || "");
                   setCuisine(restaurant.cuisine || "");
                   setAddress(restaurant.address || "");
+                  setAddressCoords(restaurant.lat != null ? { lat: restaurant.lat, lng: restaurant.lng } : null);
                   setLogoUrl(restaurant.logoUrl || "");
                 }}
                 sx={{ fontWeight: 700 }}
