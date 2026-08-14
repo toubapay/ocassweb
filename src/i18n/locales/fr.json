@@ -169,7 +169,28 @@
       "noReviews": "Aucun avis pour l'instant.",
       "anonymous": "Anonyme",
       "addToCart": "Ajouter au panier",
-      "percentOff": "-{{percent}} %"
+      "percentOff": "-{{percent}} %",
+      "youMayAlsoLike": "Vous aimerez peut-être aussi"
+    },
+    "home": {
+      "bestOffers": "Meilleures offres",
+      "seeMore": "Voir plus",
+      "flashSale": "Ventes Flash",
+      "endsIn": "Termine dans",
+      "banners": {
+        "sale": {
+          "title": "Les meilleures offres du jour",
+          "subtitle": "De fortes remises dans toutes les boutiques, actualisées chaque jour."
+        },
+        "vendor": {
+          "title": "Vendez sur Ocass",
+          "subtitle": "Ouvrez votre boutique et touchez des clients dans toute l'app."
+        },
+        "restaurant": {
+          "title": "Une petite faim ?",
+          "subtitle": "Commandez auprès des restaurants près de vous, livré rapidement."
+        }
+      }
     },
     "productCard": {
       "addedToCart": "{{name}} ajouté au panier",

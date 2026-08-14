@@ -13,7 +13,8 @@ import Divider from "@mui/material/Divider";
 import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import TopBar from "../../../src/components/layout/TopBar";
-import { fetchProduct, addToCart } from "../../../src/api/ecommerce";
+import ProductRow from "../../../src/components/ecommerce/ProductRow";
+import { fetchProduct, addToCart, fetchProducts, fetchWishlist } from "../../../src/api/ecommerce";
 import useAuth from "../../../src/hooks/useAuth";
 import { formatCfa } from "../../../src/utils/currency";
 
@@ -29,6 +30,15 @@ export default function ProductDetail() {
   const { data: product, isLoading } = useQuery(["product", slug], () => fetchProduct(slug), {
     enabled: Boolean(slug),
   });
+
+  // "You may also like" - same category, current product excluded below.
+  // Declared before the loading early-return (hooks can't be conditional).
+  const { data: relatedData } = useQuery(
+    ["products", "related", product?.category?.slug],
+    () => fetchProducts({ category: product.category.slug, pageSize: 10 }),
+    { enabled: Boolean(product?.category?.slug) }
+  );
+  const { data: wishlist } = useQuery("wishlist", fetchWishlist, { enabled: isAuthenticated });
 
   const addMutation = useMutation(() => addToCart(product.id, quantity), {
     onSuccess: () => {
@@ -53,6 +63,8 @@ export default function ProductDetail() {
 
   const hasDiscount = Boolean(product.discountPrice);
   const displayPrice = hasDiscount ? product.discountPrice : product.price;
+  const relatedProducts = (relatedData?.items || []).filter((p) => p.id !== product.id);
+  const wishlistedIds = new Set((wishlist || []).map((w) => w.productId));
 
   const handleAdd = () => {
     if (!isAuthenticated) {
@@ -169,6 +181,15 @@ export default function ProductDetail() {
           </Box>
         ))}
       </Box>
+
+      {relatedProducts.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, px: 2, mb: 1 }}>
+            {t("ecommerce.product.youMayAlsoLike")}
+          </Typography>
+          <ProductRow products={relatedProducts} wishlistedIds={wishlistedIds} />
+        </Box>
+      )}
 
       <Box
         sx={{

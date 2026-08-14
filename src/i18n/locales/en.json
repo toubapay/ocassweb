@@ -169,7 +169,28 @@
       "noReviews": "No reviews yet.",
       "anonymous": "Anonymous",
       "addToCart": "Add to cart",
-      "percentOff": "{{percent}}% OFF"
+      "percentOff": "{{percent}}% OFF",
+      "youMayAlsoLike": "You may also like"
+    },
+    "home": {
+      "bestOffers": "Best offers",
+      "seeMore": "See more",
+      "flashSale": "Flash Sale",
+      "endsIn": "Ends in",
+      "banners": {
+        "sale": {
+          "title": "Today's best deals",
+          "subtitle": "Steep discounts across every store, refreshed daily."
+        },
+        "vendor": {
+          "title": "Sell on Ocass",
+          "subtitle": "Open your storefront and reach customers across the app."
+        },
+        "restaurant": {
+          "title": "Hungry?",
+          "subtitle": "Order from restaurants near you, delivered fast."
+        }
+      }
     },
     "productCard": {
       "addedToCart": "{{name}} added to cart",
