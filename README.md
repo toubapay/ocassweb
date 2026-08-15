@@ -631,7 +631,12 @@ fills in. Admin config wins over the `AAS_*` env vars in `server/.env`
 "personnes transportées" option to charge whenever a tier includes that
 guarantee) - the default tiers (`TIER_GARANTIES`/`MOTO_TIER_GARANTIES` in
 `server/src/constants/aasGuarantees.js`) never include it, so it's unused
-today.
+today. `npm run seed:test-data` (from `server/`) creates this Provider row
+automatically, pointed at the local stand-in
+(`baseUrl: "http://localhost:5099"`), plus two sample `InsuranceAutoPolicy`
+rows (one `ACTIVE`, one `FAILED`) for the seeded test customer - run
+`npm run aas:standin` alongside it and the whole flow works with zero
+manual admin setup.
 
 **Testing without live AAS access**: there is no network egress to AAS's
 real sandbox from this build's environment, so everything was built and

@@ -7,6 +7,7 @@
 // code comes back in the /api/auth/request-otp response instead of an SMS.
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const { TIER_GARANTIES, MOTO_TIER_GARANTIES } = require("../src/constants/aasGuarantees");
 
 function img(seed, w = 500, h = 500) {
   return `https://picsum.photos/seed/${seed}/${w}/${h}`;
@@ -207,6 +208,98 @@ async function main() {
         },
       });
     }
+  }
+
+  // ---------- AAS auto insurance: provider config + sample policies ----------
+  // Points at the local stand-in (server/src/modules/insurance/aasStandIn.js,
+  // `npm run aas:standin`), not a real AAS account - see the README's "AAS
+  // auto insurance" section. Configuring this in seed data means the admin
+  // Insurance tab and the customer comparison flow both work immediately
+  // against `npm run aas:standin` with zero manual setup.
+  const existingAasProvider = await prisma.provider.findFirst({ where: { category: "INSURANCE_AAS" } });
+  if (!existingAasProvider) {
+    await prisma.provider.create({
+      data: {
+        category: "INSURANCE_AAS",
+        name: "AAS Sandbox (seed)",
+        isActive: true,
+        isDefault: true,
+        config: {
+          partner: "ocass-test-partner",
+          accessToken: "test-access-token",
+          username: "token",
+          police: "",
+          baseUrl: "http://localhost:5099",
+          timeoutMs: 15000,
+        },
+      },
+    });
+  }
+
+  if ((await prisma.insuranceAutoPolicy.count({ where: { userId: customer.id } })) === 0) {
+    const souscripteur = { nom: "Diop", prenom: "Awa", cellulaire: customer.phone.replace("+221", ""), email: customer.email };
+    // ACTIVE - a normal successful purchase, as issueMono would leave it.
+    await prisma.insuranceAutoPolicy.create({
+      data: {
+        userId: customer.id,
+        tier: "VOL_INCENDIE",
+        genre: "VP",
+        energie: "ESSENCE",
+        immatriculation: "DK-1234-AA",
+        chassis: "VF1LZLZ0T12345678",
+        puissanceFiscale: "14",
+        nombrePlace: 5,
+        dateMiseCirculation: new Date("2018-06-15"),
+        modele: "Logan",
+        marque: "Renault",
+        valeurNeuve: 8500000,
+        valeurActuelle: 5200000,
+        typePersonne: "PHYSIQUE",
+        souscripteur,
+        assure: souscripteur,
+        garanties: TIER_GARANTIES.VOL_INCENDIE,
+        periodicite: "MOIS",
+        duree: 12,
+        premiumEstimate: 29100,
+        premiumCharged: 29100,
+        status: "ACTIVE",
+        referenceTrxPartner: "AAS-SEED0001",
+        fulfillmentAttempts: 1,
+        linkAttestation: "https://manager.lasecu-assurances.sn/attestations/AAS-STANDIN-SEED0001",
+      },
+    });
+    // FAILED - never issued, wallet already refunded (mirrors what
+    // aas.controller.js's attemptIssuance leaves behind) - gives the admin
+    // Insurance tab's "Policies" view and the customer's retry button
+    // something real to show without having to click through a live failure.
+    await prisma.insuranceAutoPolicy.create({
+      data: {
+        userId: customer.id,
+        tier: "RC_SEULE",
+        genre: "2RMOT",
+        energie: "ESSENCE",
+        immatriculation: "DK-0000-MT",
+        chassis: "VTMOTO0000TEST99",
+        cylindre: 126,
+        nombrePlace: 2,
+        usage: "NON_COMMERCIAL",
+        dateMiseCirculation: new Date("2022-11-08"),
+        modele: "Vespa",
+        marque: "Piaggio",
+        typePersonne: "PHYSIQUE",
+        souscripteur,
+        assure: souscripteur,
+        garanties: MOTO_TIER_GARANTIES.RC_SEULE,
+        periodicite: "MOIS",
+        duree: 6,
+        premiumEstimate: 19300,
+        status: "FAILED",
+        referenceTrxPartner: "AAS-SEED0002",
+        fulfillmentAttempts: 1,
+        fulfillmentError: "Stock de QR code insuffisant. Merci de passer votre commande de QR.",
+        fulfillmentErrorCode: "UserError",
+      },
+    });
   }
 
   // ---------- Delivery request, one open + one assigned to the test agent ----------
