@@ -585,6 +585,25 @@
       "ride.vehicleType":"Véhicule","ride.vehicle.moto":"Moto","ride.vehicle.car":"Voiture",
       "ride.submit":"Rechercher un chauffeur","ride.sent":"Recherche d'un chauffeur…","ride.myRequests":"Mes courses",
       "insurance.title":"Assurance","insurance.subscribe":"Souscrire","insurance.activated":"Police activée",
+      "insurance.auto.title":"Assurance auto","insurance.auto.promoTitle":"Comparez de vraies offres d'assurance auto",
+      "insurance.auto.promoSubtitle":"Tarifs en temps réel, plusieurs niveaux de garantie, paiement par portefeuille.",
+      "insurance.auto.promoCta":"Comparer les tarifs","insurance.auto.myPolicies":"Mes polices auto",
+      "insurance.auto.getNewQuote":"Obtenir un nouveau devis","insurance.auto.empty":"Vous n'avez pas encore de police auto.",
+      "insurance.auto.step1Title":"Parlez-nous de votre véhicule","insurance.auto.step1Subtitle":"Choisissez votre véhicule pour comparer les tarifs.",
+      "insurance.auto.genre":"Type de véhicule","insurance.auto.energie":"Carburant","insurance.auto.essence":"Essence","insurance.auto.diesel":"Diesel",
+      "insurance.auto.periodicite":"Périodicité","insurance.auto.mois":"Mensuelle","insurance.auto.jour":"Journalière","insurance.auto.duree":"Durée",
+      "insurance.auto.puissanceFiscale":"Puissance fiscale","insurance.auto.cylindre":"Cylindrée (cc)","insurance.auto.usage":"Usage",
+      "insurance.auto.commercial":"Commercial","insurance.auto.nonCommercial":"Non commercial","insurance.auto.nombrePlace":"Nombre de places",
+      "insurance.auto.compareBtn":"Comparer les tarifs","insurance.auto.step2Title":"Choisissez votre garantie","insurance.auto.selectTier":"Choisir",
+      "insurance.auto.backToVehicle":"Modifier le véhicule","insurance.auto.step3Title":"Détails du véhicule et du souscripteur",
+      "insurance.auto.immatriculation":"Plaque d'immatriculation","insurance.auto.chassis":"Numéro de châssis","insurance.auto.marque":"Marque",
+      "insurance.auto.modele":"Modèle","insurance.auto.dateMiseCirculation":"Date de première mise en circulation",
+      "insurance.auto.nom":"Nom","insurance.auto.prenom":"Prénom","insurance.auto.cellulaire":"Téléphone","insurance.auto.email":"Email",
+      "insurance.auto.payBtn":"Payer et obtenir l'attestation","insurance.auto.backToComparison":"Retour à la comparaison",
+      "insurance.auto.success":"Vous êtes assuré !","insurance.auto.successBody":"Votre attestation digitale a été émise.",
+      "insurance.auto.failureTitle":"Échec de l'émission","insurance.auto.failureBody":"Votre paiement a été remboursé.",
+      "insurance.auto.viewPolicies":"Voir mes polices","insurance.auto.retry":"Réessayer","insurance.auto.cancel":"Annuler la police",
+      "insurance.auto.status.ACTIVE":"Active","insurance.auto.status.FAILED":"Échec","insurance.auto.status.CANCELLED":"Annulée","insurance.auto.status.PENDING":"En attente",
       "topup.title":"Recharge & Factures","topup.tabs.airtime":"Crédit","topup.tabs.bill":"Factures",
       "topup.phone":"Numéro de téléphone","topup.operator":"Opérateur","topup.amount":"Montant",
       "topup.submitAirtime":"Recharger","topup.airtimeDone":"Crédit rechargé",
@@ -654,6 +673,25 @@
       "ride.vehicleType":"Vehicle","ride.vehicle.moto":"Motorbike","ride.vehicle.car":"Car",
       "ride.submit":"Find a driver","ride.sent":"Finding a driver…","ride.myRequests":"My rides",
       "insurance.title":"Insurance","insurance.subscribe":"Subscribe","insurance.activated":"Policy activated",
+      "insurance.auto.title":"Auto insurance","insurance.auto.promoTitle":"Compare real auto insurance quotes",
+      "insurance.auto.promoSubtitle":"Live pricing, multiple coverage tiers, pay from your wallet.",
+      "insurance.auto.promoCta":"Compare quotes","insurance.auto.myPolicies":"My auto policies",
+      "insurance.auto.getNewQuote":"Get a new quote","insurance.auto.empty":"You don't have any auto policies yet.",
+      "insurance.auto.step1Title":"Tell us about your vehicle","insurance.auto.step1Subtitle":"Pick your vehicle to compare quotes.",
+      "insurance.auto.genre":"Vehicle type","insurance.auto.energie":"Fuel","insurance.auto.essence":"Petrol","insurance.auto.diesel":"Diesel",
+      "insurance.auto.periodicite":"Billing period","insurance.auto.mois":"Monthly","insurance.auto.jour":"Daily","insurance.auto.duree":"Duration",
+      "insurance.auto.puissanceFiscale":"Fiscal horsepower","insurance.auto.cylindre":"Engine size (cc)","insurance.auto.usage":"Usage",
+      "insurance.auto.commercial":"Commercial","insurance.auto.nonCommercial":"Non-commercial","insurance.auto.nombrePlace":"Number of seats",
+      "insurance.auto.compareBtn":"Compare quotes","insurance.auto.step2Title":"Choose your coverage","insurance.auto.selectTier":"Select",
+      "insurance.auto.backToVehicle":"Change vehicle","insurance.auto.step3Title":"Vehicle & subscriber details",
+      "insurance.auto.immatriculation":"License plate","insurance.auto.chassis":"Chassis number","insurance.auto.marque":"Make",
+      "insurance.auto.modele":"Model","insurance.auto.dateMiseCirculation":"First registration date",
+      "insurance.auto.nom":"Last name","insurance.auto.prenom":"First name","insurance.auto.cellulaire":"Phone","insurance.auto.email":"Email",
+      "insurance.auto.payBtn":"Pay & get attestation","insurance.auto.backToComparison":"Back to comparison",
+      "insurance.auto.success":"You're insured!","insurance.auto.successBody":"Your digital attestation has been issued.",
+      "insurance.auto.failureTitle":"Issuance failed","insurance.auto.failureBody":"Your payment has been refunded.",
+      "insurance.auto.viewPolicies":"View my policies","insurance.auto.retry":"Retry","insurance.auto.cancel":"Cancel policy",
+      "insurance.auto.status.ACTIVE":"Active","insurance.auto.status.FAILED":"Failed","insurance.auto.status.CANCELLED":"Cancelled","insurance.auto.status.PENDING":"Pending",
       "topup.title":"Top-up & Bills","topup.tabs.airtime":"Airtime","topup.tabs.bill":"Bills",
       "topup.phone":"Phone number","topup.operator":"Operator","topup.amount":"Amount",
       "topup.submitAirtime":"Top up","topup.airtimeDone":"Airtime topped up",
@@ -715,6 +753,43 @@
     {id:"i3", name:{fr:"Assurance Moto",en:"Motorbike Insurance"}, provider:"Sen Assurance", price:8000, period:{fr:"/mois",en:"/mo"}, cover:{fr:"Vol, dommages, assistance",en:"Theft, damage, roadside assistance"}, icon:"🛵"}
   ];
 
+  // AAS "Assurance Digitale" auto-insurance comparison/purchase mock -
+  // mirrors the real integration's shape (genre -> mono/moto family,
+  // per-tier guarantee stacking, wallet-style purchase, retry/cancel)
+  // with fabricated premiums; nothing here talks to a real insurer.
+  var AAS_GENRES = [
+    {genre:"VP", family:"mono", label:{fr:"Véhicule Particulier (VP)",en:"Private Car (VP)"}},
+    {genre:"TPC", family:"mono", label:{fr:"Véhicule Utilitaire (TPC)",en:"Utility Vehicle (TPC)"}},
+    {genre:"2RMOT", family:"moto", label:{fr:"Moto > 125cm³ (2RMOT)",en:"Motorbike > 125cc (2RMOT)"}},
+    {genre:"2RSCO", family:"moto", label:{fr:"Scooter ≤ 125cm³ (2RSCO)",en:"Scooter ≤ 125cc (2RSCO)"}}
+  ];
+  var AAS_TIERS = {
+    mono: [
+      {key:"RC_SEULE", extra:0, label:{fr:"Tiers seul",en:"Third-party only"}, cov:{fr:"Responsabilité civile de base",en:"Basic third-party liability"}},
+      {key:"VOL_INCENDIE", extra:5000, label:{fr:"Tiers + vol et incendie",en:"Third-party + theft & fire"}, cov:{fr:"+ Vol, incendie",en:"+ Theft, fire"}},
+      {key:"TOUS_RISQUES", extra:12500, label:{fr:"Tous risques",en:"Comprehensive"}, cov:{fr:"+ Vol, incendie, bris de glace, tierce collision, tierce complète",en:"+ Theft, fire, glass breakage, third-party & full collision cover"}}
+    ],
+    moto: [
+      {key:"RC_SEULE", extra:0, label:{fr:"Tiers seul",en:"Third-party only"}, cov:{fr:"Responsabilité civile de base",en:"Basic third-party liability"}},
+      {key:"CONDUCTEUR_PASSAGER", extra:2500, label:{fr:"Tiers + conducteur et passager",en:"Third-party + driver & passenger"}, cov:{fr:"+ Conducteur et passager",en:"+ Driver and passenger"}},
+      {key:"TOUS_RISQUES_MOTO", extra:7500, label:{fr:"Tous risques (moto)",en:"Comprehensive (moto)"}, cov:{fr:"+ Conducteur et passager, vol, défense et recours",en:"+ Driver & passenger, theft, legal defense"}}
+    ]
+  };
+  // Deterministic fake pricing (base + engine-size factor + duration) -
+  // not a claim about AAS's real rating formula, same disclaimer the
+  // actual aasStandIn.js carries for its own fake premium.
+  function aasBasePremium(f, family){
+    var base = family === "moto" ? 14000 : 16000;
+    var perMonth = f.periodicite === "MOIS" ? 700 : 25;
+    var engineFactor = family === "moto" ? (parseInt(f.cylindre,10)||0)*10 : (parseInt(f.puissanceFiscale,10)||0)*350;
+    return base + engineFactor + perMonth*(parseInt(f.duree,10)||0);
+  }
+  var AAS_POLICIES = [
+    {id:"ap1", genre:"VP", immatriculation:"DK-1234-AA", tierKey:"VOL_INCENDIE", family:"mono", premium:29100, status:"ACTIVE"},
+    {id:"ap2", genre:"2RMOT", immatriculation:"DK-0000-MT", tierKey:"RC_SEULE", family:"moto", premium:19300, status:"FAILED",
+      error:{fr:"Stock de QR code insuffisant. Merci de passer votre commande de QR.",en:"Insufficient QR code stock. Please place a QR order."}}
+  ];
+
   var BILLERS = ["senelec","sde","canal"];
   var BILLER_ICONS = {senelec:"💡", sde:"🚰", canal:"📺"};
   var OPERATORS = ["Orange","Free","Expresso"];
@@ -770,6 +845,12 @@
     deliveryForm: {from:"", to:"", pkg:"document"},
     rideForm: {from:"", to:"", vehicle:"moto"},
     insurancePolicies: [],
+    aasStep: 0,
+    aasForm: {genre:"", energie:"ESSENCE", periodicite:"MOIS", duree:12, puissanceFiscale:"", cylindre:"", usage:"NON_COMMERCIAL", nombrePlace:""},
+    aasQuotes: null,
+    aasTierKey: null,
+    aasIssuance: {immatriculation:"", chassis:"", marque:"", modele:"", dateMiseCirculation:"", nom:"", prenom:"", cellulaire:"", email:""},
+    aasResult: null,
     topupTab: "airtime",
     airtimeForm: {phone:"", operator:"Orange", amount:1000},
     billForm: {biller:"senelec", account:"", amount:5000},
@@ -1324,6 +1405,15 @@
   function renderInsurance(){
     document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("insurance.title"), back:true});
     document.getElementById("tabbar-slot").innerHTML = "";
+    var promo = '<div class="reqcard" style="border-color:var(--purple);margin:14px 18px 4px">'
+      + '<div style="display:flex;align-items:center;gap:10px">'
+      + '<span style="font-size:26px">🚗</span>'
+      + '<div style="flex:1"><div style="font-weight:800;font-size:13px">'+t("insurance.auto.promoTitle")+'</div>'
+      + '<div style="font-size:11.5px;color:var(--ink-dim);margin-top:2px">'+t("insurance.auto.promoSubtitle")+'</div></div>'
+      + '</div>'
+      + '<button class="btn btn-primary btn-block btn-sm" style="margin-top:10px;background:var(--purple)" data-act="goto" data-screen="insurance-auto">'+t("insurance.auto.promoCta")+'</button>'
+      + '<button class="btn btn-text btn-block btn-sm" data-act="goto" data-screen="insurance-auto-policies">'+t("insurance.auto.myPolicies")+'</button>'
+    + '</div>';
     var cards = INSURANCE_PLANS.map(function(p){
       var active = state.insurancePolicies.indexOf(p.id) !== -1;
       return '<div class="plancard"><div class="n">'+p.icon+' '+p.name[state.lang]+'</div><div class="prov">'+p.provider+'</div>'
@@ -1331,7 +1421,128 @@
         + (active ? '<span class="chip chip-done">'+t("status.confirmed")+'</span>' : '<button class="btn btn-primary btn-sm" data-act="subscribe" data-id="'+p.id+'">'+t("insurance.subscribe")+'</button>')
         + '</div><div class="cov">'+p.cover[state.lang]+'</div></div>';
     }).join("");
-    document.getElementById("body").innerHTML = '<div class="fade-enter" style="padding-top:14px">'+cards+'</div><div style="height:14px"></div>';
+    document.getElementById("body").innerHTML = '<div class="fade-enter">'+promo+'<div style="padding-top:14px">'+cards+'</div></div><div style="height:14px"></div>';
+  }
+
+  function aasFamily(){
+    var g = AAS_GENRES.filter(function(x){return x.genre===state.aasForm.genre;})[0];
+    return g ? g.family : "mono";
+  }
+  function aasCanCompare(){
+    var f = state.aasForm;
+    if (!f.genre || !f.duree) return false;
+    var family = aasFamily();
+    return family === "moto" ? (f.cylindre !== "" && f.nombrePlace !== "") : (f.puissanceFiscale !== "");
+  }
+  function aasCanPurchase(){
+    var i = state.aasIssuance;
+    return i.immatriculation && i.chassis && i.marque && i.modele && i.dateMiseCirculation && i.nom && i.prenom;
+  }
+
+  function renderInsuranceAuto(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("insurance.auto.title"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var body = "";
+    var family = aasFamily();
+
+    if (state.aasStep === 0){
+      var f = state.aasForm;
+      var genreChips = AAS_GENRES.map(function(g){
+        return '<button class="chipbtn" data-act="aasgenre" data-v="'+g.genre+'" aria-pressed="'+(f.genre===g.genre)+'">'+g.label[state.lang]+'</button>';
+      }).join("");
+      body = '<div class="formwrap tinted-pink fade-enter">'
+        + '<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+t("insurance.auto.step1Title")+'</div>'
+        + '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:14px">'+t("insurance.auto.step1Subtitle")+'</div>'
+        + '<div class="field"><label>'+t("insurance.auto.genre")+'</label><div class="chiprow">'+genreChips+'</div></div>'
+        + '<div class="field"><label>'+t("insurance.auto.energie")+'</label><div class="chiprow">'
+          + '<button class="chipbtn" data-act="aasenergie" data-v="ESSENCE" aria-pressed="'+(f.energie==="ESSENCE")+'">'+t("insurance.auto.essence")+'</button>'
+          + '<button class="chipbtn" data-act="aasenergie" data-v="DIESEL" aria-pressed="'+(f.energie==="DIESEL")+'">'+t("insurance.auto.diesel")+'</button>'
+        + '</div></div>'
+        + '<div class="field"><label>'+t("insurance.auto.periodicite")+'</label><div class="chiprow">'
+          + '<button class="chipbtn" data-act="aasperiodicite" data-v="MOIS" aria-pressed="'+(f.periodicite==="MOIS")+'">'+t("insurance.auto.mois")+'</button>'
+          + '<button class="chipbtn" data-act="aasperiodicite" data-v="JOUR" aria-pressed="'+(f.periodicite==="JOUR")+'">'+t("insurance.auto.jour")+'</button>'
+        + '</div></div>'
+        + '<div class="field"><label>'+t("insurance.auto.duree")+'</label><input data-bind="aasForm.duree" value="'+f.duree+'" inputmode="numeric"></div>'
+        + (family === "moto"
+          ? '<div class="field"><label>'+t("insurance.auto.cylindre")+'</label><input data-bind="aasForm.cylindre" value="'+f.cylindre+'" inputmode="numeric" placeholder="125"></div>'
+            + '<div class="field"><label>'+t("insurance.auto.usage")+'</label><div class="chiprow">'
+              + '<button class="chipbtn" data-act="aasusage" data-v="NON_COMMERCIAL" aria-pressed="'+(f.usage==="NON_COMMERCIAL")+'">'+t("insurance.auto.nonCommercial")+'</button>'
+              + '<button class="chipbtn" data-act="aasusage" data-v="COMMERCIAL" aria-pressed="'+(f.usage==="COMMERCIAL")+'">'+t("insurance.auto.commercial")+'</button>'
+            + '</div></div>'
+            + '<div class="field"><label>'+t("insurance.auto.nombrePlace")+'</label><input data-bind="aasForm.nombrePlace" value="'+f.nombrePlace+'" inputmode="numeric" placeholder="2"></div>'
+          : (f.genre ? '<div class="field"><label>'+t("insurance.auto.puissanceFiscale")+'</label><input data-bind="aasForm.puissanceFiscale" value="'+f.puissanceFiscale+'" inputmode="numeric" placeholder="14"></div>' : ''))
+        + '<button class="btn btn-primary btn-block" style="background:var(--purple)" data-act="aascompare">'+t("insurance.auto.compareBtn")+'</button>'
+      + '</div>';
+    } else if (state.aasStep === 1 && state.aasQuotes){
+      var tierCards = state.aasQuotes.map(function(q){
+        return '<div class="plancard"><div class="n">'+q.tier.label[state.lang]+'</div><div class="cov">'+q.tier.cov[state.lang]+'</div>'
+          + '<div class="row"><span class="price" style="font-size:16px">'+money(q.premium)+'</span>'
+          + '<button class="btn btn-primary btn-sm" style="background:var(--purple)" data-act="aasselecttier" data-key="'+q.tier.key+'">'+t("insurance.auto.selectTier")+'</button></div></div>';
+      }).join("");
+      body = '<div class="fade-enter" style="padding-top:14px">'
+        + '<div style="font-weight:800;font-size:14px;margin:0 18px 10px">'+t("insurance.auto.step2Title")+'</div>'
+        + tierCards
+        + '<button class="btn btn-text btn-block" data-act="aasstepback" data-step="0">'+t("insurance.auto.backToVehicle")+'</button>'
+      + '</div>';
+    } else if (state.aasStep === 2){
+      var tier = AAS_TIERS[family].filter(function(x){return x.key===state.aasTierKey;})[0];
+      var quote = (state.aasQuotes||[]).filter(function(x){return x.tier.key===state.aasTierKey;})[0];
+      var iss = state.aasIssuance;
+      body = '<div class="formwrap tinted-pink fade-enter">'
+        + '<div style="font-weight:800;font-size:14px">'+t("insurance.auto.step3Title")+'</div>'
+        + '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:14px">'+(tier?tier.label[state.lang]:"")+' · '+money(quote?quote.premium:0)+'</div>'
+        + '<div class="field"><label>'+t("insurance.auto.immatriculation")+'</label><input data-bind="aasIssuance.immatriculation" value="'+iss.immatriculation+'" placeholder="DK-1234-AA"></div>'
+        + '<div class="field"><label>'+t("insurance.auto.chassis")+'</label><input data-bind="aasIssuance.chassis" value="'+iss.chassis+'"></div>'
+        + '<div class="field rowfield"><div style="flex:1"><label>'+t("insurance.auto.marque")+'</label><input data-bind="aasIssuance.marque" value="'+iss.marque+'"></div>'
+          + '<div style="flex:1"><label>'+t("insurance.auto.modele")+'</label><input data-bind="aasIssuance.modele" value="'+iss.modele+'"></div></div>'
+        + '<div class="field"><label>'+t("insurance.auto.dateMiseCirculation")+'</label><input type="date" data-bind="aasIssuance.dateMiseCirculation" value="'+iss.dateMiseCirculation+'"></div>'
+        + '<div class="field rowfield"><div style="flex:1"><label>'+t("insurance.auto.nom")+'</label><input data-bind="aasIssuance.nom" value="'+iss.nom+'"></div>'
+          + '<div style="flex:1"><label>'+t("insurance.auto.prenom")+'</label><input data-bind="aasIssuance.prenom" value="'+iss.prenom+'"></div></div>'
+        + '<div class="field rowfield"><div style="flex:1"><label>'+t("insurance.auto.cellulaire")+'</label><input data-bind="aasIssuance.cellulaire" value="'+iss.cellulaire+'"></div>'
+          + '<div style="flex:1"><label>'+t("insurance.auto.email")+'</label><input data-bind="aasIssuance.email" value="'+iss.email+'"></div></div>'
+        + '<button class="btn btn-primary btn-block" style="background:var(--purple)" data-act="aaspurchase">'+t("insurance.auto.payBtn")+'</button>'
+        + '<button class="btn btn-text btn-block" data-act="aasstepback" data-step="1">'+t("insurance.auto.backToComparison")+'</button>'
+      + '</div>';
+    } else if (state.aasStep === 3 && state.aasResult){
+      var r = state.aasResult;
+      body = '<div class="fade-enter" style="padding:30px 24px;text-align:center">'
+        + '<div style="font-size:52px;margin-bottom:6px">'+(r.status==="ACTIVE"?"✅":"❌")+'</div>'
+        + '<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+(r.status==="ACTIVE"?t("insurance.auto.success"):t("insurance.auto.failureTitle"))+'</div>'
+        + '<div style="font-size:12.5px;color:var(--ink-dim);margin-bottom:18px">'+(r.status==="ACTIVE"?t("insurance.auto.successBody"):t("insurance.auto.failureBody"))+'</div>'
+        + (r.status==="ACTIVE"
+          ? '<button class="btn btn-primary" style="background:var(--purple)" data-act="goto" data-screen="insurance-auto-policies">'+t("insurance.auto.viewPolicies")+'</button>'
+          : '<button class="btn btn-primary" style="background:var(--purple)" data-act="goto" data-screen="insurance-auto-policies">'+t("insurance.auto.viewPolicies")+'</button>')
+      + '</div>';
+    }
+    document.getElementById("body").innerHTML = body;
+  }
+
+  function aasPolicyCardHTML(p){
+    var tierList = AAS_TIERS[p.family||"mono"] || AAS_TIERS.mono;
+    var tier = tierList.filter(function(x){return x.key===p.tierKey;})[0];
+    return '<div class="reqcard"><div class="route">'+p.genre+' · '+p.immatriculation+'</div>'
+      + '<div class="row"><span style="font-size:11.5px;color:var(--ink-dim)">'+(tier?tier.label[state.lang]:p.tierKey)+'</span>'
+        + '<span class="chip '+(p.status==="ACTIVE"?"chip-done":p.status==="FAILED"?"chip-cancelled":p.status==="CANCELLED"?"chip-cancelled":"chip-pending")+'">'+t("insurance.auto.status."+p.status)+'</span></div>'
+      + '<div class="row"><span style="font-weight:800;font-size:13px">'+money(p.premium)+'</span>'
+        + (p.status==="FAILED" ? '<button class="btn btn-text btn-sm" data-act="aasretry" data-id="'+p.id+'">'+t("insurance.auto.retry")+'</button>' : '')
+        + (p.status==="ACTIVE" ? '<button class="btn btn-text danger btn-sm" data-act="aascancel" data-id="'+p.id+'">'+t("insurance.auto.cancel")+'</button>' : '')
+      + '</div>'
+      + (p.status==="FAILED" && p.error ? '<div style="margin-top:6px;padding:8px;background:var(--red-soft);border-radius:8px;font-size:11px;color:#B91C1C">'+p.error[state.lang]+'</div>' : '')
+    + '</div>';
+  }
+
+  function renderInsuranceAutoPolicies(){
+    document.getElementById("topbar-slot").innerHTML = topbarHTML({title:t("insurance.auto.myPolicies"), back:true});
+    document.getElementById("tabbar-slot").innerHTML = "";
+    var body = '<div style="padding:14px 18px 0">'
+      + '<button class="btn btn-outline btn-block" data-act="aasreset">'+t("insurance.auto.getNewQuote")+'</button>'
+    + '</div>';
+    if (!AAS_POLICIES.length){
+      body += '<div class="empty fade-enter"><div class="glyph">🚗</div><p>'+t("insurance.auto.empty")+'</p></div>';
+    } else {
+      body += '<div style="padding-top:12px">' + AAS_POLICIES.map(aasPolicyCardHTML).join("") + '</div>';
+    }
+    document.getElementById("body").innerHTML = '<div class="fade-enter">'+body+'</div><div style="height:14px"></div>';
   }
 
   function renderTopup(){
@@ -1489,7 +1700,8 @@
     driver: function(){ dispatchScreen("driver"); },
     restaurants: renderRestaurants, restaurant: renderRestaurant,
     delivery: renderDelivery, ride: renderRide,
-    insurance: renderInsurance, topup: renderTopup,
+    insurance: renderInsurance, "insurance-auto": renderInsuranceAuto, "insurance-auto-policies": renderInsuranceAutoPolicies,
+    topup: renderTopup,
     anando: renderAnando, "anando-post": renderAnandoPost, "anando-book": renderAnandoBook,
     notifications: renderNotifications
   };
@@ -1629,6 +1841,72 @@
       if (state.insurancePolicies.indexOf(pid)===-1) state.insurancePolicies.push(pid);
       toast(t("insurance.activated"));
       render();
+      return;
+    }
+
+    /* -------- AAS auto insurance -------- */
+    if (act === "aasgenre"){
+      state.aasForm.genre = el.getAttribute("data-v");
+      state.aasForm.puissanceFiscale = ""; state.aasForm.cylindre = ""; state.aasForm.nombrePlace = "";
+      render();
+      return;
+    }
+    if (act === "aasenergie"){ state.aasForm.energie = el.getAttribute("data-v"); render(); return; }
+    if (act === "aasperiodicite"){ state.aasForm.periodicite = el.getAttribute("data-v"); render(); return; }
+    if (act === "aasusage"){ state.aasForm.usage = el.getAttribute("data-v"); render(); return; }
+    if (act === "aascompare"){
+      if (!aasCanCompare()){ toast(state.lang==="fr"?"Veuillez compléter le formulaire":"Please complete the form"); return; }
+      var fam = aasFamily();
+      state.aasQuotes = AAS_TIERS[fam].map(function(tier){
+        return { tier: tier, premium: aasBasePremium(state.aasForm, fam) + tier.extra };
+      });
+      state.aasStep = 1;
+      render();
+      return;
+    }
+    if (act === "aasselecttier"){
+      state.aasTierKey = el.getAttribute("data-key");
+      state.aasStep = 2;
+      render();
+      return;
+    }
+    if (act === "aasstepback"){ state.aasStep = parseInt(el.getAttribute("data-step"),10); render(); return; }
+    if (act === "aaspurchase"){
+      if (!aasCanPurchase()){ toast(state.lang==="fr"?"Veuillez remplir les champs obligatoires":"Please fill in the required fields"); return; }
+      var fam2 = aasFamily();
+      var quote = (state.aasQuotes||[]).filter(function(x){return x.tier.key===state.aasTierKey;})[0];
+      var premium = quote ? quote.premium : 0;
+      var newPolicy = {
+        id: "ap"+Date.now(), genre: state.aasForm.genre, immatriculation: state.aasIssuance.immatriculation,
+        tierKey: state.aasTierKey, family: fam2, premium: premium, status: "ACTIVE"
+      };
+      AAS_POLICIES.unshift(newPolicy);
+      state.aasResult = {status:"ACTIVE", policy:newPolicy};
+      state.aasStep = 3;
+      toast(t("insurance.auto.success"));
+      render();
+      return;
+    }
+    if (act === "aasretry"){
+      var rid = el.getAttribute("data-id");
+      var rp = AAS_POLICIES.filter(function(x){return x.id===rid;})[0];
+      if (rp){ rp.status = "ACTIVE"; rp.error = null; }
+      toast(t("insurance.auto.success"));
+      render();
+      return;
+    }
+    if (act === "aascancel"){
+      var cid2 = el.getAttribute("data-id");
+      var cp2 = AAS_POLICIES.filter(function(x){return x.id===cid2;})[0];
+      if (cp2) cp2.status = "CANCELLED";
+      render();
+      return;
+    }
+    if (act === "aasreset"){
+      state.aasStep = 0; state.aasQuotes = null; state.aasTierKey = null; state.aasResult = null;
+      state.aasForm = {genre:"", energie:"ESSENCE", periodicite:"MOIS", duree:12, puissanceFiscale:"", cylindre:"", usage:"NON_COMMERCIAL", nombrePlace:""};
+      state.aasIssuance = {immatriculation:"", chassis:"", marque:"", modele:"", dateMiseCirculation:"", nom:"", prenom:"", cellulaire:"", email:""};
+      nav("insurance-auto");
       return;
     }
 

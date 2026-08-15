@@ -8,6 +8,7 @@ const authRoutes = require("./modules/auth/auth.routes");
 const ecommerceRoutes = require("./modules/ecommerce/ecommerce.routes");
 const deliveryRoutes = require("./modules/delivery/delivery.routes");
 const insuranceRoutes = require("./modules/insurance/insurance.routes");
+const aasRoutes = require("./modules/insurance/aas.routes");
 const restaurantRoutes = require("./modules/restaurant/restaurant.routes");
 const rideshareRoutes = require("./modules/rideshare/rideshare.routes");
 const mobileRoutes = require("./modules/mobile/mobile.routes");
@@ -58,6 +59,7 @@ app.get("/api/modules/status", async (req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/ecommerce", requireModuleEnabled("ecommerce"), ecommerceRoutes);
 app.use("/api/delivery", requireModuleEnabled("delivery"), deliveryRoutes);
+app.use("/api/insurance/auto", requireModuleEnabled("insurance"), aasRoutes);
 app.use("/api/insurance", requireModuleEnabled("insurance"), insuranceRoutes);
 app.use("/api/restaurants", requireModuleEnabled("restaurant"), restaurantRoutes);
 app.use("/api/rideshare", requireModuleEnabled("rideshare"), rideshareRoutes);

@@ -21,6 +21,7 @@ datasource db {
 enum UserRole {
   CUSTOMER
   VENDOR
+  RESTAURANT_OWNER
   RIDER
   DELIVERY_AGENT
   ADMIN
@@ -40,31 +41,33 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  addresses          Address[]
-  cartItems          CartItem[]
-  orders             Order[]
-  wishlist           Wishlist[]
-  reviews            Review[]
-  deliveryRequests   DeliveryRequest[]   @relation("DeliveryRequester")
-  insurancePolicies  InsurancePolicy[]
-  rideRequests       RideRequest[]       @relation("RideRequester")
-  restaurantOrders   RestaurantOrder[]
-  mobileTransactions MobileTransaction[]
-  payments           Payment[]
-  wallet             Wallet?
+  addresses             Address[]
+  cartItems             CartItem[]
+  orders                Order[]
+  wishlist              Wishlist[]
+  reviews               Review[]
+  deliveryRequests      DeliveryRequest[]     @relation("DeliveryRequester")
+  insurancePolicies     InsurancePolicy[]
+  insuranceAutoPolicies InsuranceAutoPolicy[]
+  rideRequests          RideRequest[]         @relation("RideRequester")
+  restaurantOrders      RestaurantOrder[]
+  mobileTransactions    MobileTransaction[]
+  payments              Payment[]
+  wallet                Wallet?
   // Opt-in gig work / selling: any user can self-serve into role
   // DELIVERY_AGENT, RIDER, or VENDOR (see PATCH /api/auth/role). role isn't
   // checked anywhere else in the app, so this doesn't affect their ability
   // to keep shopping/ordering as a customer too.
-  assignedDeliveries DeliveryRequest[]   @relation("DeliveryAgent")
-  assignedRides      RideRequest[]       @relation("AssignedRider")
-  store              Store?              @relation("StoreOwner")
+  assignedDeliveries    DeliveryRequest[]     @relation("DeliveryAgent")
+  assignedRides         RideRequest[]         @relation("AssignedRider")
+  store                 Store?                @relation("StoreOwner")
+  restaurant            Restaurant?           @relation("RestaurantOwner")
   // Anando (peer-to-peer carpooling) - any user can post a ride they're
   // already making (as driver) and/or book a seat on someone else's (as
   // passenger); this is independent of the RIDER gig-work role above.
-  ridePostings       RidePosting[]       @relation("RidePostingDriver")
-  rideBookings       RideBooking[]       @relation("RideBookingPassenger")
-  notifications      Notification[]
+  ridePostings          RidePosting[]         @relation("RidePostingDriver")
+  rideBookings          RideBooking[]         @relation("RideBookingPassenger")
+  notifications         Notification[]
 }
 
 model OtpCode {
@@ -117,6 +120,10 @@ model Store {
   lat      Float?
   lng      Float?
   rating   Float     @default(0)
+  // Admin suspension switch (see AdminVendorsTab.js): suspended stores'
+  // products drop out of every public product listing and the storefront
+  // shows an "unavailable" state, without deleting the vendor's data.
+  isActive Boolean   @default(true)
   // Nullable + unique: null for admin/seed-managed stores (no self-service
   // owner), unique among non-null values so a vendor can own at most one
   // store (Postgres unique constraints allow any number of NULLs).
@@ -247,9 +254,18 @@ enum DeliveryStatus {
 model DeliveryRequest {
   id              String         @id @default(uuid())
   userId          String
+  // Contact details for whoever's handing off / receiving the package -
+  // may differ from the requesting account (e.g. sending a package on
+  // someone else's behalf). Nullable: falls back to the requester's own
+  // User.name/phone at read time (see delivery.controller.js) rather than
+  // duplicating them here when the requester is also the sender.
+  senderName      String?
+  senderPhone     String?
   pickupAddress   String
   pickupLat       Float?
   pickupLng       Float?
+  receiverName    String?
+  receiverPhone   String?
   dropoffAddress  String
   dropoffLat      Float?
   dropoffLng      Float?
@@ -257,10 +273,21 @@ model DeliveryRequest {
   priceEstimate   Decimal?       @db.Decimal(10, 2)
   status          DeliveryStatus @default(REQUESTED)
   assignedAgentId String?
+  // Agent's last-reported GPS position while this job is ACCEPTED/PICKED_UP
+  // (see PATCH /delivery/jobs/:id/location) - powers the customer-facing
+  // live tracking map. Stays at its last value after DELIVERED rather than
+  // being cleared, as a cheap "where did it end up" record.
+  agentLat        Float?
+  agentLng        Float?
+  agentLocationAt DateTime?
   createdAt       DateTime       @default(now())
 
-  user          User  @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
-  assignedAgent User? @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
+  user            User             @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
+  assignedAgent   User?            @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
+  // Back-relation for RestaurantOrder.deliveryRequestId - lets a dispatched
+  // restaurant order's DeliveryRequest be traced back to it (see
+  // markDelivered's status cascade in delivery.controller.js).
+  restaurantOrder RestaurantOrder?
 
   @@index([assignedAgentId])
 }
@@ -307,19 +334,144 @@ model InsurancePolicy {
   plan InsurancePlan @relation(fields: [planId], references: [id])
 }
 
+// Auto insurance bought through a real external integrator (A.A.S "Assurance
+// Digitale" - see server/src/modules/insurance/aas.controller.js and
+// server/docs/aas-integration.md), not the static InsurancePlan catalog
+// above. Deliberately a separate model: the lifecycle (quote -> pay ->
+// issue-with-a-real-underwriter, which can fail after payment) and the
+// fields it needs (vehicle identifiers, guarantee codes, a partner
+// reference AAS enforces uniqueness on, the issued attestation link) don't
+// fit the flat "subscribe to a static plan" shape InsurancePolicy has.
+enum InsuranceAutoStatus {
+  PENDING // quote accepted, not yet paid
+  ISSUING // wallet debited, AAS issuance call in flight or just failed before we could record why
+  ACTIVE // AAS returned a real attestation link - the only way this status is ever set
+  FAILED // AAS could not price/issue; wallet refunded if it had been debited
+  CANCELLED // a previously ACTIVE policy was cancelled (qrcode.mono.cancel)
+}
+
+model InsuranceAutoPolicy {
+  id          String @id @default(uuid())
+  userId      String
+  // Kept as a plain string, not a relation, so a second real integrator
+  // slots in later without a schema change - the comparison engine already
+  // shapes quotes as { companyCode, tier, premium, ... } for exactly this.
+  companyCode String @default("AAS")
+  // Key into AAS_TIER_GARANTIES/AAS_MOTO_TIER_GARANTIES (see
+  // server/src/constants/aasGuarantees.js) at the time of purchase - which
+  // guarantee codes a tier actually buys can change over time, so the
+  // codes actually purchased are captured below independently of this key.
+  tier        String
+
+  // Vehicle identifiers AAS's live API reads unconditionally (see the
+  // integration notes: "optional" in the PDF means "may be empty", not
+  // "may be omitted" - chassis/immatriculation are always sent, so they're
+  // always known here too).
+  genre               String
+  energie             String
+  immatriculation     String
+  chassis             String
+  // puissanceFiscale (mono, rc.request/qrcode.request) and cylindre (deux
+  // roues, rc.moto/moto.request) are mutually exclusive per vehicleType -
+  // both nullable since a given policy only ever uses one. Confirmed
+  // fields from the PDF's section 5.1/5.2/6.1/6.2 request-param tables.
+  puissanceFiscale    String?
+  cylindre            Int?
+  nombrePlace         Int
+  dateMiseCirculation DateTime
+  modele              String
+  marque              String
+  valeurNeuve         Decimal? @db.Decimal(12, 2)
+  valeurActuelle      Decimal? @db.Decimal(12, 2)
+  // "commerciale"/"non_commerciale" per section 3.3.6's metadata table vs.
+  // "COMMERCIAL"/"NON_COMMERCIAL" per section 6.1's rc.moto request-param
+  // table - the PDF disagrees with itself; aasClient.js sends the 6.1
+  // spelling since that's the literal request-body spec. Deux roues only.
+  usage               String?
+
+  typePersonne String
+  // {nom, prenom, cellulaire, email} each - confirmed shape from
+  // qrcode.request/moto.request's souscripteur/assure Objet tables (PDF
+  // section 5.2/6.2). Kept as JSON rather than 8 more flat columns since
+  // nothing here needs to be queried/filtered on.
+  souscripteur Json
+  assure       Json
+
+  // Guarantee codes 1-9 actually purchased (base RC/Responsabilité Civile
+  // is implicit, always priced); garantiesOptPT is required by AAS's live
+  // API whenever garanties contains code 2, else HTTP 400 - see
+  // aasClient.js. Codes 4 (avance/recours) and the assistance option are
+  // deliberately never populated - the integration notes flag both as
+  // "not sold today" / needing AAS clarification first.
+  garanties      Int[]
+  garantiesOptPT String?
+
+  periodicite String
+  duree       Int
+
+  // What the comparison screen quoted vs. what AAS actually charged at
+  // issuance - "Never sell what cannot be issued" means these should
+  // always match, but they're tracked separately so a mismatch is visible
+  // rather than silently trusted.
+  premiumEstimate Decimal  @db.Decimal(10, 2)
+  premiumCharged  Decimal? @db.Decimal(10, 2)
+
+  status InsuranceAutoStatus @default(PENDING)
+
+  // AAS rejects a reused reference outright ("La reference doit être
+  // unique"), including after a failed attempt - a retry must carry a
+  // fresh one. This is the base value; retries append -R1, -R2 per
+  // fulfillmentAttempts (see issueMonoPolicy in aas.controller.js).
+  // Retrying is refused once linkAttestation is set, which is what stops
+  // a second attestation being bought for one order.
+  referenceTrxPartner String @unique
+  fulfillmentAttempts Int    @default(0)
+
+  // AAS's live issuance response has no attestationNumber field (despite
+  // the PDF listing one) - only this link, which ends in the number.
+  linkAttestation String?
+
+  // Set on FAILED so "AAS refused the payload" and "we never sent the
+  // field" stay distinguishable - see requestSnapshot/responseSnapshot.
+  fulfillmentError     String?
+  fulfillmentErrorCode String?
+  // Full rating payload sent (incl. souscripteur/assure, not modeled as
+  // their own columns since they're pass-through to AAS) and AAS's raw
+  // response, for support/ops when a failure needs investigating.
+  requestSnapshot      Json?
+  responseSnapshot     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 // ---------- Restaurant module (stub) ----------
 
 model Restaurant {
-  id      String  @id @default(uuid())
-  name    String
-  slug    String  @unique
-  logoUrl String?
-  cuisine String?
-  rating  Float   @default(0)
-  address String?
-  lat     Float?
-  lng     Float?
+  id       String  @id @default(uuid())
+  name     String
+  slug     String  @unique
+  logoUrl  String?
+  cuisine  String?
+  rating   Float   @default(0)
+  address  String?
+  lat      Float?
+  lng      Float?
+  // Admin suspension switch (see AdminRestaurantsTab.js) - same pattern as
+  // Store.isActive: a suspended restaurant drops out of public browsing
+  // and its page shows an "unavailable" state, without deleting the
+  // owner's menu/order history.
+  isActive Boolean @default(true)
+  // Nullable + unique: null for admin/seed-managed restaurants (no self-
+  // service owner), unique among non-null values so a restaurant owner
+  // runs at most one restaurant (mirrors Store.ownerId).
+  ownerId  String? @unique
 
+  owner     User?             @relation("RestaurantOwner", fields: [ownerId], references: [id])
   menuItems MenuItem[]
   orders    RestaurantOrder[]
 }
@@ -332,6 +484,10 @@ model MenuItem {
   price        Decimal @db.Decimal(10, 2)
   imageUrl     String?
   category     String?
+  // Soft delete, mirrors Product.isActive - existing order line items
+  // reference a menu item by id, so removing one from the menu flips
+  // this off instead of deleting the row.
+  isActive     Boolean @default(true)
 
   restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   orderItems RestaurantOrderItem[]
@@ -341,17 +497,34 @@ model MenuItem {
 // persistent server-side cart, unlike the ecommerce module) - the client
 // builds the item list locally and submits it as one request.
 model RestaurantOrder {
-  id           String      @id @default(uuid())
-  userId       String
-  restaurantId String
-  status       OrderStatus @default(PENDING)
-  total        Decimal     @db.Decimal(10, 2)
-  note         String?
-  createdAt    DateTime    @default(now())
+  id                String      @id @default(uuid())
+  userId            String
+  restaurantId      String
+  status            OrderStatus @default(PENDING)
+  total             Decimal     @db.Decimal(10, 2)
+  note              String?
+  // Tracked separately from fulfillment status, same split as Order.paid -
+  // only true once wallet payment settles at checkout (see
+  // orders.controller.js's createOrder).
+  paid              Boolean     @default(false)
+  // Where this order gets delivered - required at checkout. This module
+  // is delivery-only for now (no in-app "pickup at restaurant" option),
+  // so every order needs a real dropoff to hand to the delivery module.
+  deliveryAddress   String?
+  deliveryLat       Float?
+  deliveryLng       Float?
+  // Set once the restaurant marks the order ready and a DeliveryRequest is
+  // auto-created for it, so it travels through the same agent dispatch
+  // board as any other package delivery (see dispatchForDelivery in
+  // orders.controller.js). Nullable/unique: null until dispatched, at
+  // most one DeliveryRequest per order.
+  deliveryRequestId String?     @unique
+  createdAt         DateTime    @default(now())
 
-  user       User                  @relation(fields: [userId], references: [id])
-  restaurant Restaurant            @relation(fields: [restaurantId], references: [id])
-  items      RestaurantOrderItem[]
+  user            User                  @relation(fields: [userId], references: [id])
+  restaurant      Restaurant            @relation(fields: [restaurantId], references: [id])
+  deliveryRequest DeliveryRequest?      @relation(fields: [deliveryRequestId], references: [id])
+  items           RestaurantOrderItem[]
 }
 
 model RestaurantOrderItem {

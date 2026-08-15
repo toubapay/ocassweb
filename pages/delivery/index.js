@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
@@ -9,30 +9,47 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+import Divider from "@mui/material/Divider";
 import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import TopBar from "../../src/components/layout/TopBar";
+import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
+import LiveTrackingMap from "../../src/components/maps/LiveTrackingMap";
 import useAuth from "../../src/hooks/useAuth";
 import { fetchDeliveryRequests, createDeliveryRequest, cancelDeliveryRequest } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
 
+const TRACKABLE_STATUSES = ["ACCEPTED", "PICKED_UP"];
+
 export default function Delivery() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
+
+  const [senderName, setSenderName] = useState("");
+  const [senderPhone, setSenderPhone] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupCoords, setPickupCoords] = useState(null);
+  const [receiverName, setReceiverName] = useState("");
+  const [receiverPhone, setReceiverPhone] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
+  const [dropoffCoords, setDropoffCoords] = useState(null);
   const [packageNote, setPackageNote] = useState("");
+
+  // Prefill sender contact from the logged-in account - editable, since
+  // the requester may be sending on someone else's behalf.
+  useEffect(() => {
+    if (user && !senderName && !senderPhone) {
+      setSenderName(user.name || "");
+      setSenderPhone(user.phone || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const { data: requests } = useQuery("delivery-requests", fetchDeliveryRequests, {
     enabled: isAuthenticated,
   });
 
-  // There's no geocoding/maps integration in this app (no API key
-  // configured), so a typed address never has coordinates on its own -
-  // this is the one way to get a real pickup point for distance-based
-  // pricing. Dropoff stays address-text-only until a map picker exists.
   const useMyLocation = () => {
     if (!navigator.geolocation) {
       toast.error(t("delivery.locationError"));
@@ -50,10 +67,16 @@ export default function Delivery() {
   const mutation = useMutation(
     () =>
       createDeliveryRequest({
+        senderName: senderName || undefined,
+        senderPhone: senderPhone || undefined,
         pickupAddress,
         pickupLat: pickupCoords?.lat,
         pickupLng: pickupCoords?.lng,
+        receiverName,
+        receiverPhone,
         dropoffAddress,
+        dropoffLat: dropoffCoords?.lat,
+        dropoffLng: dropoffCoords?.lng,
         packageNote,
       }),
     {
@@ -62,10 +85,13 @@ export default function Delivery() {
         queryClient.invalidateQueries("delivery-requests");
         setPickupAddress("");
         setPickupCoords(null);
+        setReceiverName("");
+        setReceiverPhone("");
         setDropoffAddress("");
+        setDropoffCoords(null);
         setPackageNote("");
       },
-      onError: () => toast.error(t("delivery.couldNotCreate")),
+      onError: (err) => toast.error(err.response?.data?.message || t("delivery.couldNotCreate")),
     }
   );
 
@@ -87,6 +113,10 @@ export default function Delivery() {
       toast.error(t("delivery.enterAddresses"));
       return;
     }
+    if (!receiverName.trim() || !receiverPhone.trim()) {
+      toast.error(t("delivery.enterReceiver"));
+      return;
+    }
     mutation.mutate();
   };
 
@@ -98,12 +128,39 @@ export default function Delivery() {
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
           {t("delivery.heading")}
         </Typography>
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
+
+        <Typography variant="caption" sx={{ fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
+          {t("delivery.senderSectionTitle")}
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1, mt: 1, mb: 1.5 }}>
           <TextField
+            label={t("delivery.senderName")}
+            fullWidth
+            value={senderName}
+            onChange={(e) => setSenderName(e.target.value)}
+            sx={{ bgcolor: "background.paper" }}
+          />
+          <TextField
+            label={t("delivery.senderPhone")}
+            fullWidth
+            value={senderPhone}
+            onChange={(e) => setSenderPhone(e.target.value)}
+            sx={{ bgcolor: "background.paper" }}
+          />
+        </Box>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2.5 }}>
+          <AddressAutocompleteField
             label={t("delivery.pickupAddress")}
             fullWidth
             value={pickupAddress}
-            onChange={(e) => setPickupAddress(e.target.value)}
+            onTextChange={(v) => {
+              setPickupAddress(v);
+              setPickupCoords(null);
+            }}
+            onPlaceSelected={({ address, lat, lng }) => {
+              setPickupAddress(address);
+              setPickupCoords({ lat, lng });
+            }}
             sx={{ bgcolor: "background.paper" }}
           />
           <IconButton
@@ -117,13 +174,49 @@ export default function Delivery() {
             <MyLocationRoundedIcon />
           </IconButton>
         </Box>
-        <TextField
+
+        <Divider sx={{ mb: 2.5 }} />
+
+        <Typography variant="caption" sx={{ fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
+          {t("delivery.receiverSectionTitle")}
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1, mt: 1, mb: 1.5 }}>
+          <TextField
+            label={t("delivery.receiverName")}
+            fullWidth
+            value={receiverName}
+            onChange={(e) => setReceiverName(e.target.value)}
+            sx={{ bgcolor: "background.paper" }}
+          />
+          <TextField
+            label={t("delivery.receiverPhone")}
+            fullWidth
+            value={receiverPhone}
+            onChange={(e) => setReceiverPhone(e.target.value)}
+            sx={{ bgcolor: "background.paper" }}
+          />
+        </Box>
+        <AddressAutocompleteField
           label={t("delivery.dropoffAddress")}
           fullWidth
           value={dropoffAddress}
-          onChange={(e) => setDropoffAddress(e.target.value)}
+          onTextChange={(v) => {
+            setDropoffAddress(v);
+            setDropoffCoords(null);
+          }}
+          onPlaceSelected={({ address, lat, lng }) => {
+            setDropoffAddress(address);
+            setDropoffCoords({ lat, lng });
+          }}
           sx={{ mb: 2, bgcolor: "background.paper" }}
         />
+
+        {pickupCoords && dropoffCoords && (
+          <Box sx={{ mb: 2 }}>
+            <LiveTrackingMap pickup={pickupCoords} dropoff={dropoffCoords} height={200} />
+          </Box>
+        )}
+
         <TextField
           label={t("delivery.packageNote")}
           fullWidth
@@ -157,21 +250,38 @@ export default function Delivery() {
                   </Typography>
                   <Chip label={t(`delivery.status.${r.status}`, { defaultValue: r.status })} size="small" />
                 </Box>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {r.receiverName && (
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.25 }}>
+                    {t("delivery.tracking.receiver")}: {r.receiverName} · {r.receiverPhone}
+                  </Typography>
+                )}
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
                     {t("delivery.estimate", { amount: formatCfa(r.priceEstimate) })}
                   </Typography>
-                  {r.status === "REQUESTED" && (
-                    <Button
-                      size="small"
-                      color="error"
-                      disabled={cancelMutation.isLoading}
-                      onClick={() => cancelMutation.mutate(r.id)}
-                      sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
-                    >
-                      {t("delivery.cancel")}
-                    </Button>
-                  )}
+                  <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                    {TRACKABLE_STATUSES.includes(r.status) && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => router.push(`/delivery/track/${r.id}`)}
+                        sx={{ fontWeight: 700, minWidth: 0, py: 0.25 }}
+                      >
+                        {t("delivery.track")}
+                      </Button>
+                    )}
+                    {r.status === "REQUESTED" && (
+                      <Button
+                        size="small"
+                        color="error"
+                        disabled={cancelMutation.isLoading}
+                        onClick={() => cancelMutation.mutate(r.id)}
+                        sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
+                      >
+                        {t("delivery.cancel")}
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
               </Box>
             ))}

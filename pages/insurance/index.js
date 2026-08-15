@@ -9,6 +9,7 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import DirectionsCarRoundedIcon from "@mui/icons-material/DirectionsCarRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
 import {
@@ -78,6 +79,42 @@ export default function Insurance() {
           ))}
         </Tabs>
       </Box>
+
+      {CATEGORIES[category] === "AUTO" && (
+        <Box sx={{ px: 2, pt: 2 }}>
+          <Box
+            sx={{
+              border: "1px solid",
+              borderColor: "primary.main",
+              borderRadius: 3,
+              p: 2,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+            }}
+          >
+            <DirectionsCarRoundedIcon color="primary" sx={{ fontSize: 36 }} />
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography sx={{ fontWeight: 800 }}>{t("insurance.auto.promoTitle")}</Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {t("insurance.auto.promoSubtitle")}
+              </Typography>
+            </Box>
+            <Button variant="contained" onClick={() => router.push("/insurance/auto")} sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>
+              {t("insurance.auto.promoCta")}
+            </Button>
+          </Box>
+          {isAuthenticated && (
+            <Button
+              size="small"
+              onClick={() => router.push("/insurance/auto/policies")}
+              sx={{ fontWeight: 700, mt: 1 }}
+            >
+              {t("insurance.auto.myPolicies")}
+            </Button>
+          )}
+        </Box>
+      )}
 
       <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
         {isLoading && (

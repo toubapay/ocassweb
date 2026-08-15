@@ -5,6 +5,10 @@ const {
   updateUser,
   listModules,
   updateModule,
+  listVendorStores,
+  updateVendorStore,
+  listRestaurantsAdmin,
+  updateRestaurantAdmin,
   listZones,
   createZone,
   updateZone,
@@ -19,6 +23,7 @@ const {
   listInsurancePlans,
   createInsurancePlan,
   updateInsurancePlan,
+  listAutoInsurancePolicies,
   getStats,
 } = require("./admin.controller");
 
@@ -34,6 +39,12 @@ router.patch("/users/:id", updateUser);
 
 router.get("/modules", listModules);
 router.patch("/modules/:key", updateModule);
+
+router.get("/vendors", listVendorStores);
+router.patch("/vendors/:id", updateVendorStore);
+
+router.get("/restaurants", listRestaurantsAdmin);
+router.patch("/restaurants/:id", updateRestaurantAdmin);
 
 router.get("/zones", listZones);
 router.post("/zones", createZone);
@@ -52,5 +63,7 @@ router.patch("/services/mobile/:id", updateMobileService);
 router.get("/services/insurance", listInsurancePlans);
 router.post("/services/insurance", createInsurancePlan);
 router.patch("/services/insurance/:id", updateInsurancePlan);
+
+router.get("/insurance/auto-policies", listAutoInsurancePolicies);
 
 module.exports = router;

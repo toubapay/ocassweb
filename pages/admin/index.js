@@ -11,11 +11,14 @@ import useAuth from "../../src/hooks/useAuth";
 import AdminStatsTab from "../../src/components/admin/AdminStatsTab";
 import AdminUsersTab from "../../src/components/admin/AdminUsersTab";
 import AdminModulesTab from "../../src/components/admin/AdminModulesTab";
+import AdminVendorsTab from "../../src/components/admin/AdminVendorsTab";
+import AdminRestaurantsTab from "../../src/components/admin/AdminRestaurantsTab";
 import AdminZonesTab from "../../src/components/admin/AdminZonesTab";
 import AdminProvidersTab from "../../src/components/admin/AdminProvidersTab";
 import AdminServicesTab from "../../src/components/admin/AdminServicesTab";
+import AdminInsuranceTab from "../../src/components/admin/AdminInsuranceTab";
 
-const TABS = ["dashboard", "users", "modules", "zones", "providers", "services"];
+const TABS = ["dashboard", "users", "modules", "vendors", "restaurants", "zones", "providers", "services", "insurance"];
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -57,18 +60,24 @@ export default function AdminPanel() {
         <Tab label={t("admin.tabs.dashboard")} />
         <Tab label={t("admin.tabs.users")} />
         <Tab label={t("admin.tabs.modules")} />
+        <Tab label={t("admin.tabs.vendors")} />
+        <Tab label={t("admin.tabs.restaurants")} />
         <Tab label={t("admin.tabs.zones")} />
         <Tab label={t("admin.tabs.providers")} />
         <Tab label={t("admin.tabs.services")} />
+        <Tab label={t("admin.tabs.insurance")} />
       </Tabs>
 
       <Box sx={{ p: { xs: 1.5, sm: 2.5 } }}>
         {TABS[tab] === "dashboard" && <AdminStatsTab />}
         {TABS[tab] === "users" && <AdminUsersTab />}
         {TABS[tab] === "modules" && <AdminModulesTab />}
+        {TABS[tab] === "vendors" && <AdminVendorsTab />}
+        {TABS[tab] === "restaurants" && <AdminRestaurantsTab />}
         {TABS[tab] === "zones" && <AdminZonesTab />}
         {TABS[tab] === "providers" && <AdminProvidersTab />}
         {TABS[tab] === "services" && <AdminServicesTab />}
+        {TABS[tab] === "insurance" && <AdminInsuranceTab />}
       </Box>
     </Box>
   );

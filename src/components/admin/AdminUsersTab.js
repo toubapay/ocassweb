@@ -6,6 +6,7 @@ import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Chip from "@mui/material/Chip";
 import Table from "@mui/material/Table";
 import TableHead from "@mui/material/TableHead";
 import TableBody from "@mui/material/TableBody";
@@ -16,7 +17,7 @@ import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import { fetchAdminUsers, updateAdminUser } from "../../api/admin";
 
-const ROLES = ["CUSTOMER", "VENDOR", "RIDER", "DELIVERY_AGENT", "ADMIN"];
+const ROLES = ["CUSTOMER", "VENDOR", "RESTAURANT_OWNER", "RIDER", "DELIVERY_AGENT", "ADMIN"];
 
 export default function AdminUsersTab() {
   const { t } = useTranslation();
@@ -38,22 +39,31 @@ export default function AdminUsersTab() {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexWrap: "wrap" }}>
+      <Box sx={{ mb: 2 }}>
         <TextField
           size="small"
           placeholder={t("admin.users.searchPlaceholder")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          sx={{ minWidth: 220 }}
+          sx={{ minWidth: 220, mb: 1.5 }}
         />
-        <Select size="small" value={role} onChange={(e) => setRole(e.target.value)} displayEmpty sx={{ minWidth: 160 }}>
-          <MenuItem value="">{t("admin.users.allRoles")}</MenuItem>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Chip
+            label={t("admin.users.allRoles")}
+            color={role === "" ? "primary" : "default"}
+            variant={role === "" ? "filled" : "outlined"}
+            onClick={() => setRole("")}
+          />
           {ROLES.map((r) => (
-            <MenuItem key={r} value={r}>
-              {r}
-            </MenuItem>
+            <Chip
+              key={r}
+              label={r}
+              color={role === r ? "primary" : "default"}
+              variant={role === r ? "filled" : "outlined"}
+              onClick={() => setRole(r)}
+            />
           ))}
-        </Select>
+        </Box>
       </Box>
 
       {isLoading ? (

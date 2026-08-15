@@ -16,6 +16,18 @@ export const fetchAdminModules = () =>
 export const updateAdminModule = (key, payload) =>
   apiClient.patch(`/admin/modules/${key}`, payload).then((res) => res.data.module);
 
+// Vendors
+export const fetchAdminVendors = (params) =>
+  apiClient.get("/admin/vendors", { params }).then((res) => res.data);
+export const updateAdminVendorStore = (id, payload) =>
+  apiClient.patch(`/admin/vendors/${id}`, payload).then((res) => res.data.store);
+
+// Restaurants
+export const fetchAdminRestaurants = (params) =>
+  apiClient.get("/admin/restaurants", { params }).then((res) => res.data);
+export const updateAdminRestaurant = (id, payload) =>
+  apiClient.patch(`/admin/restaurants/${id}`, payload).then((res) => res.data.restaurant);
+
 // Service zones
 export const fetchAdminZones = (moduleKey) =>
   apiClient
@@ -52,3 +64,8 @@ export const createAdminInsurancePlan = (payload) =>
   apiClient.post("/admin/services/insurance", payload).then((res) => res.data.plan);
 export const updateAdminInsurancePlan = (id, payload) =>
   apiClient.patch(`/admin/services/insurance/${id}`, payload).then((res) => res.data.plan);
+
+export const fetchAdminAutoInsurancePolicies = (status) =>
+  apiClient
+    .get("/admin/insurance/auto-policies", { params: status ? { status } : undefined })
+    .then((res) => res.data.policies);

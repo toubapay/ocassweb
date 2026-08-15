@@ -4,7 +4,7 @@ const { MODULE_KEYS } = require("../../constants/modules");
 
 // ---------------- Users ----------------
 
-const USER_ROLES = ["CUSTOMER", "VENDOR", "RIDER", "DELIVERY_AGENT", "ADMIN"];
+const USER_ROLES = ["CUSTOMER", "VENDOR", "RESTAURANT_OWNER", "RIDER", "DELIVERY_AGENT", "ADMIN"];
 
 async function listUsers(req, res, next) {
   try {
@@ -127,6 +127,134 @@ async function updateModule(req, res, next) {
       data,
     });
     res.json({ module: module_ });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------- Vendors ----------------
+
+async function listVendorStores(req, res, next) {
+  try {
+    const { q, page = "1", pageSize = "20" } = req.query;
+    const take = Math.min(Number(pageSize) || 20, 100);
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+
+    const where = {
+      // Admin/seed-managed stores have no owner and nothing to suspend -
+      // this tab is for actual vendor-owned stores.
+      ownerId: { not: null },
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: String(q), mode: "insensitive" } },
+              { owner: { name: { contains: String(q), mode: "insensitive" } } },
+              { owner: { phone: { contains: String(q) } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [stores, total] = await Promise.all([
+      prisma.store.findMany({
+        where,
+        include: {
+          owner: { select: { id: true, name: true, phone: true } },
+          _count: { select: { products: true } },
+        },
+        orderBy: { name: "asc" },
+        take,
+        skip,
+      }),
+      prisma.store.count({ where }),
+    ]);
+
+    res.json({ stores, total, page: Number(page) || 1, pageSize: take });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const updateVendorStoreSchema = z.object({
+  isActive: z.boolean(),
+});
+
+async function updateVendorStore(req, res, next) {
+  try {
+    const data = updateVendorStoreSchema.parse(req.body);
+    const store = await prisma.store.update({
+      where: { id: req.params.id },
+      data,
+      include: {
+        owner: { select: { id: true, name: true, phone: true } },
+        _count: { select: { products: true } },
+      },
+    });
+    res.json({ store });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------- Restaurants ----------------
+
+async function listRestaurantsAdmin(req, res, next) {
+  try {
+    const { q, page = "1", pageSize = "20" } = req.query;
+    const take = Math.min(Number(pageSize) || 20, 100);
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+
+    const where = {
+      // Admin/seed-managed restaurants have no owner and nothing to
+      // suspend - this tab is for actual owner-run restaurants.
+      ownerId: { not: null },
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: String(q), mode: "insensitive" } },
+              { owner: { name: { contains: String(q), mode: "insensitive" } } },
+              { owner: { phone: { contains: String(q) } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [restaurants, total] = await Promise.all([
+      prisma.restaurant.findMany({
+        where,
+        include: {
+          owner: { select: { id: true, name: true, phone: true } },
+          _count: { select: { menuItems: true, orders: true } },
+        },
+        orderBy: { name: "asc" },
+        take,
+        skip,
+      }),
+      prisma.restaurant.count({ where }),
+    ]);
+
+    res.json({ restaurants, total, page: Number(page) || 1, pageSize: take });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const updateRestaurantAdminSchema = z.object({
+  isActive: z.boolean(),
+});
+
+async function updateRestaurantAdmin(req, res, next) {
+  try {
+    const data = updateRestaurantAdminSchema.parse(req.body);
+    const restaurant = await prisma.restaurant.update({
+      where: { id: req.params.id },
+      data,
+      include: {
+        owner: { select: { id: true, name: true, phone: true } },
+        _count: { select: { menuItems: true, orders: true } },
+      },
+    });
+    res.json({ restaurant });
   } catch (err) {
     next(err);
   }
@@ -358,6 +486,26 @@ async function updateInsurancePlan(req, res, next) {
   }
 }
 
+// Read-only ops visibility into AAS auto-insurance fulfillment - "a
+// failed issuance records why" only helps if someone can actually see it.
+// Optional ?status= filter (e.g. FAILED) since that's the case ops needs
+// to triage; unfiltered defaults to the most recent 100 across all
+// statuses.
+async function listAutoInsurancePolicies(req, res, next) {
+  try {
+    const { status } = req.query;
+    const policies = await prisma.insuranceAutoPolicy.findMany({
+      where: status ? { status: String(status).toUpperCase() } : undefined,
+      include: { user: { select: { id: true, phone: true, name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    res.json({ policies });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Dashboard stats ----------------
 
 async function getStats(req, res, next) {
@@ -399,6 +547,10 @@ module.exports = {
   updateUser,
   listModules,
   updateModule,
+  listVendorStores,
+  updateVendorStore,
+  listRestaurantsAdmin,
+  updateRestaurantAdmin,
   listZones,
   createZone,
   updateZone,
@@ -413,5 +565,6 @@ module.exports = {
   listInsurancePlans,
   createInsurancePlan,
   updateInsurancePlan,
+  listAutoInsurancePolicies,
   getStats,
 };

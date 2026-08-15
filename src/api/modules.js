@@ -3,6 +3,8 @@ import apiClient from "./client";
 // Delivery
 export const fetchDeliveryRequests = () =>
   apiClient.get("/delivery/requests").then((res) => res.data.requests);
+export const fetchDeliveryRequest = (id) =>
+  apiClient.get(`/delivery/requests/${id}`).then((res) => res.data.request);
 export const createDeliveryRequest = (payload) =>
   apiClient.post("/delivery/requests", payload).then((res) => res.data.request);
 export const cancelDeliveryRequest = (id) =>
@@ -19,6 +21,8 @@ export const markDeliveryPickedUp = (id) =>
   apiClient.post(`/delivery/jobs/${id}/picked-up`).then((res) => res.data.request);
 export const markDeliveryDelivered = (id) =>
   apiClient.post(`/delivery/jobs/${id}/delivered`).then((res) => res.data.request);
+export const updateDeliveryAgentLocation = (id, payload) =>
+  apiClient.patch(`/delivery/jobs/${id}/location`, payload);
 
 // Insurance
 export const fetchInsurancePlans = (category) =>
@@ -39,12 +43,12 @@ export const fetchRestaurants = (search) =>
     .then((res) => res.data.restaurants);
 export const fetchRestaurant = (slug) =>
   apiClient.get(`/restaurants/${slug}`).then((res) => res.data.restaurant);
-export const createRestaurantOrder = (slug, items, note) =>
-  apiClient
-    .post(`/restaurants/${slug}/orders`, { items, ...(note ? { note } : {}) })
-    .then((res) => res.data.order);
+export const createRestaurantOrder = (slug, payload) =>
+  apiClient.post(`/restaurants/${slug}/orders`, payload).then((res) => res.data.order);
 export const fetchRestaurantOrders = () =>
   apiClient.get("/restaurants/orders").then((res) => res.data.orders);
+export const cancelRestaurantOrder = (id) =>
+  apiClient.patch(`/restaurants/orders/${id}/cancel`).then((res) => res.data.order);
 
 // Ride sharing
 export const fetchMyRides = () =>

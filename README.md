@@ -71,8 +71,11 @@ yarn dev                    # http://localhost:3000
 
 Optional: set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to enable the interactive
 polygon-drawing map on the admin panel's Zones tab (see "Admin panel"
-below) - the only place in this app that uses a Google Maps key. Without
-it, that tab still works via a manual JSON boundary entry fallback.
+below), and delivery's address autocomplete + live tracking map (see
+"Delivery & ride dispatch" below) - every Google Maps feature in this app
+shares one script load (`src/hooks/useGoogleMaps.js`). Without it, the
+Zones tab falls back to a manual JSON boundary entry and delivery's
+address fields fall back to plain text input with no coordinates.
 
 ## Progressive Web App
 
@@ -136,8 +139,13 @@ fallback in production.
   (`GET /api/ecommerce/products?sort=discount` re-sorts by discount
   percent each time, so what's shown does change day to day, but nothing
   tracks a real per-deal expiry).
-- **Restaurant** — full ordering flow: per-restaurant quantity cart, place
-  order, order history.
+- **Restaurant** — full Yassir-Food-style flow: any user can self-serve into
+  the `RESTAURANT_OWNER` role, create one restaurant, and manage its menu
+  and incoming orders. Customers browse, order, and pay by wallet at
+  checkout; the restaurant walks an order through CONFIRMED → PREPARING →
+  OUT_FOR_DELIVERY, and that last step hands it straight to the delivery
+  module - the exact same agent job board and live tracking map used for
+  standalone package delivery. See "Restaurant marketplace" below.
 - **Delivery, Ride Sharing** — request forms with a price estimate, a
   history list, cancelling a still-pending request/ride, and a full dispatch
   loop: any user can self-serve into the `DELIVERY_AGENT`/`RIDER` role from
@@ -147,7 +155,12 @@ fallback in production.
   auto-credits 80% of the fare to their wallet. See "Delivery & ride
   dispatch" below for what this does and doesn't cover (there's no map).
 - **Insurance** — browse plans by category, subscribe, view policies, cancel
-  a pending/active one.
+  a pending/active one. **Auto** additionally has a real comparison/purchase
+  engine integrated with [AAS Assurances](https://www.aas-assurances.sn/)'
+  digital-attestation API: live multi-tier quotes, wallet-gated purchase with
+  real issuance (never marks a policy active without a genuine attestation),
+  retry on failure, cancel. See "AAS auto insurance" below for setup, what's
+  confirmed vs. best-effort, and how to test without live AAS access.
 - **Airtime Top-up & Bill Payment** — operators/billers are a backend-managed
   catalog (never hardcoded client-side); phone entry is manual or via the
   browser's Contact Picker API (feature-detected — Chrome for Android only,
@@ -207,22 +220,60 @@ request-and-cancel:
 
 **Pricing**: real Haversine (straight-line) distance-based pricing when both
 pickup and dropoff coordinates are available, falling back to the original
-simulated estimate otherwise. In practice that means pickup only, via the
-"use my location" button (`navigator.geolocation`) on both request forms -
-**there's no geocoding**, so a typed address alone never has coordinates,
-and dropoff stays text-only. This sandbox's network blocks reaching
-geocoding services (confirmed against OpenStreetMap's free Nominatim API)
-to test one even with a key, so wiring up real geocoding/routing (Google
-Maps, Mapbox, or self-hosted Nominatim) and turn-by-turn distance is left
-as a follow-up requiring a real API key and live network access to build
-against.
+simulated estimate otherwise.
 
-**Not built**: any visual map, and an approval/verification flow for
-becoming an agent or rider (this is deliberately a self-service MVP
-toggle). A user with both a customer order/ride and an agent/rider role
-*can't* accept their own request - `acceptRequest`/`acceptRide` check
-`existing.userId !== req.user.id` before the race-safe conditional
-`updateMany`, alongside the normal "was this already taken" guard.
+**Not built**: an approval/verification flow for becoming an agent or rider
+(this is deliberately a self-service MVP toggle). A user with both a
+customer order/ride and an agent/rider role *can't* accept their own
+request - `acceptRequest`/`acceptRide` check `existing.userId !== req.user.id`
+before the race-safe conditional `updateMany`, alongside the normal "was
+this already taken" guard.
+
+### Delivery: address auto-pick + live map tracking
+
+Package delivery (`/delivery`) goes further than rideshare here, in a
+Yango-Delivery-style flow:
+
+- **Sender & receiver as distinct parties**: `DeliveryRequest` now carries
+  `senderName`/`senderPhone` (defaults to the requester's own account at
+  creation time - editable, for sending on someone else's behalf) and
+  required `receiverName`/`receiverPhone` for whoever's on the other end
+  of the handoff. Browsing the open job board (`GET /delivery/jobs/
+  available`) shows names but withholds both phone numbers until an agent
+  actually accepts (`AVAILABLE_JOB_FIELDS` in `delivery.controller.js`) -
+  `GET /delivery/jobs/mine` returns full contact details once committed.
+- **Address auto-pick**: both the pickup and dropoff fields
+  (`AddressAutocompleteField.js`) are Google Places Autocomplete fields
+  biased to Senegal, not free-typed text - picking a real suggestion gives
+  a geocoded lat/lng directly, which is what makes real distance-based
+  pricing (above) work for dropoff too, not just pickup-via-geolocation.
+  Falls back to an ordinary text field (still submittable, just without
+  coordinates) when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` isn't configured -
+  same fallback philosophy as the admin Zones tab's map, which shares the
+  same loader (`src/hooks/useGoogleMaps.js`, a single page-global script
+  load covering `places`+`drawing`+`geometry` so the two features don't
+  race to insert conflicting `<script>` tags).
+- **Live GPS tracking**: while a job is `ACCEPTED`/`PICKED_UP`, the agent
+  dashboard (`/delivery/agent`) pings `PATCH /delivery/jobs/:id/location`
+  with the browser's current position every 10s for every active job it
+  has (`useLiveLocationBroadcast` in `pages/delivery/agent.js`) - not
+  `watchPosition`, so updates land on a predictable cadence rather than
+  on every GPS jitter. The customer's tracking page (`/delivery/track/
+  [id]`, linked from a "Track" button once a job is accepted) polls
+  `GET /delivery/requests/:id` every 5s and renders pickup/dropoff/agent
+  pins on a live `LiveTrackingMap.js`, updating the agent marker in place
+  without re-fitting the map bounds on every poll (so it doesn't
+  re-zoom/pan under the user's thumb as the agent moves).
+- **No route line or ETA**: there's no Directions API integration in this
+  app, so drawing a route polyline or estimating arrival time would mean
+  fabricating one. The tracking page instead shows a straight-line
+  distance from the agent's last position to the dropoff - a real
+  Haversine calculation, the same honest-math approach as the pricing
+  above, just not turned into a time estimate.
+- This is delivery-specific for now; rideshare (`/ride-sharing`) still
+  uses pickup-only geolocation with no live tracking map, no autocomplete,
+  and no sender/receiver split - extending the same components there is a
+  natural follow-up.
 
 ## Vendor marketplace
 
@@ -268,20 +319,96 @@ A vendor's sales are credited to their wallet automatically
 called from both order-settlement paths - the synchronous wallet-payment
 branch in `orders.controller.js` and the PayDunya IPN handler in
 `payments.service.js`) once an order is confirmed paid: each vendor whose
-products are in the order gets 85% of their line items' total credited as
-an `EARNING` wallet transaction (`purpose: "VENDOR_SALE"`), the platform
-keeping the rest - same "share" pattern as the delivery/rideshare payout
-split, hardcoded for now rather than wired into `ModuleConfig.feeConfig`
-like those two. Idempotent per (order, store), so a retried webhook or
+products are in the order gets their line items' total credited as an
+`EARNING` wallet transaction (`purpose: "VENDOR_SALE"`), the platform
+keeping the rest as its commission - same "share" pattern as the
+delivery/rideshare payout split, and (like those two) admin-configurable
+via `ModuleConfig("vendor").feeConfig.vendorSharePercent` from the admin
+panel's Modules & fees tab (defaults to 85% to the vendor if never
+configured). Idempotent per (order, store), so a retried webhook or
 duplicate call never double-pays. Orders containing products from an
 admin/seed-managed store (`Store.ownerId: null`) are skipped for that
 store - there's no vendor wallet to credit.
+
+A vendor's store can be suspended from the admin panel's Vendors tab
+(`Store.isActive`) - see "Admin panel" below for what that does to the
+store's visibility.
 
 **Not built**: an approval/verification flow for becoming a vendor (same
 self-service MVP tradeoff as delivery/ride), and multi-vendor
 cart/checkout splitting (checkout is unchanged - one cart, one order,
 regardless of how many stores its items come from; payouts still split
 correctly per store even though the checkout UI doesn't).
+
+## Restaurant marketplace
+
+Same self-service ownership pattern as the vendor marketplace, applied to
+food delivery (Yassir Food-style, not just an order-and-forget menu):
+
+1. **Self-service onboarding** (`/restaurant/register`): any user can opt
+   into `RESTAURANT_OWNER` (`PATCH /api/auth/role`) and create one
+   restaurant (`Restaurant.ownerId`, nullable + unique - same "at most one
+   per user" pattern as `Store.ownerId`). A restaurant's `address`/`lat`/
+   `lng` double as its delivery pickup point, so an owner without an
+   address set can't dispatch an order (see step 3).
+2. **Menu management** (`/restaurant/manage/items`): create/edit/soft-
+   delete menu items (`MenuItem.isActive`), same shape as vendor product
+   management.
+3. **Order lifecycle** (`/restaurant/manage/orders`): a paid order starts
+   `CONFIRMED`, and the owner walks it through `PREPARING` →
+   `OUT_FOR_DELIVERY` (or cancels from either state, refunding the
+   customer's wallet). That last transition
+   (`dispatchForDelivery` in `server/src/modules/restaurant/orders.
+   controller.js`) is the entire "use the delivery module" integration:
+   it creates an ordinary `DeliveryRequest` - pickup = the restaurant,
+   dropoff = the order's delivery address, sender = the restaurant/owner,
+   receiver = the customer - with no agent pre-assigned, so it shows up on
+   the exact same open job board any delivery agent already sees
+   (`GET /delivery/jobs/available`), no parallel dispatch system. `DELIVERED`
+   is never set by the owner - it only ever arrives via that
+   `DeliveryRequest`'s own completion (see `markDelivered`'s cascade in
+   `delivery.controller.js`, which flips any `RestaurantOrder` linked by
+   `deliveryRequestId`), so "delivered" always reflects a real agent-
+   confirmed handoff, not the restaurant's own say-so. Once dispatched, the
+   customer gets the identical live-tracking experience described in
+   "Delivery: address auto-pick + live map tracking" above (`/delivery/
+   track/[id]`, linked from a "Track" button on their food order).
+4. **Checkout & payment**: customers pick a delivery address via the same
+   `AddressAutocompleteField` the delivery module uses, and pay by wallet
+   at order time - the only payment method wired up here today (unlike
+   ecommerce, which also offers a PayDunya redirect; that's a documented
+   gap, not a silent one). The delivery fee itself is estimated the same
+   way a standalone package delivery is (real distance-based pricing when
+   both ends have coordinates), but isn't itemized onto the order total -
+   it's platform-absorbed for now, so the agent is still paid their normal
+   share out of that estimate without the customer being charged for it
+   twice. Adding a real delivery-fee line item to the order total is a
+   natural follow-up.
+5. **Commission**: like vendor sales, a restaurant owner's share of each
+   paid order is credited to their wallet automatically
+   (`server/src/modules/restaurant/restaurant.service.js`'s
+   `payoutOwnerForOrder`, called right after the wallet debit settles),
+   admin-configurable via `ModuleConfig("restaurant").feeConfig.
+   ownerSharePercent` from the admin panel's Modules & fees tab (defaults
+   to 85% to the owner). Idempotent per order, same pattern as vendor
+   payout.
+6. **Admin management** (admin panel's Restaurants tab): lists every
+   owner-run restaurant with its menu-item and order counts, and a switch
+   for `Restaurant.isActive` - suspending one hides it from public
+   browsing and its own page shows an "unavailable" state, without
+   deleting the owner's menu or order history (identical behavior to the
+   Vendors tab's `Store.isActive`).
+
+**Job-board privacy**: unlike vendor product listings, an available
+delivery job's sender/receiver phone numbers are withheld until an agent
+accepts (`AVAILABLE_JOB_FIELDS` in `delivery.controller.js`) - this
+already applied to every delivery job, restaurant-dispatched or not, from
+the delivery module build.
+
+**Not built**: an approval/verification flow for becoming a restaurant
+owner (same self-service MVP tradeoff as vendor/delivery/ride), a PayDunya
+checkout option (wallet-only for now, as noted above), and itemizing the
+delivery fee onto the customer's order total.
 
 ## Anando
 
@@ -465,6 +592,83 @@ every purpose and picks its message/destination off the confirmed
 payment's `purpose` field (`DESTINATIONS` map in `pages/payments/return.js`)
 - add an entry there for any new purpose that needs its own landing copy.
 
+## AAS auto insurance
+
+Auto insurance (`pages/insurance/auto/`) is a real multi-provider comparison
+engine, though only one insurer is actually wired in today: [AAS
+Assurances](https://www.aas-assurances.sn/)'s "Assurance Digitale" API for
+the AUTOMOBILE branch (Mono/four-wheel and deux roues/C5 two-wheelers).
+Adding a second real insurer means adding another module beside
+`server/src/modules/insurance/aasClient.js` and another branch in
+`aas.controller.js`'s quote/purchase functions - the comparison results
+shape (`{ companyCode, tier, premium, ... }`) and the `InsuranceAutoPolicy`
+schema (`companyCode` field) were built with that in mind, not AAS-specific.
+
+**Flow**: vehicle details → live per-tier quotes from AAS (`rc.request`/
+`rc.moto`) → pick a tier → vehicle + subscriber/insured details → pay from
+wallet → AAS issuance (`qrcode.request`/`moto.request`) → real digital
+attestation link, or an honest failure with the payment refunded. The
+customer-facing pages are `pages/insurance/auto/index.js` (the wizard) and
+`pages/insurance/auto/policies.js` ("my auto policies" - retry a failed
+issuance, cancel an active one).
+
+**Hard invariants** (see `aas.controller.js` comments for where each is
+enforced): never sell a quote AAS can't actually issue (`assertCanIssue`
+probes `stock.qr` before any wallet debit); never mark a policy `ACTIVE`
+without a real `linkAttestation` from AAS; a failed issuance always refunds
+the wallet and records `fulfillmentError`/`fulfillmentErrorCode` plus the
+exact request/response (`requestSnapshot`/`responseSnapshot`) so support can
+tell "AAS refused the payload" from "we never sent the field"; retries use a
+fresh `referenceTrxPartner` (`-R1`, `-R2`, ...) since AAS rejects a reused
+reference even after a failed attempt, and are refused once a real
+attestation exists.
+
+**Setup**: AAS credentials go under admin → Providers, category
+`INSURANCE_AAS` (`partner`, `accessToken`, `username`, `police`, `baseUrl`,
+`timeoutMs`, `garantieOptPT`) - see the example JSON that category preset
+fills in. Admin config wins over the `AAS_*` env vars in `server/.env`
+(`.env.example` documents both). `garantieOptPT` is a tariff decision (which
+"personnes transportées" option to charge whenever a tier includes that
+guarantee) - the default tiers (`TIER_GARANTIES`/`MOTO_TIER_GARANTIES` in
+`server/src/constants/aasGuarantees.js`) never include it, so it's unused
+today. `npm run seed:test-data` (from `server/`) creates this Provider row
+automatically, pointed at the local stand-in
+(`baseUrl: "http://localhost:5099"`), plus two sample `InsuranceAutoPolicy`
+rows (one `ACTIVE`, one `FAILED`) for the seeded test customer - run
+`npm run aas:standin` alongside it and the whole flow works with zero
+manual admin setup.
+
+**Testing without live AAS access**: there is no network egress to AAS's
+real sandbox from this build's environment, so everything was built and
+tested against a local stand-in
+(`server/src/modules/insurance/aasStandIn.js`) that reproduces every
+documented sandbox-reality behavior - run it with `npm run aas:standin`
+(inside `server/`) and point `AAS_BASE_URL` at it
+(`http://localhost:5099` by default). It also exposes `GET
+/__standin/state` and `POST /__standin/reset` (with an optional `qrStock`
+body) for driving specific scenarios - stock exhaustion, duplicate
+references, etc. - from a test script. **Before trusting this in
+production, run it against AAS's real sandbox at least once** and compare
+behavior against what the stand-in assumes.
+
+**What's confirmed vs. best-effort**: the source material is the vendor's
+own "Description API Assurance Digitale A.A.S V.1.1" PDF (which turned out
+to have the full field-level spec for every endpoint used here, not just
+the metadata tables) plus hand-written integration notes from a prior real
+build of this same integration, documenting exactly where the PDF is wrong
+about the live sandbox. Both are cited by comment throughout `aasClient.js`
+and `aasStandIn.js`. Two things remain genuinely unverified because the
+notes flag them as never exercised live: `qrcode.mono.cancel`'s exact
+query-param shape (the doc's own section 5.3 gives one; a referenced
+Postman collection allegedly gives a different JSON-body one - the doc's
+shape is what's implemented), and which guarantee codes each tier should
+actually carry (`TIER_GARANTIES`/`MOTO_TIER_GARANTIES` are a placeholder
+business decision, clearly commented as such - revisit with
+product/underwriting). REMORQUE (trailer) and BUS_ECOLE genres are
+excluded on purpose: they use their own dedicated AAS endpoint families
+(PDF sections 5.4-5.5 and 8) that aren't implemented, same as the C4 (Pool
+TPV) vehicles AAS's own doc says are excluded from digital issuance.
+
 ## Admin panel
 
 `/admin` (web only) - every route under `server/src/modules/admin/` is
@@ -510,23 +714,49 @@ a role change (or `active: false` suspension) takes effect on the user's
 very next request - no re-login needed, and no way for a suspended user to
 keep using a still-valid token.
 
-**Users**: search/filter, change role (including to/from `ADMIN`), and
-suspend (`active: false` - `requireAuth` rejects every request from a
-suspended user with 403). An admin can't deactivate their own account
-(guarded server-side, not just hidden in the UI).
+**Users**: search/filter (text search, plus one-tap role chips -
+Customer/Vendor/Rider/Delivery Agent/Admin - both hit the same
+`GET /admin/users?role=` the text search uses), change role (including
+to/from `ADMIN`), and suspend (`active: false` - `requireAuth` rejects
+every request from a suspended user with 403). An admin can't deactivate
+their own account (guarded server-side, not just hidden in the UI). This
+tab is also how delivery agents and riders get managed day-to-day - there's
+no separate "delivery men" screen, since a delivery agent is just a `User`
+with `role: "DELIVERY_AGENT"`.
 
 **Modules & fees**: `ModuleConfig` (one row per module, key matching
 `server/src/modules/<key>`) has an `enabled` toggle that's actually
 enforced - `requireModuleEnabled(key)` (see `app.js`) sits in front of
 every module's routes and returns `503` when disabled, and
 `GET /api/modules/status` (public, unauthenticated) lets the web/mobile
-clients hide a disabled module's nav entry. Only `delivery` and
-`rideshare` have a real fee editor, because those are the only two
-modules whose pricing code (`estimatePrice` in each controller) actually
-reads `ModuleConfig.feeConfig` (base fare, rate/km, driver/agent payout
-share) - every other module's toggle only controls availability, not
-price, since there's no fee math anywhere else yet to hook a fee config
-into.
+clients hide a disabled module's nav entry. `delivery`, `rideshare`,
+`vendor`, and `restaurant` have a real fee editor, because those are the
+only modules whose pricing/payout code actually reads `ModuleConfig.
+feeConfig` - `delivery`/`rideshare`'s `estimatePrice` (base fare, rate/km,
+driver/agent payout share), `vendor.service.js`'s `payoutVendorsForOrder`
+(`vendorSharePercent`), and `restaurant.service.js`'s `payoutOwnerForOrder`
+(`ownerSharePercent`) - both default to 85% to the seller, the rest being
+the platform's implicit commission on every sale. Every other module's
+toggle only controls availability, not price, since there's no fee math
+anywhere else yet to hook a fee config into.
+
+**Vendors**: lists every vendor-owned `Store` (admin/seed-managed stores
+with no `ownerId` don't show here - there's nothing to suspend) with its
+owner and product count, and a switch for `Store.isActive`. Suspending a
+store hides all of its products from every public listing
+(`GET /ecommerce/products`, including a direct `?store=` browse) and from
+direct product-page access, and its `/store/[slug]` storefront shows an
+"unavailable" message instead of its catalog - without deleting the
+vendor's store, products, or order history. This is the platform's only
+vendor-suspension lever today; there's no separate ban/warning workflow.
+
+**Restaurants**: identical pattern for `Restaurant.isActive` - lists every
+owner-run restaurant (again, admin/seed-managed ones with no `ownerId`
+don't show here) with its owner, menu-item count, and order count.
+Suspending one hides it from public browsing and its `/restaurant/[slug]`
+page shows an "unavailable" state instead of its menu, without deleting
+the owner's menu or order history. See "Restaurant marketplace" above for
+the full self-service flow this tab moderates.
 
 **Zones**: `ServiceZone` stores a named polygon (points, module key, an
 optional fee multiplier) drawn on a Google Map if
@@ -541,8 +771,28 @@ these is the natural next step once zones exist to enforce against.
 **Providers**: a generic `Provider` model (`category` is free text, not an
 enum, so admins can label new kinds without a migration) for
 credentials/config an admin fills in rather than the app hardcoding a
-vendor. **Only `category: "SMS"` has real behavior wired to it** -
-`server/src/utils/otp.js` sends OTP codes through whatever `Provider` row
+vendor. The category field offers `SMS`, `PAYMENT`, `MAPS`, `EMAIL`,
+`FIREBASE`, `OPENAI`, `GEMINI`, `CLAUDE`, and `INSURANCE_AAS` as presets
+(free text still accepts anything else). **Only `SMS` and
+`INSURANCE_AAS` have real behavior wired to them** - the other presets
+(PAYMENT, MAPS, EMAIL, FIREBASE, OPENAI, GEMINI, CLAUDE) exist purely as
+labeled credential storage: there is no feature anywhere in this app that
+reads a Provider row in those categories yet. Adding one of those presets
+makes it possible to *store* an API key for a future integration without
+a schema change; it does not, by itself, wire up anything. Wiring an
+actual feature to one of these keys (e.g. an AI product-description
+generator, or Firebase push notifications) is future work with its own
+scope.
+
+`INSURANCE_AAS` has its own dedicated admin UI rather than this tab's raw
+JSON textarea - see the admin panel's **Insurance** tab (below) and the
+"AAS auto insurance" section above. It still saves to the same generic
+`Provider` model under the hood, so the JSON textarea here would also
+work for it in a pinch (same category, same field names), but the
+structured form is the intended way to manage it.
+
+For the `SMS` category specifically, `server/src/utils/otp.js` sends OTP
+codes through whatever `Provider` row
 has `category: "SMS"`, `isActive: true` (preferring one with
 `isDefault: true`) via `server/src/utils/smsGateway.js`, a generic
 HTTP-request sender: `config` describes one request (method, url,
@@ -567,6 +817,15 @@ When `OTP_DEV_MODE=true` (see `server/.env.example`) no SMS is sent at
 all regardless of Providers configured - the code is logged and echoed in
 the API response, same as before this module existed.
 
+**Insurance**: a dedicated tab (not the generic Providers/Services tabs)
+with two views, toggled at the top: **Provider config** - a structured
+form (partner, access token, username, police, base URL, timeout,
+personnes-transportées option) for the AAS `Provider` row, instead of
+hand-editing JSON, since `aasClient.js` reads a fixed set of documented
+keys rather than a freeform request template; and **Policies** - the
+same fulfillment-status/failure-triage view described in "AAS auto
+insurance" above (`AdminAasPoliciesTab`).
+
 **Services**: admin CRUD for `MobileService` (the airtime/bill catalog -
 previously seed-only, now editable without a redeploy) and `InsurancePlan`
 (create/edit; no delete, since removing a plan with existing
@@ -575,6 +834,19 @@ soft-delete/reassignment flow built for that yet).
 
 **Dashboard**: `GET /admin/stats` - user/order/role counts, pending
 deliveries, active rides, vendor stores, open Anando postings. Read-only.
+
+**What the admin panel deliberately does *not* do**: there's no "backup"
+button here. Database backups are handled at the hosting/infra layer, not
+as an app feature - Render's managed Postgres (see `DEPLOY_RENDER.md`)
+takes automatic daily backups with point-in-time recovery on paid plans,
+and the equivalents on Cloud SQL / Railway are documented in the other
+`DEPLOY_*.md` guides. Building a custom in-app backup feature would mean
+either re-implementing what the managed Postgres already does, or shipping
+something worse (an app-level export with no point-in-time recovery,
+running on the same box it's meant to protect). If a scheduled *export*
+(e.g. a nightly CSV/JSON dump to object storage, distinct from
+infra-level backups) is wanted later, that's a separate, well-scoped
+feature to design on its own.
 
 ## Deploying
 

@@ -1,13 +1,14 @@
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
+const { getModuleFeeConfig } = require("../../utils/feeConfig");
 
-// Platform keeps this share of each sale; the rest is credited to the
-// selling vendor's wallet - same "share" pattern as delivery/rideshare's
-// agent/rider payout split, but not yet admin-configurable via
-// ModuleConfig.feeConfig (that pass only covered the two modules with
-// existing fee math to hook into; vendor commission would be a natural
-// follow-up to admin.controller.js's Modules & fees tab).
-const VENDOR_SHARE = 0.85;
+// Platform keeps the rest of each sale; the vendor's share is credited to
+// the selling vendor's wallet - same "share" pattern as delivery/
+// rideshare's agent/rider payout split, admin-configurable via
+// ModuleConfig("vendor").feeConfig (see AdminModulesTab.js's fee editor).
+const DEFAULT_FEE_CONFIG = {
+  vendorSharePercent: 85,
+};
 
 /**
  * Credits each vendor whose products appear in this order their share of
@@ -40,6 +41,9 @@ async function payoutVendorsForOrder(orderId) {
     byStore.set(store.id, entry);
   }
 
+  const feeConfig = await getModuleFeeConfig("vendor", DEFAULT_FEE_CONFIG);
+  const vendorShare = feeConfig.vendorSharePercent / 100;
+
   for (const { store, total } of byStore.values()) {
     const purposeId = `${orderId}:${store.id}`;
     const alreadyPaid = await prisma.walletTransaction.findFirst({
@@ -49,7 +53,7 @@ async function payoutVendorsForOrder(orderId) {
 
     await walletService.credit({
       userId: store.ownerId,
-      amount: Math.round(total * VENDOR_SHARE * 100) / 100,
+      amount: Math.round(total * vendorShare * 100) / 100,
       type: "EARNING",
       purpose: "VENDOR_SALE",
       purposeId,

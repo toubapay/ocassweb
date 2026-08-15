@@ -14,52 +14,12 @@ import Alert from "@mui/material/Alert";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import { fetchAdminZones, createAdminZone, updateAdminZone, deleteAdminZone } from "../../api/admin";
 import { MODULE_OPTIONS } from "../../constants/adminModules";
-
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-/**
- * Loads the Google Maps JS API + drawing library once, on demand - this
- * app has no maps API key configured anywhere else (see mobile/README.md's
- * geolocation-only note), so this is the first thing in the whole repo
- * that needs one. Left untested from this sandbox: no network path to
- * maps.googleapis.com here, and no real key to test against even if there
- * were - see the fallback below for when the key is missing or the script
- * fails to load.
- */
-function useGoogleMapsDrawing() {
-  const [state, setState] = useState(() =>
-    typeof window !== "undefined" && window.google?.maps ? "ready" : "idle"
-  );
-
-  useEffect(() => {
-    if (!GOOGLE_MAPS_API_KEY || state !== "idle") return;
-    if (window.google?.maps) {
-      setState("ready");
-      return;
-    }
-    const existing = document.getElementById("google-maps-script");
-    if (existing) {
-      existing.addEventListener("load", () => setState("ready"));
-      existing.addEventListener("error", () => setState("error"));
-      return;
-    }
-    setState("loading");
-    const script = document.createElement("script");
-    script.id = "google-maps-script";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=drawing`;
-    script.async = true;
-    script.onload = () => setState("ready");
-    script.onerror = () => setState("error");
-    document.head.appendChild(script);
-  }, [state]);
-
-  return state;
-}
+import useGoogleMaps, { GOOGLE_MAPS_API_KEY } from "../../hooks/useGoogleMaps";
 
 function ZoneMap({ onPolygonComplete }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const status = useGoogleMapsDrawing();
+  const status = useGoogleMaps();
 
   useEffect(() => {
     if (status !== "ready" || !mapRef.current || mapInstanceRef.current) return;
