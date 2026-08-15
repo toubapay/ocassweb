@@ -443,6 +443,65 @@ async function updateMobileService(req, res, next) {
   }
 }
 
+const mobileForfaitSchema = z.object({
+  serviceId: z.string().uuid(),
+  category: z.string().min(1),
+  name: z.string().min(1),
+  price: z.number().positive(),
+  callMinutesLabel: z.string().optional().or(z.literal("")),
+  internetLabel: z.string().optional().or(z.literal("")),
+  validityLabel: z.string().min(1),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+async function listMobileForfaits(req, res, next) {
+  try {
+    const { serviceId } = req.query;
+    const forfaits = await prisma.mobileForfait.findMany({
+      where: serviceId ? { serviceId: String(serviceId) } : undefined,
+      include: { service: { select: { name: true } } },
+      orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { price: "asc" }],
+    });
+    res.json({ forfaits });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createMobileForfait(req, res, next) {
+  try {
+    const data = mobileForfaitSchema.parse(req.body);
+    const forfait = await prisma.mobileForfait.create({
+      data: { ...data, callMinutesLabel: data.callMinutesLabel || null, internetLabel: data.internetLabel || null },
+    });
+    res.status(201).json({ forfait });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateMobileForfait(req, res, next) {
+  try {
+    const data = mobileForfaitSchema.partial().parse(req.body);
+    const forfait = await prisma.mobileForfait.update({
+      where: { id: req.params.id },
+      data: {
+        ...data,
+        ...(data.callMinutesLabel !== undefined ? { callMinutesLabel: data.callMinutesLabel || null } : {}),
+        ...(data.internetLabel !== undefined ? { internetLabel: data.internetLabel || null } : {}),
+      },
+    });
+    res.json({ forfait });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Deliberately no delete endpoint, same reasoning as insurance plans below:
+// a forfait with existing MobileTransaction rows can't be deleted without
+// either orphaning or cascading those historical records. isActive is the
+// retire/hide lever.
 const insurancePlanSchema = z.object({
   name: z.string().min(2),
   category: z.enum(["HEALTH", "AUTO", "HOME", "TRAVEL", "LIFE"]),
@@ -562,6 +621,9 @@ module.exports = {
   listMobileServices,
   createMobileService,
   updateMobileService,
+  listMobileForfaits,
+  createMobileForfait,
+  updateMobileForfait,
   listInsurancePlans,
   createInsurancePlan,
   updateInsurancePlan,

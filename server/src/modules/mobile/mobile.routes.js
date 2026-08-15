@@ -2,6 +2,7 @@ const { Router } = require("express");
 const { requireAuth } = require("../../middleware/auth");
 const {
   listServices,
+  listForfaits,
   detectOperator,
   createTopup,
   createBillPayment,
@@ -11,6 +12,7 @@ const {
 const router = Router();
 
 router.get("/services", listServices);
+router.get("/forfaits", listForfaits);
 router.get("/detect-operator", detectOperator);
 router.get("/transactions", requireAuth, listMyTransactions);
 router.post("/topup", requireAuth, createTopup);

@@ -20,6 +20,9 @@ const {
   listMobileServices,
   createMobileService,
   updateMobileService,
+  listMobileForfaits,
+  createMobileForfait,
+  updateMobileForfait,
   listInsurancePlans,
   createInsurancePlan,
   updateInsurancePlan,
@@ -59,6 +62,10 @@ router.delete("/providers/:id", deleteProvider);
 router.get("/services/mobile", listMobileServices);
 router.post("/services/mobile", createMobileService);
 router.patch("/services/mobile/:id", updateMobileService);
+
+router.get("/services/mobile-forfaits", listMobileForfaits);
+router.post("/services/mobile-forfaits", createMobileForfait);
+router.patch("/services/mobile-forfaits/:id", updateMobileForfait);
 
 router.get("/services/insurance", listInsurancePlans);
 router.post("/services/insurance", createInsurancePlan);

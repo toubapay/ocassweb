@@ -58,6 +58,17 @@ export const createAdminMobileService = (payload) =>
 export const updateAdminMobileService = (id, payload) =>
   apiClient.patch(`/admin/services/mobile/${id}`, payload).then((res) => res.data.service);
 
+export const fetchAdminMobileForfaits = (serviceId) =>
+  apiClient
+    .get("/admin/services/mobile-forfaits", { params: serviceId ? { serviceId } : {} })
+    .then((res) => res.data.forfaits);
+export const createAdminMobileForfait = (payload) =>
+  apiClient.post("/admin/services/mobile-forfaits", payload).then((res) => res.data.forfait);
+export const updateAdminMobileForfait = (id, payload) =>
+  apiClient
+    .patch(`/admin/services/mobile-forfaits/${id}`, payload)
+    .then((res) => res.data.forfait);
+
 export const fetchAdminInsurancePlans = () =>
   apiClient.get("/admin/services/insurance").then((res) => res.data.plans);
 export const createAdminInsurancePlan = (payload) =>

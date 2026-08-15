@@ -402,6 +402,42 @@ async function main() {
     if (!existing) await prisma.mobileService.create({ data: service });
   }
 
+  // Expresso Sénégal "Offres Promobile" bundle catalog, transcribed verbatim
+  // from the operator's published rate card. Labels are kept as display
+  // text rather than parsed into numeric fields - see the MobileForfait
+  // model comment in schema.prisma for why.
+  const expressoService = await prisma.mobileService.findFirst({
+    where: { name: "Expresso Sénégal" },
+  });
+  if (expressoService) {
+    const mobileForfaits = [
+      // Disso - voice bundles
+      { category: "Disso", name: "Disso 100", price: 100, callMinutesLabel: "20mn tous réseaux", validityLabel: "24H", sortOrder: 1 },
+      { category: "Disso", name: "Disso 350", price: 350, callMinutesLabel: "60mn tous réseaux", validityLabel: "48H", sortOrder: 2 },
+      { category: "Disso", name: "Disso 1000", price: 1000, callMinutesLabel: "180mn tous réseaux", validityLabel: "30J", sortOrder: 3 },
+      { category: "Disso", name: "Disso 2000", price: 2000, callMinutesLabel: "360mn tous réseaux", validityLabel: "15J", sortOrder: 4 },
+      { category: "Disso", name: "Disso 5000", price: 5000, callMinutesLabel: "900mn tous réseaux", validityLabel: "30J", sortOrder: 5 },
+      // Pronet jour - daily data
+      { category: "Pronet jour", name: "Pronet jour 175", price: 175, internetLabel: "250Mo", validityLabel: "24H", sortOrder: 1 },
+      { category: "Pronet jour", name: "Pronet jour 300", price: 300, internetLabel: "1Go", validityLabel: "24H", sortOrder: 2 },
+      { category: "Pronet jour", name: "Pronet jour 475", price: 475, internetLabel: "1,5Go", validityLabel: "48H", sortOrder: 3 },
+      // Pronet semaine - weekly data
+      { category: "Pronet semaine", name: "Pronet semaine 975", price: 975, internetLabel: "2,5Go", validityLabel: "7J", sortOrder: 1 },
+      { category: "Pronet semaine", name: "Pronet semaine 1975", price: 1975, internetLabel: "9Go", validityLabel: "7J", sortOrder: 2 },
+      // Pronet mois - monthly data
+      { category: "Pronet mois", name: "Pronet mois 1375", price: 1375, internetLabel: "3,5Go", validityLabel: "30J", sortOrder: 1 },
+      { category: "Pronet mois", name: "Pronet mois 1975", price: 1975, internetLabel: "5,5Go", validityLabel: "30J", sortOrder: 2 },
+    ];
+    for (const forfait of mobileForfaits) {
+      const existing = await prisma.mobileForfait.findFirst({
+        where: { serviceId: expressoService.id, name: forfait.name },
+      });
+      if (!existing) {
+        await prisma.mobileForfait.create({ data: { ...forfait, serviceId: expressoService.id } });
+      }
+    }
+  }
+
   console.log("Seed complete.");
 }
 

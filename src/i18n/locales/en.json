@@ -591,7 +591,23 @@
       "invalidPhone": "Enter a valid phone number",
       "enterAmount": "Enter an amount",
       "success": "Top-up successful · {{reference}}",
-      "failed": "Top-up failed"
+      "failed": "Top-up failed",
+      "forfaitsTab": "Bundles",
+      "customTab": "Custom amount",
+      "forfaits": {
+        "loading": "Loading bundles...",
+        "empty": "No bundles available for this operator yet.",
+        "selectOperatorFirst": "Select an operator to see available bundles.",
+        "calls": "Calls",
+        "internet": "Internet",
+        "validity": "Validity",
+        "buy": "Buy",
+        "buying": "Buying...",
+        "confirmTitle": "Confirm purchase",
+        "confirmMessage": "Buy {{name}} for {{price}} on {{phone}}?",
+        "confirm": "Confirm",
+        "cancel": "Cancel"
+      }
     },
     "bill": {
       "heading": "Pay a bill",
@@ -939,7 +955,18 @@
       "created": "Service created",
       "saveFailed": "Could not save",
       "nameRequired": "Name is required",
-      "allFieldsRequired": "All fields are required"
+      "allFieldsRequired": "All fields are required",
+      "forfaitsTitle": "Airtime bundles (forfaits)",
+      "selectService": "Operator",
+      "selectServicePlaceholder": "Select an operator first",
+      "noAirtimeServices": "Add an AIRTIME operator above first",
+      "category": "Category",
+      "price": "Price (CFA)",
+      "callMinutesLabel": "Calls (label)",
+      "internetLabel": "Internet (label)",
+      "validityLabel": "Validity (label)",
+      "sortOrder": "Sort order",
+      "forfaitCreated": "Bundle created"
     }
   },
   "store": {

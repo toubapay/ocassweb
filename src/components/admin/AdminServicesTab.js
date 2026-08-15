@@ -14,6 +14,9 @@ import {
   fetchAdminMobileServices,
   createAdminMobileService,
   updateAdminMobileService,
+  fetchAdminMobileForfaits,
+  createAdminMobileForfait,
+  updateAdminMobileForfait,
   fetchAdminInsurancePlans,
   createAdminInsurancePlan,
   updateAdminInsurancePlan,
@@ -126,6 +129,182 @@ function MobileServicesSection() {
   );
 }
 
+function MobileForfaitsSection() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [serviceId, setServiceId] = useState("");
+  const [category, setCategory] = useState("");
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [callMinutesLabel, setCallMinutesLabel] = useState("");
+  const [internetLabel, setInternetLabel] = useState("");
+  const [validityLabel, setValidityLabel] = useState("");
+  const [sortOrder, setSortOrder] = useState("");
+
+  const { data: services } = useQuery("admin-mobile-services", fetchAdminMobileServices);
+  const airtimeServices = (services || []).filter((s) => s.type === "AIRTIME");
+
+  const { data: forfaits, isLoading } = useQuery(
+    ["admin-mobile-forfaits", serviceId],
+    () => fetchAdminMobileForfaits(serviceId),
+    { enabled: !!serviceId }
+  );
+
+  const createMutation = useMutation(createAdminMobileForfait, {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin-mobile-forfaits", serviceId]);
+      toast.success(t("admin.services.forfaitCreated"));
+      setCategory("");
+      setName("");
+      setPrice("");
+      setCallMinutesLabel("");
+      setInternetLabel("");
+      setValidityLabel("");
+      setSortOrder("");
+    },
+    onError: (err) => toast.error(err.response?.data?.message || t("admin.services.saveFailed")),
+  });
+
+  const toggleMutation = useMutation(
+    ({ id, isActive }) => updateAdminMobileForfait(id, { isActive }),
+    { onSuccess: () => queryClient.invalidateQueries(["admin-mobile-forfaits", serviceId]) }
+  );
+
+  const handleCreate = () => {
+    if (!serviceId || !category.trim() || !name.trim() || !price || !validityLabel.trim()) {
+      toast.error(t("admin.services.allFieldsRequired"));
+      return;
+    }
+    createMutation.mutate({
+      serviceId,
+      category: category.trim(),
+      name: name.trim(),
+      price: Number(price),
+      callMinutesLabel: callMinutesLabel.trim() || undefined,
+      internetLabel: internetLabel.trim() || undefined,
+      validityLabel: validityLabel.trim(),
+      sortOrder: sortOrder ? Number(sortOrder) : undefined,
+    });
+  };
+
+  return (
+    <Box sx={{ mb: 4 }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+        {t("admin.services.forfaitsTitle")}
+      </Typography>
+
+      <Select
+        size="small"
+        displayEmpty
+        value={serviceId}
+        onChange={(e) => setServiceId(e.target.value)}
+        sx={{ minWidth: 220, mb: 2 }}
+      >
+        <MenuItem value="">
+          <em>{t("admin.services.selectServicePlaceholder")}</em>
+        </MenuItem>
+        {airtimeServices.map((s) => (
+          <MenuItem key={s.id} value={s.id}>
+            {s.name}
+          </MenuItem>
+        ))}
+      </Select>
+
+      {airtimeServices.length === 0 && (
+        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+          {t("admin.services.noAirtimeServices")}
+        </Typography>
+      )}
+
+      {serviceId && (
+        <>
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
+            <TextField size="small" label={t("admin.services.category")} value={category} onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 140 }} />
+            <TextField size="small" label={t("admin.services.name")} value={name} onChange={(e) => setName(e.target.value)} sx={{ minWidth: 140 }} />
+            <TextField
+              size="small"
+              type="number"
+              label={t("admin.services.price")}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              sx={{ width: 130 }}
+            />
+            <TextField
+              size="small"
+              label={t("admin.services.callMinutesLabel")}
+              placeholder="20 mn Tous réseaux"
+              value={callMinutesLabel}
+              onChange={(e) => setCallMinutesLabel(e.target.value)}
+              sx={{ minWidth: 160 }}
+            />
+            <TextField
+              size="small"
+              label={t("admin.services.internetLabel")}
+              placeholder="250Mo"
+              value={internetLabel}
+              onChange={(e) => setInternetLabel(e.target.value)}
+              sx={{ minWidth: 140 }}
+            />
+            <TextField
+              size="small"
+              label={t("admin.services.validityLabel")}
+              placeholder="24H"
+              value={validityLabel}
+              onChange={(e) => setValidityLabel(e.target.value)}
+              sx={{ minWidth: 120 }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label={t("admin.services.sortOrder")}
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              sx={{ width: 110 }}
+            />
+            <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
+              {t("admin.services.add")}
+            </Button>
+          </Box>
+
+          {isLoading ? (
+            <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
+          ) : (
+            (forfaits || []).map((f) => (
+              <Box
+                key={f.id}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  py: 1,
+                  px: 2,
+                  mb: 1,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                }}
+              >
+                <Box>
+                  <Typography sx={{ fontWeight: 700 }}>
+                    {f.category} · {f.name} · {f.price} CFA
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {[f.callMinutesLabel, f.internetLabel, f.validityLabel].filter(Boolean).join(" · ")}
+                  </Typography>
+                </Box>
+                <Switch
+                  checked={f.isActive}
+                  onChange={(e) => toggleMutation.mutate({ id: f.id, isActive: e.target.checked })}
+                />
+              </Box>
+            ))
+          )}
+        </>
+      )}
+    </Box>
+  );
+}
+
 function InsurancePlansSection() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -230,6 +409,8 @@ export default function AdminServicesTab() {
   return (
     <Box>
       <MobileServicesSection />
+      <Divider sx={{ my: 3 }} />
+      <MobileForfaitsSection />
       <Divider sx={{ my: 3 }} />
       <InsurancePlansSection />
     </Box>

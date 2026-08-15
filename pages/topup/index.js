@@ -18,8 +18,10 @@ import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
 import {
   fetchMobileServices,
+  fetchMobileForfaits,
   detectOperator,
   createTopup,
+  createForfaitTopup,
   createBillPayment,
   fetchMyMobileTransactions,
 } from "../../src/api/mobile";
@@ -28,6 +30,31 @@ import { formatCfa } from "../../src/utils/currency";
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
 const STATUS_COLOR = { SUCCESS: "success", PENDING: "warning", FAILED: "error" };
+
+const CATEGORY_COLORS = [
+  { bg: "#FFF3E0", fg: "#E65100" },
+  { bg: "#E3F2FD", fg: "#0D47A1" },
+  { bg: "#E8F5E9", fg: "#1B5E20" },
+  { bg: "#F3E5F5", fg: "#4A148C" },
+  { bg: "#FCE4EC", fg: "#880E4F" },
+];
+
+function categoryColor(category, index) {
+  return CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+}
+
+function groupByCategory(forfaits) {
+  const groups = [];
+  const byName = new Map();
+  (forfaits || []).forEach((f) => {
+    if (!byName.has(f.category)) {
+      byName.set(f.category, { category: f.category, items: [] });
+      groups.push(byName.get(f.category));
+    }
+    byName.get(f.category).items.push(f);
+  });
+  return groups;
+}
 
 export default function TopUp() {
   const router = useRouter();
@@ -40,6 +67,7 @@ export default function TopUp() {
   const [phone, setPhone] = useState("+221");
   const [airtimeServiceId, setAirtimeServiceId] = useState(null);
   const [airtimeAmount, setAirtimeAmount] = useState("");
+  const [airtimeMode, setAirtimeMode] = useState("forfaits"); // "forfaits" | "custom"
   const [contactsSupported, setContactsSupported] = useState(false);
 
   // Bill payment state
@@ -68,6 +96,11 @@ export default function TopUp() {
   const { data: transactions } = useQuery("mobile-transactions", fetchMyMobileTransactions, {
     enabled: isAuthenticated,
   });
+  const { data: forfaits, isLoading: forfaitsLoading } = useQuery(
+    ["mobile-forfaits", airtimeServiceId],
+    () => fetchMobileForfaits(airtimeServiceId),
+    { enabled: !!airtimeServiceId }
+  );
 
   // Auto-detect operator as the phone number is typed (debounced).
   useEffect(() => {
@@ -106,6 +139,14 @@ export default function TopUp() {
     }
   );
 
+  const forfaitMutation = useMutation((forfaitId) => createForfaitTopup(forfaitId, phone), {
+    onSuccess: (transaction) => {
+      toast.success(t("topup.airtime.success", { reference: transaction.reference }));
+      queryClient.invalidateQueries("mobile-transactions");
+    },
+    onError: (err) => toast.error(err.response?.data?.message || t("topup.airtime.failed")),
+  });
+
   const billMutation = useMutation(
     () => createBillPayment(billServiceId, accountNumber, Number(billAmount)),
     {
@@ -133,6 +174,11 @@ export default function TopUp() {
     if (!phone || phone.replace(/[^0-9]/g, "").length < 8) return toast.error(t("topup.airtime.invalidPhone"));
     if (!airtimeAmount || Number(airtimeAmount) <= 0) return toast.error(t("topup.airtime.enterAmount"));
     requireLogin(() => topupMutation.mutate());
+  };
+
+  const handleBuyForfait = (forfait) => {
+    if (!phone || phone.replace(/[^0-9]/g, "").length < 8) return toast.error(t("topup.airtime.invalidPhone"));
+    requireLogin(() => forfaitMutation.mutate(forfait.id));
   };
 
   const handleBillPayment = () => {
@@ -205,39 +251,142 @@ export default function TopUp() {
             ))}
           </Box>
 
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-            {t("topup.airtime.amount")}
-          </Typography>
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1, mb: 1.5 }}>
-            {QUICK_AMOUNTS.map((amt) => (
-              <Chip
-                key={amt}
-                label={formatCfa(amt)}
-                onClick={() => setAirtimeAmount(String(amt))}
-                color={airtimeAmount === String(amt) ? "primary" : "default"}
-                sx={{ fontWeight: 700 }}
-              />
-            ))}
+          <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+            <Chip
+              label={t("topup.airtime.forfaitsTab")}
+              onClick={() => setAirtimeMode("forfaits")}
+              color={airtimeMode === "forfaits" ? "primary" : "default"}
+              variant={airtimeMode === "forfaits" ? "filled" : "outlined"}
+              sx={{ fontWeight: 700 }}
+            />
+            <Chip
+              label={t("topup.airtime.customTab")}
+              onClick={() => setAirtimeMode("custom")}
+              color={airtimeMode === "custom" ? "primary" : "default"}
+              variant={airtimeMode === "custom" ? "filled" : "outlined"}
+              sx={{ fontWeight: 700 }}
+            />
           </Box>
-          <TextField
-            label={t("topup.airtime.amountLabel")}
-            fullWidth
-            type="number"
-            value={airtimeAmount}
-            onChange={(e) => setAirtimeAmount(e.target.value)}
-            sx={{ mb: 2.5 }}
-          />
 
-          <Button
-            variant="contained"
-            fullWidth
-            size="large"
-            disabled={topupMutation.isLoading}
-            onClick={handleTopup}
-            sx={{ fontWeight: 800, py: 1.25 }}
-          >
-            {topupMutation.isLoading ? t("topup.airtime.processing") : t("topup.airtime.topUp")}
-          </Button>
+          {airtimeMode === "forfaits" ? (
+            <Box>
+              {!airtimeServiceId && (
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {t("topup.airtime.forfaits.selectOperatorFirst")}
+                </Typography>
+              )}
+              {airtimeServiceId && forfaitsLoading && (
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {t("topup.airtime.forfaits.loading")}
+                </Typography>
+              )}
+              {airtimeServiceId && !forfaitsLoading && (forfaits || []).length === 0 && (
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {t("topup.airtime.forfaits.empty")}
+                </Typography>
+              )}
+              {groupByCategory(forfaits).map((group, gi) => {
+                const color = categoryColor(group.category, gi);
+                return (
+                  <Box key={group.category} sx={{ mb: 2.5 }}>
+                    <Box
+                      sx={{
+                        bgcolor: color.bg,
+                        color: color.fg,
+                        borderRadius: 2,
+                        px: 1.5,
+                        py: 0.75,
+                        mb: 1,
+                        fontWeight: 800,
+                        fontSize: 14,
+                      }}
+                    >
+                      {group.category}
+                    </Box>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      {group.items.map((forfait) => (
+                        <Box
+                          key={forfait.id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            border: "1px solid #EEEEEE",
+                            borderRadius: 3,
+                            p: 1.5,
+                            gap: 1,
+                          }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                              {forfait.name} · {formatCfa(forfait.price)}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                              {forfait.callMinutesLabel &&
+                                `${t("topup.airtime.forfaits.calls")}: ${forfait.callMinutesLabel}`}
+                              {forfait.callMinutesLabel && forfait.internetLabel && " · "}
+                              {forfait.internetLabel &&
+                                `${t("topup.airtime.forfaits.internet")}: ${forfait.internetLabel}`}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                              {t("topup.airtime.forfaits.validity")}: {forfait.validityLabel}
+                            </Typography>
+                          </Box>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            disabled={forfaitMutation.isLoading}
+                            onClick={() => handleBuyForfait(forfait)}
+                            sx={{ fontWeight: 800, whiteSpace: "nowrap" }}
+                          >
+                            {forfaitMutation.isLoading && forfaitMutation.variables === forfait.id
+                              ? t("topup.airtime.forfaits.buying")
+                              : t("topup.airtime.forfaits.buy")}
+                          </Button>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          ) : (
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
+                {t("topup.airtime.amount")}
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1, mb: 1.5 }}>
+                {QUICK_AMOUNTS.map((amt) => (
+                  <Chip
+                    key={amt}
+                    label={formatCfa(amt)}
+                    onClick={() => setAirtimeAmount(String(amt))}
+                    color={airtimeAmount === String(amt) ? "primary" : "default"}
+                    sx={{ fontWeight: 700 }}
+                  />
+                ))}
+              </Box>
+              <TextField
+                label={t("topup.airtime.amountLabel")}
+                fullWidth
+                type="number"
+                value={airtimeAmount}
+                onChange={(e) => setAirtimeAmount(e.target.value)}
+                sx={{ mb: 2.5 }}
+              />
+
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                disabled={topupMutation.isLoading}
+                onClick={handleTopup}
+                sx={{ fontWeight: 800, py: 1.25 }}
+              >
+                {topupMutation.isLoading ? t("topup.airtime.processing") : t("topup.airtime.topUp")}
+              </Button>
+            </Box>
+          )}
         </Box>
       )}
 

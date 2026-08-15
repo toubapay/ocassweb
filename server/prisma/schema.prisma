@@ -609,6 +609,39 @@ model MobileService {
   isActive      Boolean           @default(true)
 
   transactions MobileTransaction[]
+  forfaits     MobileForfait[]
+}
+
+// Named recharge bundles for an AIRTIME service (e.g. Expresso Sénégal's
+// "Disso" voice packs and "Pronet jour/semaine/mois" data packs) - an
+// alternative to typing an arbitrary top-up amount. `category` groups
+// bundles into the operator's own named families (free text, not an enum,
+// since every operator brands its bundles differently - mirrors Provider.
+// category). callMinutesLabel/internetLabel/validityLabel are kept as the
+// operator's own display strings (e.g. "20 mn Tous réseaux", "250Mo",
+// "24H") rather than parsed into numeric minutes/MB/hours, since that
+// parsing would invent a normalization (1000 vs 1024 for Go->Mo, "J" vs
+// "H" units) the source catalog doesn't actually specify - `price` is the
+// only field that needs to be a real number, since it's the only one the
+// purchase flow computes with.
+model MobileForfait {
+  id               String   @id @default(uuid())
+  serviceId        String
+  category         String
+  name             String
+  price            Decimal  @db.Decimal(10, 2)
+  callMinutesLabel String?
+  internetLabel    String?
+  validityLabel    String
+  isActive         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  service      MobileService       @relation(fields: [serviceId], references: [id])
+  transactions MobileTransaction[]
+
+  @@index([serviceId, isActive])
 }
 
 enum MobileTransactionStatus {
@@ -621,16 +654,23 @@ model MobileTransaction {
   id            String                  @id @default(uuid())
   userId        String
   serviceId     String
+  // Set only when this top-up was a forfait purchase rather than an
+  // arbitrary amount - see createTopup in mobile.controller.js.
+  forfaitId     String?
   type          MobileServiceType
   phoneNumber   String?
   accountNumber String?
   amount        Decimal                 @db.Decimal(10, 2)
-  status        MobileTransactionStatus @default(SUCCESS)
+  // Created PENDING, flipped to SUCCESS once the wallet debit clears (or
+  // the row is deleted if the debit fails before any money moves) - see
+  // createTopup/createBillPayment.
+  status        MobileTransactionStatus @default(PENDING)
   reference     String                  @unique
   createdAt     DateTime                @default(now())
 
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  service MobileService @relation(fields: [serviceId], references: [id])
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service MobileService  @relation(fields: [serviceId], references: [id])
+  forfait MobileForfait? @relation(fields: [forfaitId], references: [id])
 }
 
 // ---------- Payments (PayDunya) ----------
