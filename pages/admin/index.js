@@ -16,9 +16,9 @@ import AdminRestaurantsTab from "../../src/components/admin/AdminRestaurantsTab"
 import AdminZonesTab from "../../src/components/admin/AdminZonesTab";
 import AdminProvidersTab from "../../src/components/admin/AdminProvidersTab";
 import AdminServicesTab from "../../src/components/admin/AdminServicesTab";
-import AdminAasPoliciesTab from "../../src/components/admin/AdminAasPoliciesTab";
+import AdminInsuranceTab from "../../src/components/admin/AdminInsuranceTab";
 
-const TABS = ["dashboard", "users", "modules", "vendors", "restaurants", "zones", "providers", "services", "aasPolicies"];
+const TABS = ["dashboard", "users", "modules", "vendors", "restaurants", "zones", "providers", "services", "insurance"];
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -65,7 +65,7 @@ export default function AdminPanel() {
         <Tab label={t("admin.tabs.zones")} />
         <Tab label={t("admin.tabs.providers")} />
         <Tab label={t("admin.tabs.services")} />
-        <Tab label={t("admin.tabs.aasPolicies")} />
+        <Tab label={t("admin.tabs.insurance")} />
       </Tabs>
 
       <Box sx={{ p: { xs: 1.5, sm: 2.5 } }}>
@@ -77,7 +77,7 @@ export default function AdminPanel() {
         {TABS[tab] === "zones" && <AdminZonesTab />}
         {TABS[tab] === "providers" && <AdminProvidersTab />}
         {TABS[tab] === "services" && <AdminServicesTab />}
-        {TABS[tab] === "aasPolicies" && <AdminAasPoliciesTab />}
+        {TABS[tab] === "insurance" && <AdminInsuranceTab />}
       </Box>
     </Box>
   );

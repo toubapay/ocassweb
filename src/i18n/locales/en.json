@@ -804,7 +804,36 @@
       "zones": "Zones",
       "providers": "Providers",
       "services": "Services",
-      "aasPolicies": "AAS auto policies"
+      "insurance": "Insurance"
+    },
+    "insurance": {
+      "providerView": "Provider config",
+      "policiesView": "Policies"
+    },
+    "insuranceProvider": {
+      "newTitle": "New AAS provider config",
+      "editTitle": "Edit AAS provider config",
+      "hint": "Configures the credentials aasClient.js uses to call AAS Assurances - this wins over the AAS_* environment variables. See the \"AAS auto insurance\" section of the README for what each field means.",
+      "name": "Config name",
+      "partner": "Partner name",
+      "partnerHelp": "Assigned by AAS when your account was created.",
+      "accessToken": "Access token",
+      "username": "Auth username",
+      "police": "Police (policy) number",
+      "policeHelp": "Optional - your AAS contract number, if AAS requires one.",
+      "baseUrl": "Base URL",
+      "baseUrlHelp": "Same host for sandbox and production per AAS's docs - swap the credentials instead of the URL.",
+      "timeoutMs": "Request timeout (ms)",
+      "garantieOptPT": "Personnes transportées option",
+      "garantieOptPTHelp": "Tariff choice - only used if a coverage tier ever includes that guarantee.",
+      "saveChanges": "Save changes",
+      "cancelEdit": "Cancel edit",
+      "requiredFields": "Config name, partner, access token, and base URL are required",
+      "saved": "Provider config saved",
+      "saveFailed": "Could not save provider config",
+      "deleted": "Provider config deleted",
+      "none": "No AAS provider configured yet.",
+      "noPartner": "no partner set"
     },
     "aasPolicies": {
       "title": "AAS auto insurance policies",

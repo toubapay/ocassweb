@@ -804,7 +804,36 @@
       "zones": "Zones",
       "providers": "Fournisseurs",
       "services": "Services",
-      "aasPolicies": "Polices auto A.A.S"
+      "insurance": "Assurance"
+    },
+    "insurance": {
+      "providerView": "Config fournisseur",
+      "policiesView": "Polices"
+    },
+    "insuranceProvider": {
+      "newTitle": "Nouvelle config fournisseur A.A.S",
+      "editTitle": "Modifier la config fournisseur A.A.S",
+      "hint": "Configure les identifiants qu'aasClient.js utilise pour appeler AAS Assurances - ceci prévaut sur les variables d'environnement AAS_*. Voir la section « AAS auto insurance » du README pour la signification de chaque champ.",
+      "name": "Nom de la config",
+      "partner": "Nom du partenaire",
+      "partnerHelp": "Attribué par AAS à la création de votre compte.",
+      "accessToken": "Jeton d'accès",
+      "username": "Nom d'utilisateur (auth)",
+      "police": "Numéro de police",
+      "policeHelp": "Optionnel - votre numéro de contrat A.A.S, si A.A.S en exige un.",
+      "baseUrl": "URL de base",
+      "baseUrlHelp": "Même hôte pour le sandbox et la production selon la doc A.A.S - changez les identifiants plutôt que l'URL.",
+      "timeoutMs": "Délai d'expiration de la requête (ms)",
+      "garantieOptPT": "Option personnes transportées",
+      "garantieOptPTHelp": "Choix tarifaire - utilisé uniquement si un niveau de garantie inclut cette garantie.",
+      "saveChanges": "Enregistrer les modifications",
+      "cancelEdit": "Annuler la modification",
+      "requiredFields": "Le nom de la config, le partenaire, le jeton d'accès et l'URL de base sont requis",
+      "saved": "Config fournisseur enregistrée",
+      "saveFailed": "Impossible d'enregistrer la config fournisseur",
+      "deleted": "Config fournisseur supprimée",
+      "none": "Aucun fournisseur A.A.S configuré pour l'instant.",
+      "noPartner": "aucun partenaire défini"
     },
     "aasPolicies": {
       "title": "Polices d'assurance auto A.A.S",

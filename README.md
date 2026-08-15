@@ -767,16 +767,24 @@ these is the natural next step once zones exist to enforce against.
 enum, so admins can label new kinds without a migration) for
 credentials/config an admin fills in rather than the app hardcoding a
 vendor. The category field offers `SMS`, `PAYMENT`, `MAPS`, `EMAIL`,
-`FIREBASE`, `OPENAI`, `GEMINI`, and `CLAUDE` as presets (free text still
-accepts anything else). **Only `category: "SMS"` has real behavior wired
-to it** - the four AI/Firebase presets exist purely as labeled credential
-storage: there is no AI feature, chatbot, or Firebase integration
-anywhere in this app that reads a Provider row in these categories yet.
-Adding the preset makes it possible to *store* an API key for a future
-integration without a schema change; it does not, by itself, make Ocass
-call OpenAI/Gemini/Claude/Firebase for anything. Wiring an actual
-feature to one of these keys (e.g. an AI product-description generator,
-or Firebase push notifications) is future work with its own scope.
+`FIREBASE`, `OPENAI`, `GEMINI`, `CLAUDE`, and `INSURANCE_AAS` as presets
+(free text still accepts anything else). **Only `SMS` and
+`INSURANCE_AAS` have real behavior wired to them** - the other presets
+(PAYMENT, MAPS, EMAIL, FIREBASE, OPENAI, GEMINI, CLAUDE) exist purely as
+labeled credential storage: there is no feature anywhere in this app that
+reads a Provider row in those categories yet. Adding one of those presets
+makes it possible to *store* an API key for a future integration without
+a schema change; it does not, by itself, wire up anything. Wiring an
+actual feature to one of these keys (e.g. an AI product-description
+generator, or Firebase push notifications) is future work with its own
+scope.
+
+`INSURANCE_AAS` has its own dedicated admin UI rather than this tab's raw
+JSON textarea - see the admin panel's **Insurance** tab (below) and the
+"AAS auto insurance" section above. It still saves to the same generic
+`Provider` model under the hood, so the JSON textarea here would also
+work for it in a pinch (same category, same field names), but the
+structured form is the intended way to manage it.
 
 For the `SMS` category specifically, `server/src/utils/otp.js` sends OTP
 codes through whatever `Provider` row
@@ -803,6 +811,15 @@ gateway:
 When `OTP_DEV_MODE=true` (see `server/.env.example`) no SMS is sent at
 all regardless of Providers configured - the code is logged and echoed in
 the API response, same as before this module existed.
+
+**Insurance**: a dedicated tab (not the generic Providers/Services tabs)
+with two views, toggled at the top: **Provider config** - a structured
+form (partner, access token, username, police, base URL, timeout,
+personnes-transportées option) for the AAS `Provider` row, instead of
+hand-editing JSON, since `aasClient.js` reads a fixed set of documented
+keys rather than a freeform request template; and **Policies** - the
+same fulfillment-status/failure-triage view described in "AAS auto
+insurance" above (`AdminAasPoliciesTab`).
 
 **Services**: admin CRUD for `MobileService` (the airtime/bill catalog -
 previously seed-only, now editable without a redeploy) and `InsurancePlan`
