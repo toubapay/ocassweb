@@ -486,6 +486,26 @@ async function updateInsurancePlan(req, res, next) {
   }
 }
 
+// Read-only ops visibility into AAS auto-insurance fulfillment - "a
+// failed issuance records why" only helps if someone can actually see it.
+// Optional ?status= filter (e.g. FAILED) since that's the case ops needs
+// to triage; unfiltered defaults to the most recent 100 across all
+// statuses.
+async function listAutoInsurancePolicies(req, res, next) {
+  try {
+    const { status } = req.query;
+    const policies = await prisma.insuranceAutoPolicy.findMany({
+      where: status ? { status: String(status).toUpperCase() } : undefined,
+      include: { user: { select: { id: true, phone: true, name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    res.json({ policies });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Dashboard stats ----------------
 
 async function getStats(req, res, next) {
@@ -545,5 +565,6 @@ module.exports = {
   listInsurancePlans,
   createInsurancePlan,
   updateInsurancePlan,
+  listAutoInsurancePolicies,
   getStats,
 };

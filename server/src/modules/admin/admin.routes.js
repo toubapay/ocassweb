@@ -23,6 +23,7 @@ const {
   listInsurancePlans,
   createInsurancePlan,
   updateInsurancePlan,
+  listAutoInsurancePolicies,
   getStats,
 } = require("./admin.controller");
 
@@ -62,5 +63,7 @@ router.patch("/services/mobile/:id", updateMobileService);
 router.get("/services/insurance", listInsurancePlans);
 router.post("/services/insurance", createInsurancePlan);
 router.patch("/services/insurance/:id", updateInsurancePlan);
+
+router.get("/insurance/auto-policies", listAutoInsurancePolicies);
 
 module.exports = router;

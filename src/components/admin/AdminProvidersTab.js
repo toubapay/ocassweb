@@ -31,6 +31,31 @@ const SMS_CONFIG_EXAMPLE = JSON.stringify(
   2
 );
 
+// A.A.S "Assurance Digitale" (Sénégal, branche AUTOMOBILE) - read directly
+// by server/src/modules/insurance/aasClient.js, unlike SMS's freeform
+// request-template config. garantieOptPT is a tariff choice (which
+// personnes-transportées option to buy whenever a policy includes that
+// guarantee), not a technical value - see aasGuarantees.js.
+const AAS_CONFIG_EXAMPLE = JSON.stringify(
+  {
+    partner: "your-aas-partner-name",
+    accessToken: "your-aas-access-token",
+    username: "token",
+    police: "",
+    baseUrl: "https://manager.lasecu-assurances.sn",
+    timeoutMs: 15000,
+    garantieOptPT: "OPTION_1",
+    monoIssuePath: "qrcode.request",
+  },
+  null,
+  2
+);
+
+const CONFIG_EXAMPLES = {
+  SMS: SMS_CONFIG_EXAMPLE,
+  INSURANCE_AAS: AAS_CONFIG_EXAMPLE,
+};
+
 const CATEGORY_PRESETS = [
   "SMS",
   "PAYMENT",
@@ -40,6 +65,7 @@ const CATEGORY_PRESETS = [
   "OPENAI",
   "GEMINI",
   "CLAUDE",
+  "INSURANCE_AAS",
 ];
 
 export default function AdminProvidersTab() {
@@ -106,7 +132,15 @@ export default function AdminProvidersTab() {
           freeSolo
           options={CATEGORY_PRESETS}
           value={category}
-          onInputChange={(e, v) => setCategory(v)}
+          onInputChange={(e, v) => {
+            // Swap the example JSON when switching category, but only if
+            // the field still holds a known example (not something the
+            // admin already started editing).
+            if (Object.values(CONFIG_EXAMPLES).includes(configJson) && CONFIG_EXAMPLES[v]) {
+              setConfigJson(CONFIG_EXAMPLES[v]);
+            }
+            setCategory(v);
+          }}
           size="small"
           sx={{ minWidth: 160 }}
           renderInput={(params) => <TextField {...params} label={t("admin.providers.category")} />}

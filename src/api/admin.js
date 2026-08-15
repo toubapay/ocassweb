@@ -64,3 +64,8 @@ export const createAdminInsurancePlan = (payload) =>
   apiClient.post("/admin/services/insurance", payload).then((res) => res.data.plan);
 export const updateAdminInsurancePlan = (id, payload) =>
   apiClient.patch(`/admin/services/insurance/${id}`, payload).then((res) => res.data.plan);
+
+export const fetchAdminAutoInsurancePolicies = (status) =>
+  apiClient
+    .get("/admin/insurance/auto-policies", { params: status ? { status } : undefined })
+    .then((res) => res.data.policies);

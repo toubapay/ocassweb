@@ -155,7 +155,12 @@ fallback in production.
   auto-credits 80% of the fare to their wallet. See "Delivery & ride
   dispatch" below for what this does and doesn't cover (there's no map).
 - **Insurance** — browse plans by category, subscribe, view policies, cancel
-  a pending/active one.
+  a pending/active one. **Auto** additionally has a real comparison/purchase
+  engine integrated with [AAS Assurances](https://www.aas-assurances.sn/)'
+  digital-attestation API: live multi-tier quotes, wallet-gated purchase with
+  real issuance (never marks a policy active without a genuine attestation),
+  retry on failure, cancel. See "AAS auto insurance" below for setup, what's
+  confirmed vs. best-effort, and how to test without live AAS access.
 - **Airtime Top-up & Bill Payment** — operators/billers are a backend-managed
   catalog (never hardcoded client-side); phone entry is manual or via the
   browser's Contact Picker API (feature-detected — Chrome for Android only,
@@ -586,6 +591,78 @@ takes one `return_url` per invoice, `/payments/return` is shared across
 every purpose and picks its message/destination off the confirmed
 payment's `purpose` field (`DESTINATIONS` map in `pages/payments/return.js`)
 - add an entry there for any new purpose that needs its own landing copy.
+
+## AAS auto insurance
+
+Auto insurance (`pages/insurance/auto/`) is a real multi-provider comparison
+engine, though only one insurer is actually wired in today: [AAS
+Assurances](https://www.aas-assurances.sn/)'s "Assurance Digitale" API for
+the AUTOMOBILE branch (Mono/four-wheel and deux roues/C5 two-wheelers).
+Adding a second real insurer means adding another module beside
+`server/src/modules/insurance/aasClient.js` and another branch in
+`aas.controller.js`'s quote/purchase functions - the comparison results
+shape (`{ companyCode, tier, premium, ... }`) and the `InsuranceAutoPolicy`
+schema (`companyCode` field) were built with that in mind, not AAS-specific.
+
+**Flow**: vehicle details → live per-tier quotes from AAS (`rc.request`/
+`rc.moto`) → pick a tier → vehicle + subscriber/insured details → pay from
+wallet → AAS issuance (`qrcode.request`/`moto.request`) → real digital
+attestation link, or an honest failure with the payment refunded. The
+customer-facing pages are `pages/insurance/auto/index.js` (the wizard) and
+`pages/insurance/auto/policies.js` ("my auto policies" - retry a failed
+issuance, cancel an active one).
+
+**Hard invariants** (see `aas.controller.js` comments for where each is
+enforced): never sell a quote AAS can't actually issue (`assertCanIssue`
+probes `stock.qr` before any wallet debit); never mark a policy `ACTIVE`
+without a real `linkAttestation` from AAS; a failed issuance always refunds
+the wallet and records `fulfillmentError`/`fulfillmentErrorCode` plus the
+exact request/response (`requestSnapshot`/`responseSnapshot`) so support can
+tell "AAS refused the payload" from "we never sent the field"; retries use a
+fresh `referenceTrxPartner` (`-R1`, `-R2`, ...) since AAS rejects a reused
+reference even after a failed attempt, and are refused once a real
+attestation exists.
+
+**Setup**: AAS credentials go under admin → Providers, category
+`INSURANCE_AAS` (`partner`, `accessToken`, `username`, `police`, `baseUrl`,
+`timeoutMs`, `garantieOptPT`) - see the example JSON that category preset
+fills in. Admin config wins over the `AAS_*` env vars in `server/.env`
+(`.env.example` documents both). `garantieOptPT` is a tariff decision (which
+"personnes transportées" option to charge whenever a tier includes that
+guarantee) - the default tiers (`TIER_GARANTIES`/`MOTO_TIER_GARANTIES` in
+`server/src/constants/aasGuarantees.js`) never include it, so it's unused
+today.
+
+**Testing without live AAS access**: there is no network egress to AAS's
+real sandbox from this build's environment, so everything was built and
+tested against a local stand-in
+(`server/src/modules/insurance/aasStandIn.js`) that reproduces every
+documented sandbox-reality behavior - run it with `npm run aas:standin`
+(inside `server/`) and point `AAS_BASE_URL` at it
+(`http://localhost:5099` by default). It also exposes `GET
+/__standin/state` and `POST /__standin/reset` (with an optional `qrStock`
+body) for driving specific scenarios - stock exhaustion, duplicate
+references, etc. - from a test script. **Before trusting this in
+production, run it against AAS's real sandbox at least once** and compare
+behavior against what the stand-in assumes.
+
+**What's confirmed vs. best-effort**: the source material is the vendor's
+own "Description API Assurance Digitale A.A.S V.1.1" PDF (which turned out
+to have the full field-level spec for every endpoint used here, not just
+the metadata tables) plus hand-written integration notes from a prior real
+build of this same integration, documenting exactly where the PDF is wrong
+about the live sandbox. Both are cited by comment throughout `aasClient.js`
+and `aasStandIn.js`. Two things remain genuinely unverified because the
+notes flag them as never exercised live: `qrcode.mono.cancel`'s exact
+query-param shape (the doc's own section 5.3 gives one; a referenced
+Postman collection allegedly gives a different JSON-body one - the doc's
+shape is what's implemented), and which guarantee codes each tier should
+actually carry (`TIER_GARANTIES`/`MOTO_TIER_GARANTIES` are a placeholder
+business decision, clearly commented as such - revisit with
+product/underwriting). REMORQUE (trailer) and BUS_ECOLE genres are
+excluded on purpose: they use their own dedicated AAS endpoint families
+(PDF sections 5.4-5.5 and 8) that aren't implemented, same as the C4 (Pool
+TPV) vehicles AAS's own doc says are excluded from digital issuance.
 
 ## Admin panel
 
