@@ -427,6 +427,26 @@ async function main() {
       // Pronet mois - monthly data
       { category: "Pronet mois", name: "Pronet mois 1375", price: 1375, internetLabel: "3,5Go", validityLabel: "30J", sortOrder: 1 },
       { category: "Pronet mois", name: "Pronet mois 1975", price: 1975, internetLabel: "5,5Go", validityLabel: "30J", sortOrder: 2 },
+      { category: "Pronet mois", name: "Pronet mois 3975", price: 3975, internetLabel: "14Go", validityLabel: "30J", sortOrder: 3 },
+      { category: "Pronet mois", name: "Pronet mois 7975", price: 7975, internetLabel: "30Go", validityLabel: "30J", sortOrder: 4 },
+      { category: "Pronet mois", name: "Pronet mois 14975", price: 14975, internetLabel: "60Go", validityLabel: "30J", sortOrder: 5 },
+      // Promix - combined voice + data bundles. Promix 475 (80mn, 500Mo) is
+      // deliberately omitted: its validity period was cut off in every
+      // source screenshot and never confirmed, so it's left out rather than
+      // guessed - add it once that value is available.
+      { category: "Promix", name: "Promix 975", price: 975, callMinutesLabel: "120mn", internetLabel: "1,5Go", validityLabel: "7J", sortOrder: 2 },
+      { category: "Promix", name: "Promix 1375", price: 1375, callMinutesLabel: "150mn", internetLabel: "2,5Go", validityLabel: "30J", sortOrder: 3 },
+      { category: "Promix", name: "Promix 1975", price: 1975, callMinutesLabel: "180mn", internetLabel: "3,5Go", validityLabel: "30J", sortOrder: 4 },
+      { category: "Promix", name: "Promix 4475", price: 4475, callMinutesLabel: "400mn", internetLabel: "10Go", validityLabel: "30J", sortOrder: 5 },
+      { category: "Promix", name: "Promix 9975", price: 9975, callMinutesLabel: "1000mn", internetLabel: "20Go", validityLabel: "30J", sortOrder: 6 },
+      // Promini - small combo bundles. The operator's own call-minutes label
+      // reads as an FCFA credit amount, not literal minutes (e.g. "500FCFA
+      // tous réseaux") - kept verbatim rather than reinterpreted. The
+      // screenshot cuts off right after Promini 275, so there may be more
+      // tiers above it not captured here.
+      { category: "Promini", name: "Promini 75", price: 75, callMinutesLabel: "500FCFA tous réseaux", internetLabel: "75Mo", validityLabel: "24H", sortOrder: 1 },
+      { category: "Promini", name: "Promini 175", price: 175, callMinutesLabel: "1000FCFA tous réseaux", internetLabel: "175Mo", validityLabel: "24H", sortOrder: 2 },
+      { category: "Promini", name: "Promini 275", price: 275, callMinutesLabel: "2000FCFA tous réseaux", internetLabel: "500Mo", validityLabel: "48H", sortOrder: 3 },
     ];
     for (const forfait of mobileForfaits) {
       const existing = await prisma.mobileForfait.findFirst({
