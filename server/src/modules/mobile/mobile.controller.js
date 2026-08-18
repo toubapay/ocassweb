@@ -1,6 +1,7 @@
 const { z } = require("zod");
 const crypto = require("crypto");
 const prisma = require("../../lib/prisma");
+const walletService = require("../wallet/wallet.service");
 
 function generateReference() {
   return `TOP-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
@@ -18,6 +19,23 @@ async function listServices(req, res, next) {
       orderBy: { name: "asc" },
     });
     res.json({ services });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** GET /mobile/forfaits?serviceId= - the named bundle catalog for one AIRTIME service. */
+async function listForfaits(req, res, next) {
+  try {
+    const { serviceId } = req.query;
+    if (!serviceId) {
+      return res.status(400).json({ message: "serviceId is required" });
+    }
+    const forfaits = await prisma.mobileForfait.findMany({
+      where: { serviceId: String(serviceId), isActive: true },
+      orderBy: [{ category: "asc" }, { sortOrder: "asc" }, { price: "asc" }],
+    });
+    res.json({ forfaits });
   } catch (err) {
     next(err);
   }
@@ -46,39 +64,92 @@ async function detectOperator(req, res, next) {
   }
 }
 
-const topupSchema = z.object({
-  serviceId: z.string().uuid(),
-  phoneNumber: z.string().min(6),
-  amount: z.number().positive(),
-});
+const topupSchema = z
+  .object({
+    serviceId: z.string().uuid().optional(),
+    forfaitId: z.string().uuid().optional(),
+    phoneNumber: z.string().min(6),
+    amount: z.number().positive().optional(),
+  })
+  .refine((data) => data.forfaitId || (data.serviceId && data.amount), {
+    message: "Provide either forfaitId, or serviceId and amount",
+  });
 
 async function createTopup(req, res, next) {
   try {
-    const { serviceId, phoneNumber, amount } = topupSchema.parse(req.body);
-    const service = await prisma.mobileService.findUnique({ where: { id: serviceId } });
-    if (!service || !service.isActive || service.type === "BILL") {
-      return res.status(400).json({ message: "Invalid top-up service" });
-    }
-    if (service.minAmount && amount < Number(service.minAmount)) {
-      return res.status(400).json({ message: `Minimum top-up is ${service.minAmount}` });
-    }
-    if (service.maxAmount && amount > Number(service.maxAmount)) {
-      return res.status(400).json({ message: `Maximum top-up is ${service.maxAmount}` });
+    const data = topupSchema.parse(req.body);
+
+    let service;
+    let forfait = null;
+    let amount;
+
+    if (data.forfaitId) {
+      forfait = await prisma.mobileForfait.findUnique({
+        where: { id: data.forfaitId },
+        include: { service: true },
+      });
+      if (!forfait || !forfait.isActive) {
+        return res.status(404).json({ message: "Forfait not found" });
+      }
+      service = forfait.service;
+      // The forfait's own price is what gets charged - a client-supplied
+      // amount is never trusted here even if one were sent alongside it.
+      amount = Number(forfait.price);
+    } else {
+      service = await prisma.mobileService.findUnique({ where: { id: data.serviceId } });
+      amount = data.amount;
     }
 
+    if (!service || !service.isActive || service.type !== "AIRTIME") {
+      return res.status(400).json({ message: "Invalid top-up service" });
+    }
+    if (!forfait) {
+      if (service.minAmount && amount < Number(service.minAmount)) {
+        return res.status(400).json({ message: `Minimum top-up is ${service.minAmount}` });
+      }
+      if (service.maxAmount && amount > Number(service.maxAmount)) {
+        return res.status(400).json({ message: `Maximum top-up is ${service.maxAmount}` });
+      }
+    }
+
+    // Created PENDING first so the wallet debit below has a purposeId to
+    // record against; deleted again if the debit fails before any money
+    // actually moves (mirrors restaurant/insurance's checkout pattern).
     const transaction = await prisma.mobileTransaction.create({
       data: {
         userId: req.user.id,
-        serviceId,
-        type: service.type,
-        phoneNumber,
+        serviceId: service.id,
+        forfaitId: forfait?.id || null,
+        type: "AIRTIME",
+        phoneNumber: data.phoneNumber,
         amount,
-        status: "SUCCESS",
+        status: "PENDING",
         reference: generateReference(),
       },
-      include: { service: true },
     });
-    res.status(201).json({ transaction });
+
+    try {
+      await walletService.debit({
+        userId: req.user.id,
+        amount,
+        purpose: "MOBILE_TOPUP",
+        purposeId: transaction.id,
+        description: forfait ? `${service.name} - ${forfait.name}` : `${service.name} top-up`,
+      });
+    } catch (debitErr) {
+      await prisma.mobileTransaction.delete({ where: { id: transaction.id } });
+      if (debitErr instanceof walletService.InsufficientBalanceError) {
+        return res.status(400).json({ message: "Insufficient wallet balance" });
+      }
+      return res.status(502).json({ message: "Could not complete wallet payment. Please try again." });
+    }
+
+    const finalTransaction = await prisma.mobileTransaction.update({
+      where: { id: transaction.id },
+      data: { status: "SUCCESS" },
+      include: { service: true, forfait: true },
+    });
+    res.status(201).json({ transaction: finalTransaction });
   } catch (err) {
     next(err);
   }
@@ -111,12 +182,33 @@ async function createBillPayment(req, res, next) {
         type: "BILL",
         accountNumber,
         amount,
-        status: "SUCCESS",
+        status: "PENDING",
         reference: generateReference(),
       },
+    });
+
+    try {
+      await walletService.debit({
+        userId: req.user.id,
+        amount,
+        purpose: "MOBILE_BILL",
+        purposeId: transaction.id,
+        description: `${service.name} bill payment`,
+      });
+    } catch (debitErr) {
+      await prisma.mobileTransaction.delete({ where: { id: transaction.id } });
+      if (debitErr instanceof walletService.InsufficientBalanceError) {
+        return res.status(400).json({ message: "Insufficient wallet balance" });
+      }
+      return res.status(502).json({ message: "Could not complete wallet payment. Please try again." });
+    }
+
+    const finalTransaction = await prisma.mobileTransaction.update({
+      where: { id: transaction.id },
+      data: { status: "SUCCESS" },
       include: { service: true },
     });
-    res.status(201).json({ transaction });
+    res.status(201).json({ transaction: finalTransaction });
   } catch (err) {
     next(err);
   }
@@ -126,7 +218,7 @@ async function listMyTransactions(req, res, next) {
   try {
     const transactions = await prisma.mobileTransaction.findMany({
       where: { userId: req.user.id },
-      include: { service: true },
+      include: { service: true, forfait: true },
       orderBy: { createdAt: "desc" },
     });
     res.json({ transactions });
@@ -137,6 +229,7 @@ async function listMyTransactions(req, res, next) {
 
 module.exports = {
   listServices,
+  listForfaits,
   detectOperator,
   createTopup,
   createBillPayment,

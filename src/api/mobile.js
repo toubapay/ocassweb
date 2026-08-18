@@ -5,6 +5,11 @@ export const fetchMobileServices = (type) =>
     .get("/mobile/services", { params: type ? { type } : {} })
     .then((res) => res.data.services);
 
+export const fetchMobileForfaits = (serviceId) =>
+  apiClient
+    .get("/mobile/forfaits", { params: { serviceId } })
+    .then((res) => res.data.forfaits);
+
 export const detectOperator = (phone) =>
   apiClient
     .get("/mobile/detect-operator", { params: { phone } })
@@ -13,6 +18,11 @@ export const detectOperator = (phone) =>
 export const createTopup = (serviceId, phoneNumber, amount) =>
   apiClient
     .post("/mobile/topup", { serviceId, phoneNumber, amount })
+    .then((res) => res.data.transaction);
+
+export const createForfaitTopup = (forfaitId, phoneNumber) =>
+  apiClient
+    .post("/mobile/topup", { forfaitId, phoneNumber })
     .then((res) => res.data.transaction);
 
 export const createBillPayment = (serviceId, accountNumber, amount) =>

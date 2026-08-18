@@ -591,7 +591,23 @@
       "invalidPhone": "Entrez un numéro de téléphone valide",
       "enterAmount": "Entrez un montant",
       "success": "Recharge réussie · {{reference}}",
-      "failed": "Échec de la recharge"
+      "failed": "Échec de la recharge",
+      "forfaitsTab": "Forfaits",
+      "customTab": "Montant personnalisé",
+      "forfaits": {
+        "loading": "Chargement des forfaits...",
+        "empty": "Aucun forfait disponible pour cet opérateur pour l'instant.",
+        "selectOperatorFirst": "Sélectionnez un opérateur pour voir les forfaits disponibles.",
+        "calls": "Appels",
+        "internet": "Internet",
+        "validity": "Validité",
+        "buy": "Acheter",
+        "buying": "Achat en cours...",
+        "confirmTitle": "Confirmer l'achat",
+        "confirmMessage": "Acheter {{name}} pour {{price}} sur {{phone}} ?",
+        "confirm": "Confirmer",
+        "cancel": "Annuler"
+      }
     },
     "bill": {
       "heading": "Payer une facture",
@@ -939,7 +955,18 @@
       "created": "Service créé",
       "saveFailed": "Impossible d'enregistrer",
       "nameRequired": "Le nom est requis",
-      "allFieldsRequired": "Tous les champs sont requis"
+      "allFieldsRequired": "Tous les champs sont requis",
+      "forfaitsTitle": "Forfaits crédit",
+      "selectService": "Opérateur",
+      "selectServicePlaceholder": "Sélectionnez d'abord un opérateur",
+      "noAirtimeServices": "Ajoutez d'abord un opérateur de type AIRTIME ci-dessus",
+      "category": "Catégorie",
+      "price": "Prix (CFA)",
+      "callMinutesLabel": "Appels (libellé)",
+      "internetLabel": "Internet (libellé)",
+      "validityLabel": "Validité (libellé)",
+      "sortOrder": "Ordre de tri",
+      "forfaitCreated": "Forfait créé"
     }
   },
   "store": {
