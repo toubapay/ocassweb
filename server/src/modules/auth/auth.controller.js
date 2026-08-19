@@ -2,6 +2,7 @@ const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const { createOtp, verifyOtp } = require("../../utils/otp");
 const { signToken } = require("../../utils/jwt");
+const { verifyPassword } = require("../../utils/password");
 
 const requestOtpSchema = z.object({
   phone: z.string().min(6, "Enter a valid phone number"),
@@ -52,6 +53,39 @@ async function me(req, res) {
   res.json({ user: req.user });
 }
 
+const adminLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+/**
+ * The admin console's own login (email + password), entirely separate from
+ * the customer phone/OTP flow above. Deliberately requires role === "ADMIN"
+ * on top of a matching password - a passwordHash existing on some other
+ * account (there isn't a self-service way to set one) still couldn't be
+ * used to bypass OTP for a non-admin account.
+ */
+async function adminLogin(req, res, next) {
+  try {
+    const { email, password } = adminLoginSchema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.passwordHash || user.role !== "ADMIN") {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    const valid = await verifyPassword(password, user.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    if (!user.active) {
+      return res.status(403).json({ message: "This account has been suspended" });
+    }
+    const token = signToken(user);
+    res.json({ token, user });
+  } catch (err) {
+    next(err);
+  }
+}
+
 const SELF_SERVICE_ROLES = ["CUSTOMER", "DELIVERY_AGENT", "RIDER", "VENDOR", "RESTAURANT_OWNER"];
 const updateRoleSchema = z.object({
   role: z.enum(SELF_SERVICE_ROLES),
@@ -74,4 +108,4 @@ async function updateRole(req, res, next) {
   }
 }
 
-module.exports = { requestOtp, verifyOtpAndLogin, me, updateRole };
+module.exports = { requestOtp, verifyOtpAndLogin, me, updateRole, adminLogin };

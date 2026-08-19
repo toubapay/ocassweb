@@ -5,6 +5,7 @@ import {
   fetchMe,
   requestOtp as requestOtpApi,
   verifyOtp as verifyOtpApi,
+  adminLogin as adminLoginApi,
   updateRole as updateRoleApi,
 } from "../api/auth";
 import { TOKEN_COOKIE } from "../api/client";
@@ -39,6 +40,16 @@ export default function useAuth() {
     [dispatch]
   );
 
+  const adminLogin = useCallback(
+    async (email, password) => {
+      const data = await adminLoginApi(email, password);
+      Cookies.set(TOKEN_COOKIE, data.token, { expires: 7 });
+      dispatch(setUser(data.user));
+      return data.user;
+    },
+    [dispatch]
+  );
+
   const logout = useCallback(() => {
     Cookies.remove(TOKEN_COOKIE);
     dispatch(logoutAction());
@@ -53,5 +64,5 @@ export default function useAuth() {
     [dispatch]
   );
 
-  return { user, isAuthenticated, requestOtp, verifyOtp, logout, updateRole };
+  return { user, isAuthenticated, requestOtp, verifyOtp, adminLogin, logout, updateRole };
 }

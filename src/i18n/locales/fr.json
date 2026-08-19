@@ -811,6 +811,18 @@
   "admin": {
     "title": "Panneau d'administration",
     "notAuthorized": "Vous n'avez pas accès au panneau d'administration.",
+    "login": {
+      "title": "Connexion admin",
+      "subtitle": "Connectez-vous avec votre e-mail et mot de passe admin.",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "signIn": "Se connecter",
+      "signingIn": "Connexion...",
+      "enterCredentials": "Entrez votre e-mail et mot de passe",
+      "failed": "E-mail ou mot de passe invalide",
+      "signedInAsOther": "Vous êtes connecté en tant que {{name}}, ce qui n'est pas un compte admin.",
+      "logOutFirst": "Se déconnecter"
+    },
     "tabs": {
       "dashboard": "Tableau de bord",
       "users": "Utilisateurs",

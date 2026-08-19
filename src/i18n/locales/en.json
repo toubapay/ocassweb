@@ -811,6 +811,18 @@
   "admin": {
     "title": "Admin panel",
     "notAuthorized": "You don't have access to the admin panel.",
+    "login": {
+      "title": "Admin sign in",
+      "subtitle": "Sign in with your admin email and password.",
+      "email": "Email",
+      "password": "Password",
+      "signIn": "Sign in",
+      "signingIn": "Signing in...",
+      "enterCredentials": "Enter your email and password",
+      "failed": "Invalid email or password",
+      "signedInAsOther": "You're signed in as {{name}}, which isn't an admin account.",
+      "logOutFirst": "Log out"
+    },
     "tabs": {
       "dashboard": "Dashboard",
       "users": "Users",

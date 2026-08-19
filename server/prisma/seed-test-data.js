@@ -8,6 +8,7 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { TIER_GARANTIES, MOTO_TIER_GARANTIES } = require("../src/constants/aasGuarantees");
+const { hashPassword } = require("../src/utils/password");
 
 function img(seed, w = 500, h = 500) {
   return `https://picsum.photos/seed/${seed}/${w}/${h}`;
@@ -46,11 +47,20 @@ async function main() {
   });
   // No self-service path to ADMIN exists (see PATCH /api/auth/role) - this
   // is the only way a fresh dev environment gets one without hand-editing
-  // the database (see README's "Admin panel" section).
+  // the database (see README's "Admin panel" section). Logs into the admin
+  // console (/admin/login) with email+password, not phone+OTP - kept on
+  // phone +221771000006 too so the OTP flow still works as a fallback.
+  const adminPasswordHash = await hashPassword("saynabou");
   const admin = await prisma.user.upsert({
     where: { phone: "+221771000006" },
-    update: {},
-    create: { phone: "+221771000006", name: "Admin", email: "admin@example.com", role: "ADMIN" },
+    update: { email: "admin@gmail.com", passwordHash: adminPasswordHash },
+    create: {
+      phone: "+221771000006",
+      name: "Admin",
+      email: "admin@gmail.com",
+      passwordHash: adminPasswordHash,
+      role: "ADMIN",
+    },
   });
 
   // ---------- Wallets ----------
@@ -428,9 +438,10 @@ async function main() {
 
   console.log("Test data seed complete.\n");
   console.log("Sign in with OTP_DEV_MODE using any of these phone numbers (OTP comes back in the API response):");
-  [customer, vendor, agent, rider, anandoDriver, admin].forEach((u) => {
+  [customer, vendor, agent, rider, anandoDriver].forEach((u) => {
     console.log(`  ${u.phone}  ${u.name}  (${u.role})`);
   });
+  console.log(`\nAdmin console (/admin/login): ${admin.email}  /  saynabou`);
 }
 
 main()
