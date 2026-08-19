@@ -586,7 +586,7 @@
       "amount": "AMOUNT (CFA)",
       "amountLabel": "Amount",
       "processing": "Processing...",
-      "topUp": "Top up",
+      "topUp": "Buy Airtime",
       "selectOperator": "Select a mobile operator",
       "invalidPhone": "Enter a valid phone number",
       "enterAmount": "Enter an amount",
@@ -602,12 +602,17 @@
         "internet": "Internet",
         "validity": "Validity",
         "buy": "Buy",
-        "buying": "Buying...",
-        "confirmTitle": "Confirm purchase",
-        "confirmMessage": "Buy {{name}} for {{price}} on {{phone}}?",
-        "confirm": "Confirm",
-        "cancel": "Cancel"
-      }
+        "buying": "Buying..."
+      },
+      "buyTitle": "Buy Airtime",
+      "launcherSubtitle": "Pick a recipient, then an amount or a bundle.",
+      "toLabel": "To",
+      "buyForNewNumber": "Buy airtime for a new number",
+      "favorites": "Favorites",
+      "noFavorites": "No recent recipients yet.",
+      "confirmTitle": "Confirm Airtime Purchase",
+      "total": "Total",
+      "confirm": "Confirm"
     },
     "bill": {
       "heading": "Pay a bill",
