@@ -1,6 +1,7 @@
 const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const { MODULE_KEYS } = require("../../constants/modules");
+const { uniqueSlug } = require("../../utils/slugify");
 
 // ---------------- Users ----------------
 
@@ -313,6 +314,76 @@ async function deleteZone(req, res, next) {
   }
 }
 
+// ---------------- Categories (ecommerce product catalog) ----------------
+// Any vendor can also create a category (POST /vendor/categories, always
+// active, no parent restriction) - this section is what lets an admin
+// additionally edit one (rename, re-parent, change icon) or take it down.
+// No delete: existing Product rows reference a category by id, so isActive
+// is the retire/hide lever, same as every other catalog entity in the app.
+
+const categorySchema = z.object({
+  name: z.string().min(2),
+  parentId: z.string().uuid().optional().nullable(),
+  icon: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+async function listCategoriesAdmin(req, res, next) {
+  try {
+    const categories = await prisma.category.findMany({
+      include: { parent: { select: { id: true, name: true } }, _count: { select: { products: true } } },
+      orderBy: [{ parentId: "asc" }, { name: "asc" }],
+    });
+    res.json({ categories });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createCategoryAdmin(req, res, next) {
+  try {
+    const data = categorySchema.parse(req.body);
+    if (data.parentId) {
+      const parent = await prisma.category.findUnique({ where: { id: data.parentId } });
+      if (!parent) return res.status(400).json({ message: "Unknown parent category" });
+    }
+    const slug = await uniqueSlug(
+      data.name,
+      (s) => prisma.category.findUnique({ where: { slug: s } }).then(Boolean)
+    );
+    const category = await prisma.category.create({
+      data: { name: data.name, slug, parentId: data.parentId || null, icon: data.icon || null },
+    });
+    res.status(201).json({ category });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateCategoryAdmin(req, res, next) {
+  try {
+    const data = categorySchema.partial().parse(req.body);
+    if (data.parentId) {
+      if (data.parentId === req.params.id) {
+        return res.status(400).json({ message: "A category can't be its own parent" });
+      }
+      const parent = await prisma.category.findUnique({ where: { id: data.parentId } });
+      if (!parent) return res.status(400).json({ message: "Unknown parent category" });
+    }
+    const category = await prisma.category.update({
+      where: { id: req.params.id },
+      data: {
+        ...data,
+        ...(data.parentId !== undefined ? { parentId: data.parentId || null } : {}),
+        ...(data.icon !== undefined ? { icon: data.icon || null } : {}),
+      },
+    });
+    res.json({ category });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Providers (SMS gateway, and other services) ----------------
 
 const providerSchema = z.object({
@@ -614,6 +685,9 @@ module.exports = {
   createZone,
   updateZone,
   deleteZone,
+  listCategoriesAdmin,
+  createCategoryAdmin,
+  updateCategoryAdmin,
   listProviders,
   createProvider,
   updateProvider,

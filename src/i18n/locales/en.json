@@ -836,11 +836,28 @@
       "signedInAsOther": "You're signed in as {{name}}, which isn't an admin account.",
       "logOutFirst": "Log out"
     },
+    "categories": {
+      "title": "Product categories",
+      "subtitle": "Shared across all vendors - anyone can add one from their product page too. Deactivating hides it from browsing and the product-form dropdown without deleting it.",
+      "name": "Name",
+      "icon": "Icon",
+      "noParent": "None (top-level category)",
+      "add": "Add",
+      "editCategory": "Edit category",
+      "productCount_one": "{{count}} product",
+      "productCount_other": "{{count}} products",
+      "under": "under {{name}}",
+      "created": "Category created",
+      "updated": "Category updated",
+      "nameRequired": "Enter a category name",
+      "saveFailed": "Could not save category"
+    },
     "tabs": {
       "dashboard": "Dashboard",
       "users": "Users",
       "modules": "Modules & fees",
       "vendors": "Vendors",
+      "categories": "Categories",
       "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Providers",
