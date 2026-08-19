@@ -7,6 +7,7 @@ class MenuItem {
   final double price;
   final String? imageUrl;
   final String? category;
+  final bool isActive;
 
   MenuItem({
     required this.id,
@@ -15,6 +16,7 @@ class MenuItem {
     required this.price,
     this.imageUrl,
     this.category,
+    this.isActive = true,
   });
 
   factory MenuItem.fromJson(Map<String, dynamic> json) => MenuItem(
@@ -24,6 +26,7 @@ class MenuItem {
         price: _parseDecimal(json['price']),
         imageUrl: json['imageUrl'] as String?,
         category: json['category'] as String?,
+        isActive: json['isActive'] as bool? ?? true,
       );
 }
 
@@ -112,5 +115,74 @@ class RestaurantOrder {
         items: (json['items'] as List<dynamic>? ?? [])
             .map((i) => RestaurantOrderItem.fromJson(i as Map<String, dynamic>))
             .toList(),
+      );
+}
+
+/// The owner's-eye view of one of their restaurant's orders (GET
+/// /restaurants/owner/orders) - a distinct shape from RestaurantOrder
+/// above (the customer's own order history), since the backend nests the
+/// customer's contact info and never re-nests the restaurant itself
+/// (every order in this list is implicitly "my restaurant").
+class OwnerOrderCustomer {
+  final String id;
+  final String? name;
+  final String phone;
+
+  OwnerOrderCustomer({required this.id, this.name, required this.phone});
+
+  factory OwnerOrderCustomer.fromJson(Map<String, dynamic> json) => OwnerOrderCustomer(
+        id: json['id'] as String,
+        name: json['name'] as String?,
+        phone: json['phone'] as String,
+      );
+}
+
+class OwnerOrderDeliveryRequest {
+  final String id;
+  final String status;
+
+  OwnerOrderDeliveryRequest({required this.id, required this.status});
+
+  factory OwnerOrderDeliveryRequest.fromJson(Map<String, dynamic> json) =>
+      OwnerOrderDeliveryRequest(id: json['id'] as String, status: json['status'] as String);
+}
+
+class OwnerRestaurantOrder {
+  final String id;
+  final String status;
+  final double total;
+  final String? note;
+  final String? deliveryAddress;
+  final DateTime createdAt;
+  final OwnerOrderCustomer user;
+  final List<RestaurantOrderItem> items;
+  final OwnerOrderDeliveryRequest? deliveryRequest;
+
+  OwnerRestaurantOrder({
+    required this.id,
+    required this.status,
+    required this.total,
+    this.note,
+    this.deliveryAddress,
+    required this.createdAt,
+    required this.user,
+    this.items = const [],
+    this.deliveryRequest,
+  });
+
+  factory OwnerRestaurantOrder.fromJson(Map<String, dynamic> json) => OwnerRestaurantOrder(
+        id: json['id'] as String,
+        status: json['status'] as String,
+        total: _parseDecimal(json['total']),
+        note: json['note'] as String?,
+        deliveryAddress: json['deliveryAddress'] as String?,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        user: OwnerOrderCustomer.fromJson(json['user'] as Map<String, dynamic>),
+        items: (json['items'] as List<dynamic>? ?? [])
+            .map((i) => RestaurantOrderItem.fromJson(i as Map<String, dynamic>))
+            .toList(),
+        deliveryRequest: json['deliveryRequest'] != null
+            ? OwnerOrderDeliveryRequest.fromJson(json['deliveryRequest'] as Map<String, dynamic>)
+            : null,
       );
 }

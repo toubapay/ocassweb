@@ -139,6 +139,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: _updatingRole ? null : () => _changeRole('VENDOR'),
                         child: Text(context.t('profile.becomeVendor')),
                       ),
+                      OutlinedButton(
+                        onPressed: _updatingRole ? null : () => _changeRole('RESTAURANT_OWNER'),
+                        child: Text(context.t('profile.becomeRestaurantOwner')),
+                      ),
                     ],
                   ),
                 if (user.role == 'DELIVERY_AGENT')
@@ -179,6 +183,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ElevatedButton(
                         onPressed: () => context.push('/vendor'),
                         child: Text(context.t('profile.vendorDashboard')),
+                      ),
+                      TextButton(
+                        onPressed: _updatingRole ? null : () => _changeRole('CUSTOMER'),
+                        child: Text(context.t('profile.stopGigWork')),
+                      ),
+                    ],
+                  ),
+                if (user.role == 'RESTAURANT_OWNER')
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () => context.push('/restaurant/manage'),
+                        child: Text(context.t('profile.restaurantDashboard')),
                       ),
                       TextButton(
                         onPressed: _updatingRole ? null : () => _changeRole('CUSTOMER'),

@@ -18,6 +18,9 @@ import '../screens/insurance/insurance_screen.dart';
 import '../screens/restaurant/restaurant_list_screen.dart';
 import '../screens/restaurant/restaurant_detail_screen.dart';
 import '../screens/restaurant/restaurant_orders_screen.dart';
+import '../screens/restaurant/restaurant_manage_screen.dart';
+import '../screens/restaurant/restaurant_manage_items_screen.dart';
+import '../screens/restaurant/restaurant_manage_orders_screen.dart';
 import '../screens/rideshare/ride_sharing_screen.dart';
 import '../screens/rideshare/ride_sharing_driver_screen.dart';
 import '../screens/topup/topup_screen.dart';
@@ -95,6 +98,15 @@ final GoRouter appRouter = GoRouter(
         // Same ordering rule for /restaurant/*.
         GoRoute(path: '/restaurant', builder: (context, state) => const RestaurantListScreen()),
         GoRoute(path: '/restaurant/orders', builder: (context, state) => const RestaurantOrdersScreen()),
+        GoRoute(path: '/restaurant/manage', builder: (context, state) => const RestaurantManageScreen()),
+        GoRoute(
+          path: '/restaurant/manage/items',
+          builder: (context, state) => const RestaurantManageItemsScreen(),
+        ),
+        GoRoute(
+          path: '/restaurant/manage/orders',
+          builder: (context, state) => const RestaurantManageOrdersScreen(),
+        ),
         GoRoute(
           path: '/restaurant/:slug',
           builder: (context, state) =>

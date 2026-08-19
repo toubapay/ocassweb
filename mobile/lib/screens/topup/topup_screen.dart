@@ -8,6 +8,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/mobile_forfait.dart';
 import '../../models/mobile_service.dart';
 import '../../models/mobile_transaction.dart';
 import '../../providers/auth_provider.dart';
@@ -22,6 +23,31 @@ const Map<String, Color> _statusColors = {
   'PENDING': AppColors.amber,
   'FAILED': AppColors.red,
 };
+
+const _categoryColors = [
+  Color(0xFFFFF3E0),
+  Color(0xFFE3F2FD),
+  Color(0xFFE8F5E9),
+  Color(0xFFF3E5F5),
+  Color(0xFFFCE4EC),
+];
+
+/// Groups an already category/sortOrder/price-sorted forfait list (see
+/// GET /mobile/forfaits) into ordered (category, items) buckets, preserving
+/// first-seen category order rather than re-sorting - mirrors
+/// groupByCategory in pages/topup/index.js.
+List<MapEntry<String, List<MobileForfait>>> _groupByCategory(List<MobileForfait> forfaits) {
+  final order = <String>[];
+  final byCategory = <String, List<MobileForfait>>{};
+  for (final f in forfaits) {
+    if (!byCategory.containsKey(f.category)) {
+      order.add(f.category);
+      byCategory[f.category] = [];
+    }
+    byCategory[f.category]!.add(f);
+  }
+  return order.map((c) => MapEntry(c, byCategory[c]!)).toList();
+}
 
 /// Mirrors pages/topup/index.js: an Airtime tab (manual entry or device
 /// contact picker, auto-detected operator, quick amounts) and a Bill
@@ -48,6 +74,8 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
   double? _airtimeAmount;
   Timer? _detectDebounce;
   bool _detecting = false;
+  String _airtimeMode = 'forfaits'; // 'forfaits' | 'custom'
+  String? _buyingForfaitId;
 
   String? _billServiceId;
   final _accountController = TextEditingController();
@@ -132,6 +160,34 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
       return;
     }
     action();
+  }
+
+  Future<void> _buyForfait(MobileForfait forfait) async {
+    final digits = _phoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length < 8) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('topup.airtime.invalidPhone'))));
+      return;
+    }
+    _requireLogin(() async {
+      setState(() => _buyingForfaitId = forfait.id);
+      try {
+        final tx = await apiClient.createForfaitTopup(
+          forfaitId: forfait.id,
+          phoneNumber: _phoneController.text,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(context.tr('topup.airtime.success', {'reference': tx.reference}))));
+        await _loadTransactions();
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.tr('topup.airtime.failed'))));
+      } finally {
+        if (mounted) setState(() => _buyingForfaitId = null);
+      }
+    });
   }
 
   Future<void> _submitTopup() async {
@@ -306,6 +362,42 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
           },
         ),
         const SizedBox(height: 20),
+        Wrap(
+          spacing: 8,
+          children: [
+            ChoiceChip(
+              label: Text(context.t('topup.airtime.forfaitsTab')),
+              selected: _airtimeMode == 'forfaits',
+              onSelected: (_) => setState(() => _airtimeMode = 'forfaits'),
+              selectedColor: AppColors.green,
+              labelStyle: TextStyle(
+                color: _airtimeMode == 'forfaits' ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            ChoiceChip(
+              label: Text(context.t('topup.airtime.customTab')),
+              selected: _airtimeMode == 'custom',
+              onSelected: (_) => setState(() => _airtimeMode = 'custom'),
+              selectedColor: AppColors.green,
+              labelStyle: TextStyle(
+                color: _airtimeMode == 'custom' ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (_airtimeMode == 'forfaits') _buildForfaits() else _buildCustomAmount(),
+        if (_transactions.isNotEmpty) _buildHistory(),
+      ],
+    );
+  }
+
+  Widget _buildCustomAmount() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(context.t('topup.airtime.amount'),
             style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w700, fontSize: 11)),
         const SizedBox(height: 8),
@@ -343,8 +435,91 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
               ? context.t('topup.airtime.processing')
               : context.t('topup.airtime.topUp')),
         ),
-        if (_transactions.isNotEmpty) _buildHistory(),
       ],
+    );
+  }
+
+  Widget _buildForfaits() {
+    if (_airtimeServiceId == null) {
+      return Text(context.t('topup.airtime.forfaits.selectOperatorFirst'),
+          style: const TextStyle(color: AppColors.textSecondary));
+    }
+    return FutureBuilder<List<MobileForfait>>(
+      // Keyed by service id via a fresh future each time it changes - Dio
+      // has no query-level caching here, so switching operators re-fetches.
+      key: ValueKey(_airtimeServiceId),
+      future: apiClient.fetchMobileForfaits(_airtimeServiceId!),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Text(context.t('topup.airtime.forfaits.loading'),
+              style: const TextStyle(color: AppColors.textSecondary));
+        }
+        final forfaits = snapshot.data ?? const <MobileForfait>[];
+        if (forfaits.isEmpty) {
+          return Text(context.t('topup.airtime.forfaits.empty'),
+              style: const TextStyle(color: AppColors.textSecondary));
+        }
+        final groups = _groupByCategory(forfaits);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < groups.length; i++) ...[
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _categoryColors[i % _categoryColors.length],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(groups[i].key, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+              ),
+              ...groups[i].value.map(_buildForfaitCard),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildForfaitCard(MobileForfait forfait) {
+    final buying = _buyingForfaitId == forfait.id;
+    final details = [
+      if (forfait.callMinutesLabel != null)
+        '${context.t('topup.airtime.forfaits.calls')}: ${forfait.callMinutesLabel}',
+      if (forfait.internetLabel != null)
+        '${context.t('topup.airtime.forfaits.internet')}: ${forfait.internetLabel}',
+    ].join(' · ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration:
+          BoxDecoration(border: Border.all(color: AppColors.divider), borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${forfait.name} · ${formatCfa(forfait.price)}',
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+                if (details.isNotEmpty)
+                  Text(details, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text('${context.t('topup.airtime.forfaits.validity')}: ${forfait.validityLabel}',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: buying ? null : () => _buyForfait(forfait),
+            child: Text(buying
+                ? context.t('topup.airtime.forfaits.buying')
+                : context.t('topup.airtime.forfaits.buy')),
+          ),
+        ],
+      ),
     );
   }
 

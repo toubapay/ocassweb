@@ -13,6 +13,7 @@ import '../models/insurance.dart';
 import '../models/restaurant.dart';
 import '../models/ride_request.dart';
 import '../models/mobile_service.dart';
+import '../models/mobile_forfait.dart';
 import '../models/mobile_transaction.dart';
 import '../models/wallet.dart';
 import '../models/ride_posting.dart';
@@ -253,6 +254,13 @@ class ApiClient {
     return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
   }
 
+  /// Only accepted while the job is ACCEPTED or PICKED_UP server-side - a
+  /// stray call after DELIVERED/CANCELLED just 400s, which callers can
+  /// safely ignore (see the periodic broadcast in delivery_agent_screen.dart).
+  Future<void> updateDeliveryJobLocation(String id, {required double lat, required double lng}) async {
+    await _dio.patch('/delivery/jobs/$id/location', data: {'lat': lat, 'lng': lng});
+  }
+
   // ---------------- Insurance ----------------
 
   Future<List<InsurancePlan>> fetchInsurancePlans({String? category}) async {
@@ -316,6 +324,109 @@ class ApiClient {
       if (note != null && note.isNotEmpty) 'note': note,
     });
     return RestaurantOrder.fromJson(_data(res)['order'] as Map<String, dynamic>);
+  }
+
+  // ---------------- Restaurant (self-service owner) ----------------
+
+  Future<Restaurant?> fetchMyRestaurant() async {
+    final res = await _dio.get('/restaurants/owner/restaurant');
+    final restaurant = _data(res)['restaurant'];
+    return restaurant == null ? null : Restaurant.fromJson(restaurant as Map<String, dynamic>);
+  }
+
+  Future<Restaurant> createMyRestaurant({
+    required String name,
+    String? cuisine,
+    String? logoUrl,
+    String? address,
+  }) async {
+    final res = await _dio.post('/restaurants/owner/restaurant', data: {
+      'name': name,
+      if (cuisine != null && cuisine.isNotEmpty) 'cuisine': cuisine,
+      if (logoUrl != null && logoUrl.isNotEmpty) 'logoUrl': logoUrl,
+      if (address != null && address.isNotEmpty) 'address': address,
+    });
+    return Restaurant.fromJson(_data(res)['restaurant'] as Map<String, dynamic>);
+  }
+
+  Future<Restaurant> updateMyRestaurant({
+    String? name,
+    String? cuisine,
+    String? logoUrl,
+    String? address,
+  }) async {
+    final res = await _dio.patch('/restaurants/owner/restaurant', data: {
+      if (name != null) 'name': name,
+      if (cuisine != null) 'cuisine': cuisine,
+      if (logoUrl != null) 'logoUrl': logoUrl,
+      if (address != null) 'address': address,
+    });
+    return Restaurant.fromJson(_data(res)['restaurant'] as Map<String, dynamic>);
+  }
+
+  Future<List<MenuItem>> fetchMyMenuItems() async {
+    final res = await _dio.get('/restaurants/owner/menu-items');
+    return (_data(res)['menuItems'] as List<dynamic>)
+        .map((m) => MenuItem.fromJson(m as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<MenuItem> createMenuItem({
+    required String name,
+    String? description,
+    required double price,
+    String? imageUrl,
+    String? category,
+  }) async {
+    final res = await _dio.post('/restaurants/owner/menu-items', data: {
+      'name': name,
+      if (description != null && description.isNotEmpty) 'description': description,
+      'price': price,
+      if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+      if (category != null && category.isNotEmpty) 'category': category,
+    });
+    return MenuItem.fromJson(_data(res)['menuItem'] as Map<String, dynamic>);
+  }
+
+  Future<MenuItem> updateMenuItem(
+    String id, {
+    String? name,
+    String? description,
+    double? price,
+    String? imageUrl,
+    String? category,
+    bool? isActive,
+  }) async {
+    final res = await _dio.patch('/restaurants/owner/menu-items/$id', data: {
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (price != null) 'price': price,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+      if (category != null) 'category': category,
+      if (isActive != null) 'isActive': isActive,
+    });
+    return MenuItem.fromJson(_data(res)['menuItem'] as Map<String, dynamic>);
+  }
+
+  Future<MenuItem> deactivateMenuItem(String id) async {
+    final res = await _dio.delete('/restaurants/owner/menu-items/$id');
+    return MenuItem.fromJson(_data(res)['menuItem'] as Map<String, dynamic>);
+  }
+
+  Future<List<OwnerRestaurantOrder>> fetchMyRestaurantOrders() async {
+    final res = await _dio.get('/restaurants/owner/orders');
+    return (_data(res)['orders'] as List<dynamic>)
+        .map((o) => OwnerRestaurantOrder.fromJson(o as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// [status] must be one the backend's OWNER_TRANSITIONS map allows from
+  /// the order's current status - PREPARING, OUT_FOR_DELIVERY, or
+  /// CANCELLED (never DELIVERED, which only ever arrives via the linked
+  /// delivery job's own completion).
+  Future<OwnerRestaurantOrder> updateRestaurantOrderStatus(String id, String status) async {
+    final res = await _dio.patch('/restaurants/owner/orders/$id/status', data: {'status': status});
+    return OwnerRestaurantOrder.fromJson(_data(res)['order'] as Map<String, dynamic>);
   }
 
   // ---------------- Ride sharing ----------------
@@ -397,6 +508,16 @@ class ApiClient {
     return service == null ? null : MobileService.fromJson(service as Map<String, dynamic>);
   }
 
+  /// The named bundle-plan catalog for one AIRTIME service (e.g. Expresso
+  /// Sénégal's "Disso"/"Pronet" tiers) - see pages/topup/index.js's
+  /// forfaits/custom-amount toggle.
+  Future<List<MobileForfait>> fetchMobileForfaits(String serviceId) async {
+    final res = await _dio.get('/mobile/forfaits', queryParameters: {'serviceId': serviceId});
+    return (_data(res)['forfaits'] as List<dynamic>)
+        .map((f) => MobileForfait.fromJson(f as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<MobileTransaction> createTopup({
     required String serviceId,
     required String phoneNumber,
@@ -406,6 +527,19 @@ class ApiClient {
       'serviceId': serviceId,
       'phoneNumber': phoneNumber,
       'amount': amount,
+    });
+    return MobileTransaction.fromJson(_data(res)['transaction'] as Map<String, dynamic>);
+  }
+
+  /// Buys a forfait: the amount charged is always the forfait's own price,
+  /// computed server-side - never sent from here (see mobile.controller.js).
+  Future<MobileTransaction> createForfaitTopup({
+    required String forfaitId,
+    required String phoneNumber,
+  }) async {
+    final res = await _dio.post('/mobile/topup', data: {
+      'forfaitId': forfaitId,
+      'phoneNumber': phoneNumber,
     });
     return MobileTransaction.fromJson(_data(res)['transaction'] as Map<String, dynamic>);
   }
@@ -569,6 +703,34 @@ class ApiClient {
       if (discountPrice != null) 'discountPrice': discountPrice,
       'stock': stock,
       'tags': tags,
+    });
+    return Product.fromJson(_data(res)['product'] as Map<String, dynamic>);
+  }
+
+  Future<Product> updateVendorProduct(
+    String id, {
+    String? categoryId,
+    String? name,
+    String? description,
+    List<String>? images,
+    double? price,
+    double? discountPrice,
+    // Distinguishes "leave discountPrice untouched" (default - omit the
+    // field entirely) from "clear it to null" (send discountPrice: null
+    // explicitly), since the backend's schema treats a present-but-null
+    // value as "remove the discount" and an absent field as "don't touch
+    // it" - a single nullable discountPrice param can't express both.
+    bool clearDiscount = false,
+    int? stock,
+  }) async {
+    final res = await _dio.patch('/vendor/products/$id', data: {
+      if (categoryId != null) 'categoryId': categoryId,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (images != null) 'images': images,
+      if (price != null) 'price': price,
+      if (discountPrice != null || clearDiscount) 'discountPrice': discountPrice,
+      if (stock != null) 'stock': stock,
     });
     return Product.fromJson(_data(res)['product'] as Map<String, dynamic>);
   }
