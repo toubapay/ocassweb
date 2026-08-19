@@ -9,6 +9,7 @@ const {
   createProduct,
   updateProduct,
   deactivateProduct,
+  createCategory,
   listMyOrders,
 } = require("./vendor.controller");
 
@@ -28,6 +29,8 @@ router.get("/products", listMyProducts);
 router.post("/products", createProduct);
 router.patch("/products/:id", updateProduct);
 router.delete("/products/:id", deactivateProduct);
+
+router.post("/categories", createCategory);
 
 router.get("/orders", listMyOrders);
 

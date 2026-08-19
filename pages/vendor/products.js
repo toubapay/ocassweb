@@ -20,6 +20,8 @@ import FormControl from "@mui/material/FormControl";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import Avatar from "@mui/material/Avatar";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
 import {
@@ -27,6 +29,7 @@ import {
   createProduct,
   updateProduct,
   deactivateProduct,
+  createCategory,
 } from "../../src/api/vendor";
 import { fetchCategories } from "../../src/api/ecommerce";
 import { formatCfa } from "../../src/utils/currency";
@@ -38,7 +41,10 @@ const emptyForm = {
   price: "",
   discountPrice: "",
   stock: "",
+  images: "",
 };
+
+const emptyCategoryForm = { name: "", parentId: "" };
 
 function flattenCategories(categories) {
   const out = [];
@@ -59,6 +65,8 @@ export default function VendorProducts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
 
   const { data: products, isLoading } = useQuery("vendor-products", fetchMyProducts, {
     enabled: isVendor,
@@ -67,6 +75,18 @@ export default function VendorProducts() {
   const flatCategories = flattenCategories(categories);
 
   const invalidate = () => queryClient.invalidateQueries("vendor-products");
+
+  const createCategoryMutation = useMutation(
+    (payload) => createCategory(payload),
+    {
+      onSuccess: () => {
+        toast.success(t("vendor.categoryCreated"));
+        queryClient.invalidateQueries("categories");
+        setCategoryForm(emptyCategoryForm);
+      },
+      onError: (err) => toast.error(err.response?.data?.message || t("vendor.couldNotSaveCategory")),
+    }
+  );
 
   const createMutation = useMutation((payload) => createProduct(payload), {
     onSuccess: () => {
@@ -114,6 +134,7 @@ export default function VendorProducts() {
       price: String(product.price),
       discountPrice: product.discountPrice ? String(product.discountPrice) : "",
       stock: String(product.stock),
+      images: (product.images || []).join(", "),
     });
     setEditingId(product.id);
     setDialogOpen(true);
@@ -131,12 +152,26 @@ export default function VendorProducts() {
       price: Number(form.price),
       discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
       stock: Number(form.stock) || 0,
+      images: form.images
+        ? form.images.split(",").map((url) => url.trim()).filter(Boolean)
+        : [],
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, payload });
     } else {
       createMutation.mutate(payload);
     }
+  };
+
+  const handleCreateCategory = () => {
+    if (!categoryForm.name.trim()) {
+      toast.error(t("vendor.categoryNameRequired"));
+      return;
+    }
+    createCategoryMutation.mutate({
+      name: categoryForm.name.trim(),
+      parentId: categoryForm.parentId || undefined,
+    });
   };
 
   if (!isAuthenticated || !isVendor) {
@@ -158,7 +193,18 @@ export default function VendorProducts() {
     <Box sx={{ pb: 10, position: "relative", minHeight: "100vh" }}>
       <TopBar title={t("vendor.products")} showCart={false} showSearch={false} />
 
-      <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
+      <Box sx={{ px: 2, pt: 2, display: "flex", justifyContent: "flex-end" }}>
+        <Button
+          size="small"
+          startIcon={<CategoryRoundedIcon fontSize="small" />}
+          onClick={() => setCategoryDialogOpen(true)}
+          sx={{ fontWeight: 700 }}
+        >
+          {t("vendor.manageCategories")}
+        </Button>
+      </Box>
+
+      <Box sx={{ p: 2, pt: 0.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
         {isLoading && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {t("common.loading")}
@@ -182,6 +228,13 @@ export default function VendorProducts() {
               alignItems: "center",
             }}
           >
+            <Avatar
+              variant="rounded"
+              src={p.images?.[0]}
+              sx={{ width: 48, height: 48, bgcolor: "grey.100", flexShrink: 0 }}
+            >
+              <CategoryRoundedIcon sx={{ color: "grey.400" }} />
+            </Avatar>
             <Box sx={{ flexGrow: 1 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -289,11 +342,78 @@ export default function VendorProducts() {
             value={form.stock}
             onChange={(e) => setForm({ ...form, stock: e.target.value })}
           />
+          <TextField
+            label={t("vendor.images")}
+            helperText={t("vendor.imagesHelp")}
+            fullWidth
+            multiline
+            minRows={2}
+            value={form.images}
+            onChange={(e) => setForm({ ...form, images: e.target.value })}
+          />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={closeDialog}>{t("vendor.cancel")}</Button>
           <Button variant="contained" disabled={saving} onClick={handleSave} sx={{ fontWeight: 700 }}>
             {saving ? t("vendor.saving") : t("vendor.save")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={categoryDialogOpen} onClose={() => setCategoryDialogOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontWeight: 800 }}>{t("vendor.manageCategories")}</DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            {t("vendor.categoriesShared")}
+          </Typography>
+
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+            {flatCategories.length === 0 && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {t("vendor.noCategories")}
+              </Typography>
+            )}
+            {flatCategories.map((cat) => (
+              <Chip key={cat.id} label={cat.indent ? `— ${cat.name}` : cat.name} size="small" />
+            ))}
+          </Box>
+
+          <TextField
+            label={t("vendor.categoryName")}
+            fullWidth
+            value={categoryForm.name}
+            onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+          />
+          <FormControl fullWidth>
+            <InputLabel id="vendor-parent-category-label">{t("vendor.parentCategory")}</InputLabel>
+            <Select
+              labelId="vendor-parent-category-label"
+              label={t("vendor.parentCategory")}
+              value={categoryForm.parentId}
+              onChange={(e) => setCategoryForm({ ...categoryForm, parentId: e.target.value })}
+            >
+              <MenuItem value="">
+                <em>{t("vendor.noParentCategory")}</em>
+              </MenuItem>
+              {(categories || [])
+                .filter((cat) => !cat.parentId)
+                .map((cat) => (
+                  <MenuItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setCategoryDialogOpen(false)}>{t("vendor.close")}</Button>
+          <Button
+            variant="contained"
+            disabled={createCategoryMutation.isLoading}
+            onClick={handleCreateCategory}
+            sx={{ fontWeight: 700 }}
+          >
+            {createCategoryMutation.isLoading ? t("vendor.saving") : t("vendor.addCategory")}
           </Button>
         </DialogActions>
       </Dialog>
