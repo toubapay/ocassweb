@@ -1,18 +1,27 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/delivery_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
+const _locationPingInterval = Duration(seconds: 10);
+
 /// Mirrors pages/delivery/agent.js: Available/My-jobs tabs, race-safe
 /// accept (a 409 here just means another agent got there first), then
-/// walking an accepted job through picked up -> delivered.
+/// walking an accepted job through picked up -> delivered, plus a
+/// location-broadcast timer (mirrors useLiveLocationBroadcast) that pings
+/// PATCH /delivery/jobs/:id/location every 10s for every job this agent
+/// currently has ACCEPTED or PICKED_UP - silently skipped if location is
+/// unavailable/denied, same as the web hook swallowing geolocation errors.
 class DeliveryAgentScreen extends StatefulWidget {
   const DeliveryAgentScreen({super.key});
 
@@ -28,6 +37,8 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen>
   bool _loadingAvailable = true;
   bool _loadingMine = true;
   final Set<String> _busyIds = {};
+  Timer? _locationTimer;
+  bool _sharingLocation = false;
 
   @override
   void initState() {
@@ -39,7 +50,37 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _locationTimer?.cancel();
     super.dispose();
+  }
+
+  List<String> get _activeJobIds =>
+      _mine.where((j) => j.status == 'ACCEPTED' || j.status == 'PICKED_UP').map((j) => j.id).toList();
+
+  void _syncLocationTimer() {
+    final activeIds = _activeJobIds;
+    if (activeIds.isEmpty) {
+      _locationTimer?.cancel();
+      _locationTimer = null;
+      if (_sharingLocation && mounted) setState(() => _sharingLocation = false);
+      return;
+    }
+    if (_locationTimer != null) return; // already running, will pick up the latest _activeJobIds each tick
+    _pingLocation();
+    _locationTimer = Timer.periodic(_locationPingInterval, (_) => _pingLocation());
+  }
+
+  Future<void> _pingLocation() async {
+    final position = await getCurrentLatLng();
+    if (position == null) {
+      if (mounted && _sharingLocation) setState(() => _sharingLocation = false);
+      return;
+    }
+    final (lat, lng) = position;
+    for (final id in _activeJobIds) {
+      apiClient.updateDeliveryJobLocation(id, lat: lat, lng: lng).catchError((_) {});
+    }
+    if (mounted && !_sharingLocation) setState(() => _sharingLocation = true);
   }
 
   Future<void> _loadAll() async {
@@ -59,6 +100,7 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen>
       _loadingAvailable = false;
       _loadingMine = false;
     });
+    _syncLocationTimer();
   }
 
   Future<void> _accept(String id) async {
@@ -148,6 +190,21 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen>
       appBar: TopBar(title: context.t('delivery.agent.title'), showCart: false, showSearch: false),
       body: Column(
         children: [
+          if (_sharingLocation)
+            Container(
+              width: double.infinity,
+              color: AppColors.greenSoft,
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.my_location_rounded, size: 14, color: AppColors.green),
+                  const SizedBox(width: 6),
+                  Text(context.t('delivery.agent.sharingLocation'),
+                      style: const TextStyle(color: AppColors.green, fontSize: 11, fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
           TabBar(
             controller: _tabController,
             labelColor: AppColors.green,

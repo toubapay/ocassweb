@@ -170,6 +170,42 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
                     );
                   },
                 ),
+                if (_categories[_tabController.index] == 'AUTO') ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.divider), borderRadius: BorderRadius.circular(14)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.directions_car_rounded, color: AppColors.green),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(context.t('insurance.auto.promoTitle'),
+                            style: const TextStyle(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 4),
+                        Text(context.t('insurance.auto.promoSubtitle'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () => context.push('/insurance/auto'),
+                          child: Text(context.t('insurance.auto.promoCta')),
+                        ),
+                        if (context.watch<AuthProvider>().isAuthenticated) ...[
+                          const SizedBox(height: 8),
+                          OutlinedButton(
+                            onPressed: () => context.push('/insurance/auto/policies'),
+                            child: Text(context.t('insurance.auto.myPolicies')),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (_policies.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text(context.t('insurance.myPolicies'), style: const TextStyle(fontWeight: FontWeight.w800)),

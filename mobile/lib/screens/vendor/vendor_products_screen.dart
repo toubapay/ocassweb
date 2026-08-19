@@ -11,9 +11,11 @@ import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
 /// Mirrors pages/vendor/products.js: a product list with a FAB that opens
-/// a create-product bottom sheet (category picker, price/discount/stock).
-/// No image upload in this app (no storage backend configured), same as
-/// the store logo field - images stay a plain URL list, empty by default.
+/// a create-product form, tap-to-edit, and comma-separated image URLs (no
+/// upload backend anywhere in this app - images stay a plain URL list,
+/// same as the store logo field). Category is a read-only picker into the
+/// admin-curated shared category tree (see AdminCategoriesTab.js on web) -
+/// vendors browse it, they don't add to it.
 class VendorProductsScreen extends StatefulWidget {
   const VendorProductsScreen({super.key});
 
@@ -70,13 +72,24 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
     }
   }
 
-  void _openCreateSheet() {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final priceController = TextEditingController();
-    final discountController = TextEditingController();
-    final stockController = TextEditingController();
-    String? categoryId = _flatCategories.isNotEmpty ? _flatCategories.first.id : null;
+  void _openCreateSheet() => _openProductSheet();
+
+  void _openEditSheet(Product product) => _openProductSheet(product: product);
+
+  /// Shared by create and edit: `product == null` means create. Kept as
+  /// one method (rather than two near-duplicates) since every field and
+  /// validation rule is identical between the two - only the submit call
+  /// and initial field values differ.
+  void _openProductSheet({Product? product}) {
+    final editing = product != null;
+    final nameController = TextEditingController(text: product?.name ?? '');
+    final descriptionController = TextEditingController(text: product?.description ?? '');
+    final priceController = TextEditingController(text: product != null ? '${product.price}' : '');
+    final discountController =
+        TextEditingController(text: product?.discountPrice != null ? '${product!.discountPrice}' : '');
+    final stockController = TextEditingController(text: product != null ? '${product.stock}' : '');
+    final imagesController = TextEditingController(text: product?.images.join(', ') ?? '');
+    String? categoryId = product?.categoryId ?? (_flatCategories.isNotEmpty ? _flatCategories.first.id : null);
     bool saving = false;
 
     showModalBottomSheet(
@@ -95,8 +108,10 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(sheetContext.t('vendor.addProduct'),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                Text(
+                  editing ? sheetContext.t('vendor.editProduct') : sheetContext.t('vendor.addProduct'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: categoryId,
@@ -141,6 +156,15 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(labelText: sheetContext.t('vendor.stock')),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: imagesController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: sheetContext.t('vendor.images'),
+                    helperText: sheetContext.t('vendor.imagesHelp'),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -155,19 +179,42 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                               return;
                             }
                             setSheetState(() => saving = true);
+                            final images = imagesController.text
+                                .split(',')
+                                .map((url) => url.trim())
+                                .where((url) => url.isNotEmpty)
+                                .toList();
+                            final discountText = discountController.text.trim();
+                            final discountPrice = discountText.isEmpty ? null : double.tryParse(discountText);
                             try {
-                              await apiClient.createVendorProduct(
-                                categoryId: categoryId!,
-                                name: nameController.text.trim(),
-                                description: descriptionController.text.trim(),
-                                price: price,
-                                discountPrice: double.tryParse(discountController.text.trim()),
-                                stock: int.tryParse(stockController.text.trim()) ?? 0,
-                              );
+                              if (editing) {
+                                await apiClient.updateVendorProduct(
+                                  product!.id,
+                                  categoryId: categoryId,
+                                  name: nameController.text.trim(),
+                                  description: descriptionController.text.trim(),
+                                  images: images,
+                                  price: price,
+                                  discountPrice: discountPrice,
+                                  clearDiscount: discountPrice == null,
+                                  stock: int.tryParse(stockController.text.trim()) ?? 0,
+                                );
+                              } else {
+                                await apiClient.createVendorProduct(
+                                  categoryId: categoryId!,
+                                  name: nameController.text.trim(),
+                                  description: descriptionController.text.trim(),
+                                  images: images,
+                                  price: price,
+                                  discountPrice: discountPrice,
+                                  stock: int.tryParse(stockController.text.trim()) ?? 0,
+                                );
+                              }
                               if (!mounted) return;
                               Navigator.of(sheetContext).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(context.tr('vendor.productAdded'))));
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text(context.tr(
+                                      editing ? 'vendor.productUpdated' : 'vendor.productAdded'))));
                               await _load();
                             } catch (_) {
                               setSheetState(() => saving = false);
@@ -176,8 +223,11 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                                   SnackBar(content: Text(context.tr('vendor.couldNotSaveProduct'))));
                             }
                           },
-                    child: Text(
-                        saving ? sheetContext.t('common.loading') : sheetContext.t('vendor.addProduct')),
+                    child: Text(saving
+                        ? sheetContext.t('common.loading')
+                        : editing
+                            ? sheetContext.t('vendor.saveChanges')
+                            : sheetContext.t('vendor.addProduct')),
                   ),
                 ),
               ],
@@ -214,6 +264,15 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                             borderRadius: BorderRadius.circular(12)),
                         child: Row(
                           children: [
+                            CircleAvatar(
+                              radius: 22,
+                              backgroundColor: AppColors.greenSoft,
+                              backgroundImage: p.images.isNotEmpty ? NetworkImage(p.images.first) : null,
+                              child: p.images.isEmpty
+                                  ? const Icon(Icons.category_rounded, color: AppColors.green)
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,6 +284,10 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                                       style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                                 ],
                               ),
+                            ),
+                            IconButton(
+                              onPressed: busy ? null : () => _openEditSheet(p),
+                              icon: const Icon(Icons.edit_rounded),
                             ),
                             IconButton(
                               onPressed: busy ? null : () => _deactivate(p.id),
