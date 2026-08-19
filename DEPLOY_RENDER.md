@@ -116,13 +116,32 @@ what a `.onrender.com` URL is, unlike local dev.
 ## 5. Seed data (optional)
 
 The backend's Pre-Deploy Command only runs migrations, not the seed
-script, since re-seeding on every deploy would duplicate data. Run it once
-manually via Render's **Shell** tab on the `ocass-backend` service (or a
-one-off Job, if you'd rather not leave the shell open):
+scripts, since re-seeding on every deploy would duplicate data. Run them
+once manually via Render's **Shell** tab on the `ocass-backend` service
+(or a one-off Job, if you'd rather not leave the shell open) - running
+them there guarantees they use the same `DATABASE_URL` (the `ocass-db`
+binding) that the live service itself uses, unlike running them from a
+local machine or another environment, which would seed a different
+database and silently leave the live site's database empty:
 
 ```bash
 npm run seed
 ```
+
+This loads the sample catalog (categories/products/restaurants/plans)
+that all the storefront pages need to not be empty. It does **not**
+create any login-ready accounts, including the admin console - for that,
+also run:
+
+```bash
+npm run seed:test-data
+```
+
+This adds one test user per role plus a ready-to-use `ADMIN` account at
+`admin@gmail.com` / `saynabou` (the script logs this on every run) that
+you can use to sign in at `/admin/login`. See `README.md`'s "Admin panel"
+section for what the admin console can do once you're in. Safe to re-run
+either script - both check for existing data before inserting.
 
 ## Ongoing deploys
 

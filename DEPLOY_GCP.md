@@ -96,6 +96,22 @@ DATABASE_URL="postgresql://ocass:<password>@127.0.0.1:5432/ocassweb" \
   npm run seed
 ```
 
+`npm run seed` only loads the sample catalog (categories/products/
+restaurants/plans) - it creates no login-ready accounts. For a
+ready-to-use admin console login plus one test user per role, also run
+(same `DATABASE_URL` as above):
+
+```bash
+DATABASE_URL="postgresql://ocass:<password>@127.0.0.1:5432/ocassweb" \
+  npm run seed:test-data
+```
+
+This prints an `ADMIN` account (`admin@gmail.com` / `saynabou`) you can
+sign in with at `/admin/login` - see `README.md`'s "Admin panel" section.
+Running either seed script against a different `DATABASE_URL` than the
+deployed backend's own (e.g. a local database instead of Cloud SQL) seeds
+that other database instead, leaving the live site's database untouched.
+
 Grab the backend's URL for the next step:
 
 ```bash
