@@ -15,6 +15,8 @@ import '../screens/ecommerce/wishlist_screen.dart';
 import '../screens/delivery/delivery_screen.dart';
 import '../screens/delivery/delivery_agent_screen.dart';
 import '../screens/insurance/insurance_screen.dart';
+import '../screens/insurance/insurance_auto_screen.dart';
+import '../screens/insurance/insurance_auto_policies_screen.dart';
 import '../screens/restaurant/restaurant_list_screen.dart';
 import '../screens/restaurant/restaurant_detail_screen.dart';
 import '../screens/restaurant/restaurant_orders_screen.dart';
@@ -67,6 +69,11 @@ final GoRouter appRouter = GoRouter(
         GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
         GoRoute(path: '/delivery/agent', builder: (context, state) => const DeliveryAgentScreen()),
         GoRoute(path: '/insurance', builder: (context, state) => const InsuranceScreen()),
+        GoRoute(path: '/insurance/auto', builder: (context, state) => const InsuranceAutoScreen()),
+        GoRoute(
+          path: '/insurance/auto/policies',
+          builder: (context, state) => const InsuranceAutoPoliciesScreen(),
+        ),
         GoRoute(path: '/ride-sharing', builder: (context, state) => const RideSharingScreen()),
         GoRoute(
             path: '/ride-sharing/driver',

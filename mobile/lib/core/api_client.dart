@@ -15,6 +15,7 @@ import '../models/ride_request.dart';
 import '../models/mobile_service.dart';
 import '../models/mobile_forfait.dart';
 import '../models/mobile_transaction.dart';
+import '../models/aas_insurance.dart';
 import '../models/wallet.dart';
 import '../models/ride_posting.dart';
 import '../models/app_notification.dart';
@@ -287,6 +288,63 @@ class ApiClient {
   Future<InsurancePolicy> cancelInsurancePolicy(String id) async {
     final res = await _dio.patch('/insurance/policies/$id/cancel');
     return InsurancePolicy.fromJson(_data(res)['policy'] as Map<String, dynamic>);
+  }
+
+  // ---------------- Insurance: AAS auto (real multi-step quote/pay/issue,
+  // separate from the flat plan catalog above) ----------------
+
+  Future<AasMetadata> fetchAasMetadata() async {
+    final res = await _dio.get('/insurance/auto/metadata');
+    return AasMetadata.fromJson(_data(res));
+  }
+
+  /// [payload] matches the backend's quoteInputSchema (aas.controller.js):
+  /// genre, energie, periodicite, duree always; puissanceFiscale for
+  /// four-wheel genres OR cylindre+usage+nombrePlace for moto genres.
+  /// Callers build this map directly (mirrors handleCompare in
+  /// pages/insurance/auto/index.js) rather than a rigid typed parameter
+  /// list, since which fields apply depends on the selected vehicle genre.
+  Future<AasCompareResponse> compareAasQuotes(Map<String, dynamic> payload) async {
+    final res = await _dio.post('/insurance/auto/compare', data: payload);
+    return AasCompareResponse.fromJson(_data(res));
+  }
+
+  Future<List<AasAutoPolicy>> fetchAasPolicies() async {
+    final res = await _dio.get('/insurance/auto/policies');
+    return (_data(res)['policies'] as List<dynamic>)
+        .map((p) => AasAutoPolicy.fromJson(p as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<AasAutoPolicy> fetchAasPolicy(String id) async {
+    final res = await _dio.get('/insurance/auto/policies/$id');
+    return AasAutoPolicy.fromJson(_data(res)['policy'] as Map<String, dynamic>);
+  }
+
+  /// [payload] matches purchaseSchema (aas.controller.js's quoteInputSchema
+  /// extended with tier/immatriculation/chassis/modele/marque/
+  /// dateMiseCirculation/nombrePlace/typePersonne/souscripteur/assure and
+  /// optionally valeurNeuve/valeurActuelle). On a 502 "AAS could not issue"
+  /// response the backend still returns a FAILED policy in the body (the
+  /// wallet was already debited then refunded) - that arrives as a
+  /// [DioException] here, same as any other error status; callers should
+  /// inspect `e.response?.data['policy']` to tell a refunded failure from
+  /// a plain error, exactly like purchaseMutation's onError in
+  /// pages/insurance/auto/index.js.
+  Future<AasAutoPolicy> purchaseAasPolicy(Map<String, dynamic> payload) async {
+    final res = await _dio.post('/insurance/auto/policies', data: payload);
+    return AasAutoPolicy.fromJson(_data(res)['policy'] as Map<String, dynamic>);
+  }
+
+  /// Same refunded-failure-in-error-body caveat as [purchaseAasPolicy].
+  Future<AasAutoPolicy> retryAasPolicy(String id) async {
+    final res = await _dio.post('/insurance/auto/policies/$id/retry');
+    return AasAutoPolicy.fromJson(_data(res)['policy'] as Map<String, dynamic>);
+  }
+
+  Future<AasAutoPolicy> cancelAasPolicy(String id) async {
+    final res = await _dio.patch('/insurance/auto/policies/$id/cancel');
+    return AasAutoPolicy.fromJson(_data(res)['policy'] as Map<String, dynamic>);
   }
 
   // ---------------- Restaurant ----------------
