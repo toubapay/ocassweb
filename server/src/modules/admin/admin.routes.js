@@ -13,6 +13,9 @@ const {
   createZone,
   updateZone,
   deleteZone,
+  listCategoriesAdmin,
+  createCategoryAdmin,
+  updateCategoryAdmin,
   listProviders,
   createProvider,
   updateProvider,
@@ -53,6 +56,10 @@ router.get("/zones", listZones);
 router.post("/zones", createZone);
 router.patch("/zones/:id", updateZone);
 router.delete("/zones/:id", deleteZone);
+
+router.get("/categories", listCategoriesAdmin);
+router.post("/categories", createCategoryAdmin);
+router.patch("/categories/:id", updateCategoryAdmin);
 
 router.get("/providers", listProviders);
 router.post("/providers", createProvider);

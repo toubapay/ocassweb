@@ -39,6 +39,14 @@ export const updateAdminZone = (id, payload) =>
   apiClient.patch(`/admin/zones/${id}`, payload).then((res) => res.data.zone);
 export const deleteAdminZone = (id) => apiClient.delete(`/admin/zones/${id}`);
 
+// Categories
+export const fetchAdminCategories = () =>
+  apiClient.get("/admin/categories").then((res) => res.data.categories);
+export const createAdminCategory = (payload) =>
+  apiClient.post("/admin/categories", payload).then((res) => res.data.category);
+export const updateAdminCategory = (id, payload) =>
+  apiClient.patch(`/admin/categories/${id}`, payload).then((res) => res.data.category);
+
 // Providers
 export const fetchAdminProviders = (category) =>
   apiClient

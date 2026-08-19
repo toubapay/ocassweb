@@ -116,6 +116,12 @@ model Category {
   slug     String     @unique
   icon     String?
   parentId String?
+  // Admin takedown switch (see AdminCategoriesTab.js) - hides the category
+  // from public browsing/the vendor product-form dropdown without deleting
+  // it, since existing Product rows reference it by id. Any vendor can
+  // also create a category (POST /vendor/categories, always active) - this
+  // is the only way to deactivate one, deliberately admin-only.
+  isActive Boolean    @default(true)
   parent   Category?  @relation("CategoryToSubcategory", fields: [parentId], references: [id])
   children Category[] @relation("CategoryToSubcategory")
   products Product[]
