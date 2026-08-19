@@ -6,6 +6,9 @@ export const requestOtp = (phone) =>
 export const verifyOtp = (phone, code, name) =>
   apiClient.post("/auth/otp/verify", { phone, code, name }).then((res) => res.data);
 
+export const adminLogin = (email, password) =>
+  apiClient.post("/auth/admin/login", { email, password }).then((res) => res.data);
+
 export const fetchMe = () => apiClient.get("/auth/me").then((res) => res.data);
 
 export const updateRole = (role) =>

@@ -35,11 +35,8 @@ export default function AdminPanel() {
           <Typography sx={{ mb: 2 }}>
             {isAuthenticated ? t("admin.notAuthorized") : t("common.logInToContinue")}
           </Typography>
-          <Button
-            variant="contained"
-            onClick={() => router.push(isAuthenticated ? "/profile" : "/auth/login")}
-          >
-            {isAuthenticated ? t("nav.profile") : t("common.logIn")}
+          <Button variant="contained" onClick={() => router.push("/admin/login")}>
+            {t("admin.login.title")}
           </Button>
         </Box>
       </Box>

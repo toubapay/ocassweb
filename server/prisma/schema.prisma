@@ -28,18 +28,28 @@ enum UserRole {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  phone     String   @unique
-  name      String?
-  email     String?  @unique
-  avatarUrl String?
-  role      UserRole @default(CUSTOMER)
+  id           String   @id @default(uuid())
+  // Nullable: every customer-facing account is phone+OTP (see auth.routes.js)
+  // and always has one, but an ADMIN created via email+password (the admin
+  // console's own login, separate from the customer OTP flow) never gets a
+  // phone assigned - Postgres allows multiple NULLs under a UNIQUE index, so
+  // this doesn't weaken the phone uniqueness guarantee for real accounts.
+  phone        String?  @unique
+  name         String?
+  email        String?  @unique
+  // Only ever set for ADMIN accounts that log in via POST /auth/admin/login
+  // (bcrypt hash - see utils/password.js). OTP-authenticated accounts never
+  // have one, and this alone is not enough to log in as non-ADMIN - see
+  // adminLogin's role check in auth.controller.js.
+  passwordHash String?
+  avatarUrl    String?
+  role         UserRole @default(CUSTOMER)
   // Admin suspend/ban switch (see PATCH /api/admin/users/:id) - requireAuth
   // rejects any request from an inactive user with 403, independent of
   // whether their token is still otherwise valid.
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   addresses             Address[]
   cartItems             CartItem[]

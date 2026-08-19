@@ -683,26 +683,46 @@ There's no self-service way to become an ADMIN (unlike
 `VENDOR`/`RIDER`/`DELIVERY_AGENT` - see `PATCH /api/auth/role`, which
 deliberately excludes it), since that would make the gate meaningless.
 
+**Two ways in, both landing on the same `/admin`:**
+
+- **`/admin/login`** - a dedicated email + password entrance for the admin
+  console, entirely separate from the customer phone/OTP flow (see
+  `POST /api/auth/admin/login` in `server/src/modules/auth/`). Only works
+  for an account that both has `role = ADMIN` *and* a `passwordHash` set -
+  `User.passwordHash` (bcrypt, `server/src/utils/password.js`) is never set
+  by any self-service path, so this can't be used to grant admin access,
+  only to log into an account that already has it.
+- **`/auth/login`** - the normal customer phone/OTP flow still works for
+  any `ADMIN`-role account too, password or not (`AdminPanel` only checks
+  `user.role === "ADMIN"`, not how the session was established). This is
+  what a promoted admin uses if nobody's ever set them a password.
+
+`User.phone` is nullable specifically so an admin-only account created via
+email+password doesn't need a phone number it'll never use for login.
+
 **Logging in, for local dev/testing:**
 
 1. `npm run seed:test-data` (from `server/`, see
    `server/prisma/seed-test-data.js`) creates a ready-to-use ADMIN account
-   at `+221771000006`, alongside its one-per-role test users.
-2. With `OTP_DEV_MODE=true` (the default in `server/.env.example`), every
-   OTP is echoed back in the `/api/auth/otp/request` response instead of
-   actually being sent - no SMS account needed. Set
+   at `+221771000006` / `admin@gmail.com`, alongside its one-per-role test
+   users. Its console password is `saynabou` (seed script logs it on every
+   run, right after "Admin console (/admin/login):").
+2. Open `/admin/login` and sign in with `admin@gmail.com` / `saynabou`.
+   Or, with `OTP_DEV_MODE=true` (the default in `server/.env.example`),
+   every OTP is echoed back in the `/api/auth/otp/request` response instead
+   of actually being sent - no SMS account needed. Set
    `OTP_DEV_FIXED_CODE=000000` (also in `.env.example`, commented out by
    default) to make every OTP that same fixed code instead of a fresh
-   random one each time, so repeated manual testing doesn't mean copying
-   a new code every login - request an OTP for `+221771000006`, then
-   verify with `000000`, every time. Only ever honored when
-   `OTP_DEV_MODE=true`, so it's safe to leave set in a dev `.env`.
-3. Log in through the normal `/auth/login` flow with that phone number
-   and code, then open `/admin` (or Profile → Admin panel, shown only to
-   `ADMIN` users).
+   random one each time, so repeated manual testing doesn't mean copying a
+   new code every login - request an OTP for `+221771000006`, then verify
+   with `000000`, every time. Only ever honored when `OTP_DEV_MODE=true`,
+   so it's safe to leave set in a dev `.env`.
+3. Either way, `/admin` (or Profile → Admin panel, shown only to `ADMIN`
+   users) is now open.
 
 In production, promote the first admin directly in the database (there's
-deliberately no other way in):
+deliberately no other way in). A password is optional - without one, that
+account signs into `/admin` through the normal phone/OTP flow instead:
 
 ```sql
 UPDATE "User" SET role = 'ADMIN' WHERE phone = '+221...';
@@ -713,6 +733,18 @@ itself. `requireAuth` re-fetches the user from the DB on every request, so
 a role change (or `active: false` suspension) takes effect on the user's
 very next request - no re-login needed, and no way for a suspended user to
 keep using a still-valid token.
+
+There's no Users-tab UI yet to set a `/admin/login` password for an admin
+promoted this way (a gap, not a design choice) - do it directly with a
+bcrypt hash in the meantime:
+
+```js
+// node -e 'require("bcryptjs").hash("the-password", 10).then(console.log)'
+```
+
+```sql
+UPDATE "User" SET "passwordHash" = '<hash from above>' WHERE email = '...';
+```
 
 **Users**: search/filter (text search, plus one-tap role chips -
 Customer/Vendor/Rider/Delivery Agent/Admin - both hit the same
