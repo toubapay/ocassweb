@@ -53,7 +53,13 @@ async function main() {
   const adminPasswordHash = await hashPassword("saynabou");
   const admin = await prisma.user.upsert({
     where: { phone: "+221771000006" },
-    update: { email: "admin@gmail.com", passwordHash: adminPasswordHash },
+    // Reasserts role on every run, not just email/passwordHash - if this
+    // phone number ever ended up with a User row some other way (e.g. an
+    // OTP login before this seed had run, or an older version of this
+    // script), the row would keep the default CUSTOMER role forever and
+    // silently fail adminLogin's role check no matter how many times the
+    // seed re-runs.
+    update: { email: "admin@gmail.com", passwordHash: adminPasswordHash, role: "ADMIN" },
     create: {
       phone: "+221771000006",
       name: "Admin",

@@ -586,7 +586,7 @@
       "amount": "MONTANT (CFA)",
       "amountLabel": "Montant",
       "processing": "Traitement...",
-      "topUp": "Recharger",
+      "topUp": "Acheter du crédit",
       "selectOperator": "Sélectionnez un opérateur mobile",
       "invalidPhone": "Entrez un numéro de téléphone valide",
       "enterAmount": "Entrez un montant",
@@ -602,12 +602,17 @@
         "internet": "Internet",
         "validity": "Validité",
         "buy": "Acheter",
-        "buying": "Achat en cours...",
-        "confirmTitle": "Confirmer l'achat",
-        "confirmMessage": "Acheter {{name}} pour {{price}} sur {{phone}} ?",
-        "confirm": "Confirmer",
-        "cancel": "Annuler"
-      }
+        "buying": "Achat en cours..."
+      },
+      "buyTitle": "Acheter du crédit",
+      "launcherSubtitle": "Choisissez un destinataire, puis un montant ou un forfait.",
+      "toLabel": "À",
+      "buyForNewNumber": "Acheter du crédit pour un nouveau numéro",
+      "favorites": "Favoris",
+      "noFavorites": "Aucun destinataire récent.",
+      "confirmTitle": "Confirmer l'achat de crédit",
+      "total": "Total",
+      "confirm": "Confirmer"
     },
     "bill": {
       "heading": "Payer une facture",

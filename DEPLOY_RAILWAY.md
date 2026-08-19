@@ -61,6 +61,20 @@ railway run --service backend npm run prisma:deploy   # from the server/ directo
 railway run --service backend npm run seed
 ```
 
+`npm run seed` only loads the sample catalog (categories/products/
+restaurants/plans) - it creates no login-ready accounts. For a
+ready-to-use admin console login plus one test user per role, also run:
+
+```bash
+railway run --service backend npm run seed:test-data
+```
+
+This prints an `ADMIN` account (`admin@gmail.com` / `saynabou`) you can
+sign in with at `/admin/login` - see `README.md`'s "Admin panel" section.
+Running `npm run seed:test-data` any other way (e.g. against a local
+database instead of `railway run --service backend`) seeds that other
+database instead, leaving the live site's database untouched.
+
 ## 3. Frontend service
 
 On the frontend service (repo root, no Root Directory override needed

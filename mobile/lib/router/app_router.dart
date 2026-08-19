@@ -26,6 +26,8 @@ import '../screens/restaurant/restaurant_manage_orders_screen.dart';
 import '../screens/rideshare/ride_sharing_screen.dart';
 import '../screens/rideshare/ride_sharing_driver_screen.dart';
 import '../screens/topup/topup_screen.dart';
+import '../screens/topup/topup_airtime_recipient_screen.dart';
+import '../screens/topup/topup_airtime_amount_screen.dart';
 import '../screens/wallet/wallet_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/anando/anando_screen.dart';
@@ -58,6 +60,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/anando/book',
       builder: (context, state) => AnandoBookScreen(posting: state.extra as RidePosting),
+    ),
+    GoRoute(
+      path: '/topup/airtime/recipient',
+      builder: (context, state) => const TopupAirtimeRecipientScreen(),
+    ),
+    GoRoute(
+      path: '/topup/airtime/amount',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? const {};
+        return TopupAirtimeAmountScreen(
+          phoneNumber: extra['phone'] as String? ?? '',
+          label: extra['label'] as String?,
+        );
+      },
     ),
 
     // Everything else keeps the bottom tab bar.
