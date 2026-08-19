@@ -19,8 +19,5 @@ export const updateProduct = (id, payload) =>
 export const deactivateProduct = (id) =>
   apiClient.delete(`/vendor/products/${id}`).then((res) => res.data.product);
 
-export const createCategory = (payload) =>
-  apiClient.post("/vendor/categories", payload).then((res) => res.data.category);
-
 export const fetchMyVendorOrders = () =>
   apiClient.get("/vendor/orders").then((res) => res.data.orders);

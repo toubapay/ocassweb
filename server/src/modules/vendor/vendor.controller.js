@@ -204,41 +204,6 @@ async function deactivateProduct(req, res, next) {
   }
 }
 
-const categorySchema = z.object({
-  name: z.string().min(2),
-  parentId: z.string().uuid().optional().nullable(),
-  icon: z.string().optional(),
-});
-
-/**
- * Categories are shared/global (no ownerId on the Category model, same as
- * the seed-data taxonomy every vendor already picks products from), so a
- * category one vendor adds becomes usable by every other vendor too, not
- * just its creator - matches how marketplaces like this usually let any
- * seller extend a shared catalog tree. Create-only from this role: editing
- * or deleting an existing category could rename/orphan another vendor's
- * products, which is an admin-level call, not a per-vendor one.
- */
-async function createCategory(req, res, next) {
-  try {
-    const data = categorySchema.parse(req.body);
-    if (data.parentId) {
-      const parent = await prisma.category.findUnique({ where: { id: data.parentId } });
-      if (!parent) return res.status(400).json({ message: "Unknown parent category" });
-    }
-    const slug = await uniqueSlug(
-      data.name,
-      (s) => prisma.category.findUnique({ where: { slug: s } }).then(Boolean)
-    );
-    const category = await prisma.category.create({
-      data: { name: data.name, slug, parentId: data.parentId || null, icon: data.icon || null },
-    });
-    res.status(201).json({ category });
-  } catch (err) {
-    next(err);
-  }
-}
-
 /**
  * Orders containing at least one item from this vendor's store. Each
  * order's `items` is filtered down to only that vendor's own items - a
@@ -272,6 +237,5 @@ module.exports = {
   createProduct,
   updateProduct,
   deactivateProduct,
-  createCategory,
   listMyOrders,
 };
