@@ -24,13 +24,7 @@ import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import Avatar from "@mui/material/Avatar";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
-import {
-  fetchMyProducts,
-  createProduct,
-  updateProduct,
-  deactivateProduct,
-  createCategory,
-} from "../../src/api/vendor";
+import { fetchMyProducts, createProduct, updateProduct, deactivateProduct } from "../../src/api/vendor";
 import { fetchCategories } from "../../src/api/ecommerce";
 import { formatCfa } from "../../src/utils/currency";
 
@@ -43,8 +37,6 @@ const emptyForm = {
   stock: "",
   images: "",
 };
-
-const emptyCategoryForm = { name: "", parentId: "" };
 
 function flattenCategories(categories) {
   const out = [];
@@ -65,28 +57,16 @@ export default function VendorProducts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
 
   const { data: products, isLoading } = useQuery("vendor-products", fetchMyProducts, {
     enabled: isVendor,
   });
+  // Categories are admin-curated (see AdminCategoriesTab.js) - vendors pick
+  // from this shared list when tagging a product, they can't add to it.
   const { data: categories } = useQuery("categories", fetchCategories, { enabled: isVendor });
   const flatCategories = flattenCategories(categories);
 
   const invalidate = () => queryClient.invalidateQueries("vendor-products");
-
-  const createCategoryMutation = useMutation(
-    (payload) => createCategory(payload),
-    {
-      onSuccess: () => {
-        toast.success(t("vendor.categoryCreated"));
-        queryClient.invalidateQueries("categories");
-        setCategoryForm(emptyCategoryForm);
-      },
-      onError: (err) => toast.error(err.response?.data?.message || t("vendor.couldNotSaveCategory")),
-    }
-  );
 
   const createMutation = useMutation((payload) => createProduct(payload), {
     onSuccess: () => {
@@ -163,17 +143,6 @@ export default function VendorProducts() {
     }
   };
 
-  const handleCreateCategory = () => {
-    if (!categoryForm.name.trim()) {
-      toast.error(t("vendor.categoryNameRequired"));
-      return;
-    }
-    createCategoryMutation.mutate({
-      name: categoryForm.name.trim(),
-      parentId: categoryForm.parentId || undefined,
-    });
-  };
-
   if (!isAuthenticated || !isVendor) {
     return (
       <Box>
@@ -193,18 +162,7 @@ export default function VendorProducts() {
     <Box sx={{ pb: 10, position: "relative", minHeight: "100vh" }}>
       <TopBar title={t("vendor.products")} showCart={false} showSearch={false} />
 
-      <Box sx={{ px: 2, pt: 2, display: "flex", justifyContent: "flex-end" }}>
-        <Button
-          size="small"
-          startIcon={<CategoryRoundedIcon fontSize="small" />}
-          onClick={() => setCategoryDialogOpen(true)}
-          sx={{ fontWeight: 700 }}
-        >
-          {t("vendor.manageCategories")}
-        </Button>
-      </Box>
-
-      <Box sx={{ p: 2, pt: 0.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+      <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
         {isLoading && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {t("common.loading")}
@@ -356,64 +314,6 @@ export default function VendorProducts() {
           <Button onClick={closeDialog}>{t("vendor.cancel")}</Button>
           <Button variant="contained" disabled={saving} onClick={handleSave} sx={{ fontWeight: 700 }}>
             {saving ? t("vendor.saving") : t("vendor.save")}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={categoryDialogOpen} onClose={() => setCategoryDialogOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 800 }}>{t("vendor.manageCategories")}</DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {t("vendor.categoriesShared")}
-          </Typography>
-
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-            {flatCategories.length === 0 && (
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {t("vendor.noCategories")}
-              </Typography>
-            )}
-            {flatCategories.map((cat) => (
-              <Chip key={cat.id} label={cat.indent ? `— ${cat.name}` : cat.name} size="small" />
-            ))}
-          </Box>
-
-          <TextField
-            label={t("vendor.categoryName")}
-            fullWidth
-            value={categoryForm.name}
-            onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-          />
-          <FormControl fullWidth>
-            <InputLabel id="vendor-parent-category-label">{t("vendor.parentCategory")}</InputLabel>
-            <Select
-              labelId="vendor-parent-category-label"
-              label={t("vendor.parentCategory")}
-              value={categoryForm.parentId}
-              onChange={(e) => setCategoryForm({ ...categoryForm, parentId: e.target.value })}
-            >
-              <MenuItem value="">
-                <em>{t("vendor.noParentCategory")}</em>
-              </MenuItem>
-              {(categories || [])
-                .filter((cat) => !cat.parentId)
-                .map((cat) => (
-                  <MenuItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </MenuItem>
-                ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setCategoryDialogOpen(false)}>{t("vendor.close")}</Button>
-          <Button
-            variant="contained"
-            disabled={createCategoryMutation.isLoading}
-            onClick={handleCreateCategory}
-            sx={{ fontWeight: 700 }}
-          >
-            {createCategoryMutation.isLoading ? t("vendor.saving") : t("vendor.addCategory")}
           </Button>
         </DialogActions>
       </Dialog>
