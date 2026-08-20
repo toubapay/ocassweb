@@ -1021,7 +1021,8 @@
       "noServices": "Aucun service trouvé pour ce module pour l'instant.",
       "saved": "Paramètres de frais et taxe enregistrés",
       "saveFailed": "Impossible d'enregistrer les frais et la taxe"
-    }
+    },
+    "logout": "Se déconnecter"
   },
   "store": {
     "title": "Boutique",

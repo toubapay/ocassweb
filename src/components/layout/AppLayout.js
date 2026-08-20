@@ -19,6 +19,14 @@ export default function AppLayout({ children }) {
   const router = useRouter();
   const hideNav = FULL_SCREEN_PREFIXES.some((prefix) => router.pathname.startsWith(prefix));
 
+  // The admin back office is a desktop tool, not a customer-facing screen -
+  // it gets none of the phone-simulator chrome below (fixed 480px card,
+  // bottom tab bar, "install the app" banner) and builds its own full-width
+  // layout instead (see AdminLayout.js / pages/admin/login.js).
+  if (router.pathname.startsWith("/admin")) {
+    return children;
+  }
+
   return (
     <Box
       sx={{

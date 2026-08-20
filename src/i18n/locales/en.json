@@ -1021,7 +1021,8 @@
       "noServices": "No services found for this module yet.",
       "saved": "Fee & tax settings saved",
       "saveFailed": "Could not save fee & tax settings"
-    }
+    },
+    "logout": "Log out"
   },
   "store": {
     "title": "Store",

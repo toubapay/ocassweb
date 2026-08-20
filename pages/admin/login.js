@@ -2,12 +2,36 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import toast from "react-hot-toast";
 import useAuth from "../../src/hooks/useAuth";
+
+// No longer wrapped in the customer app's 480px phone frame (see
+// AppLayout.js's /admin escape hatch) - this full-bleed slate background
+// with a centered card is the admin back office's own look, distinct from
+// the storefront's light, rounded mobile style.
+function LoginShell({ children }) {
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: "#151A23",
+        px: 3,
+      }}
+    >
+      <Paper elevation={0} sx={{ width: "100%", maxWidth: 420, p: { xs: 3, sm: 5 }, borderRadius: 3 }}>
+        {children}
+      </Paper>
+    </Box>
+  );
+}
 
 /**
  * The admin console's own entrance - email + password, entirely separate
@@ -49,20 +73,22 @@ export default function AdminLogin() {
 
   if (isAuthenticated && !isAdmin) {
     return (
-      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", px: 3, gap: 2 }}>
-        <AdminPanelSettingsRoundedIcon sx={{ fontSize: 48, color: "primary.main" }} />
-        <Typography sx={{ textAlign: "center" }}>
-          {t("admin.login.signedInAsOther", { name: user?.name || user?.phone })}
-        </Typography>
-        <Button variant="outlined" onClick={logout} sx={{ fontWeight: 700 }}>
-          {t("admin.login.logOutFirst")}
-        </Button>
-      </Box>
+      <LoginShell>
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+          <AdminPanelSettingsRoundedIcon sx={{ fontSize: 48, color: "primary.main" }} />
+          <Typography sx={{ textAlign: "center" }}>
+            {t("admin.login.signedInAsOther", { name: user?.name || user?.phone })}
+          </Typography>
+          <Button variant="outlined" onClick={logout} sx={{ fontWeight: 700 }}>
+            {t("admin.login.logOutFirst")}
+          </Button>
+        </Box>
+      </LoginShell>
     );
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", px: 3 }}>
+    <LoginShell>
       <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
         <AdminPanelSettingsRoundedIcon sx={{ fontSize: 48, color: "primary.main" }} />
       </Box>
@@ -102,6 +128,6 @@ export default function AdminLogin() {
       >
         {loading ? t("admin.login.signingIn") : t("admin.login.signIn")}
       </Button>
-    </Box>
+    </LoginShell>
   );
 }
