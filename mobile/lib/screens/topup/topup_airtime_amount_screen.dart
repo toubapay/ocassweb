@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/mobile_fee_quote.dart';
 import '../../models/mobile_forfait.dart';
 import '../../models/mobile_service.dart';
 import '../../theme/app_theme.dart';
@@ -91,7 +92,7 @@ class _TopupAirtimeAmountScreenState extends State<TopupAirtimeAmountScreen> {
           .showSnackBar(SnackBar(content: Text(context.tr('topup.airtime.selectOperator'))));
       return;
     }
-    final confirmed = await _showConfirmSheet(total: _amount);
+    final confirmed = await _showConfirmSheet(serviceId: service.id, amount: _amount);
     if (confirmed != true || !mounted) return;
     setState(() => _submitting = true);
     try {
@@ -114,7 +115,7 @@ class _TopupAirtimeAmountScreenState extends State<TopupAirtimeAmountScreen> {
   }
 
   Future<void> _confirmAndBuyForfait(MobileForfait forfait) async {
-    final confirmed = await _showConfirmSheet(total: forfait.price);
+    final confirmed = await _showConfirmSheet(forfaitId: forfait.id);
     if (confirmed != true || !mounted) return;
     setState(() => _buyingForfaitId = forfait.id);
     try {
@@ -135,57 +136,106 @@ class _TopupAirtimeAmountScreenState extends State<TopupAirtimeAmountScreen> {
     }
   }
 
-  Future<bool?> _showConfirmSheet({required double total}) {
+  /// Fetches the real fee/TVA-inclusive quote before showing the total, so
+  /// this sheet never displays a number different from what actually gets
+  /// charged - mirrors pages/topup/airtime/amount.js's confirm dialog.
+  Future<bool?> _showConfirmSheet({String? serviceId, String? forfaitId, double? amount}) {
     return showModalBottomSheet<bool>(
       context: context,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (sheetContext) => FutureBuilder<MobileFeeQuote>(
+        future: apiClient.fetchMobileFeeQuote(
+          serviceId: serviceId,
+          forfaitId: forfaitId,
+          amount: amount,
+        ),
+        builder: (context, snapshot) {
+          final quote = snapshot.data;
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(sheetContext.t('topup.airtime.confirmTitle'),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                IconButton(
-                  onPressed: () => Navigator.of(sheetContext).pop(false),
-                  icon: const Icon(Icons.close_rounded),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(sheetContext.t('topup.airtime.confirmTitle'),
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                    IconButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(false),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(sheetContext.t('topup.airtime.phoneNumber'),
+                        style: const TextStyle(color: AppColors.textSecondary)),
+                    Text(widget.phoneNumber, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+                if (quote != null && (quote.feeAmount > 0 || quote.taxAmount > 0)) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(sheetContext.t('topup.airtime.subtotal'),
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      Text(formatCfa(quote.subtotal), style: const TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                  if (quote.feeAmount > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(sheetContext.t('topup.airtime.fee'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                        Text(formatCfa(quote.feeAmount), style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ],
+                  if (quote.taxAmount > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(sheetContext.t('topup.airtime.tva'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                        Text(formatCfa(quote.taxAmount), style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(sheetContext.t('topup.airtime.total'),
+                        style: const TextStyle(color: AppColors.textSecondary)),
+                    Text(
+                      quote == null ? sheetContext.t('common.loading') : formatCfa(quote.total),
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: quote == null ? null : () => Navigator.of(sheetContext).pop(true),
+                    child: Text(sheetContext.t('topup.airtime.confirm')),
+                  ),
                 ),
               ],
             ),
-            const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(sheetContext.t('topup.airtime.phoneNumber'),
-                    style: const TextStyle(color: AppColors.textSecondary)),
-                Text(widget.phoneNumber, style: const TextStyle(fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(sheetContext.t('topup.airtime.total'),
-                    style: const TextStyle(color: AppColors.textSecondary)),
-                Text(formatCfa(total), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(sheetContext).pop(true),
-                child: Text(sheetContext.t('topup.airtime.confirm')),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -242,7 +242,8 @@
         "OUT_FOR_DELIVERY": "En livraison",
         "DELIVERED": "Livrée",
         "CANCELLED": "Annulée"
-      }
+      },
+      "subtotal": "Sous-total : {{amount}}"
     },
     "wishlist": {
       "title": "Liste de souhaits",
@@ -612,7 +613,8 @@
       "noFavorites": "Aucun destinataire récent.",
       "confirmTitle": "Confirmer l'achat de crédit",
       "total": "Total",
-      "confirm": "Confirmer"
+      "confirm": "Confirmer",
+      "subtotal": "Sous-total"
     },
     "bill": {
       "heading": "Payer une facture",
@@ -856,7 +858,8 @@
       "zones": "Zones",
       "providers": "Fournisseurs",
       "services": "Services",
-      "insurance": "Assurance"
+      "insurance": "Assurance",
+      "serviceFees": "Frais & Taxe"
     },
     "insurance": {
       "providerView": "Config fournisseur",
@@ -1003,6 +1006,21 @@
       "validityLabel": "Validité (libellé)",
       "sortOrder": "Ordre de tri",
       "forfaitCreated": "Forfait créé"
+    },
+    "serviceFees": {
+      "sections": {
+        "mobile": "Services et forfaits mobiles",
+        "ecommerce": "Boutiques vendeurs",
+        "restaurant": "Restaurants"
+      },
+      "fee": "Frais de commission",
+      "tva": "TVA (taxe)",
+      "percent": "%",
+      "flat": "Fixe",
+      "flatCfa": "CFA",
+      "noServices": "Aucun service trouvé pour ce module pour l'instant.",
+      "saved": "Paramètres de frais et taxe enregistrés",
+      "saveFailed": "Impossible d'enregistrer les frais et la taxe"
     }
   },
   "store": {

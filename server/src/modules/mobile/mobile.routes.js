@@ -4,6 +4,7 @@ const {
   listServices,
   listForfaits,
   detectOperator,
+  getFeeQuote,
   createTopup,
   createBillPayment,
   listMyTransactions,
@@ -14,6 +15,7 @@ const router = Router();
 router.get("/services", listServices);
 router.get("/forfaits", listForfaits);
 router.get("/detect-operator", detectOperator);
+router.get("/fee-quote", getFeeQuote);
 router.get("/transactions", requireAuth, listMyTransactions);
 router.post("/topup", requireAuth, createTopup);
 router.post("/bill-payment", requireAuth, createBillPayment);

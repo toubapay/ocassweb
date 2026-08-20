@@ -5,6 +5,8 @@ const {
   updateUser,
   listModules,
   updateModule,
+  listServiceFeeCatalog,
+  upsertServiceFeeConfig,
   listVendorStores,
   updateVendorStore,
   listRestaurantsAdmin,
@@ -45,6 +47,9 @@ router.patch("/users/:id", updateUser);
 
 router.get("/modules", listModules);
 router.patch("/modules/:key", updateModule);
+
+router.get("/service-fees", listServiceFeeCatalog);
+router.put("/service-fees", upsertServiceFeeConfig);
 
 router.get("/vendors", listVendorStores);
 router.patch("/vendors/:id", updateVendorStore);

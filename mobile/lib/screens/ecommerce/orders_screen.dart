@@ -126,6 +126,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     ...order.items.map((item) => Text('${item.quantity} x ${item.product.name}',
                         style: const TextStyle(color: AppColors.textSecondary))),
                     const SizedBox(height: 8),
+                    if (order.feeAmount > 0 || order.taxAmount > 0)
+                      Text(
+                        [
+                          context.t('ecommerce.orders.subtotal', {'amount': formatCfa(order.subtotal)}),
+                          if (order.feeAmount > 0)
+                            '${context.t('topup.airtime.fee')} ${formatCfa(order.feeAmount)}',
+                          if (order.taxAmount > 0)
+                            '${context.t('topup.airtime.tva')} ${formatCfa(order.taxAmount)}',
+                        ].join(' · '),
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                      ),
                     Text(context.t('ecommerce.orders.total', {'amount': formatCfa(order.total)}),
                         style: const TextStyle(fontWeight: FontWeight.w800)),
                   ],

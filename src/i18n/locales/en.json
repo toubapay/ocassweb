@@ -242,7 +242,8 @@
         "OUT_FOR_DELIVERY": "Out for delivery",
         "DELIVERED": "Delivered",
         "CANCELLED": "Cancelled"
-      }
+      },
+      "subtotal": "Subtotal: {{amount}}"
     },
     "wishlist": {
       "title": "Wishlist",
@@ -612,7 +613,8 @@
       "noFavorites": "No recent recipients yet.",
       "confirmTitle": "Confirm Airtime Purchase",
       "total": "Total",
-      "confirm": "Confirm"
+      "confirm": "Confirm",
+      "subtotal": "Subtotal"
     },
     "bill": {
       "heading": "Pay a bill",
@@ -856,7 +858,8 @@
       "zones": "Zones",
       "providers": "Providers",
       "services": "Services",
-      "insurance": "Insurance"
+      "insurance": "Insurance",
+      "serviceFees": "Fees & Tax"
     },
     "insurance": {
       "providerView": "Provider config",
@@ -1003,6 +1006,21 @@
       "validityLabel": "Validity (label)",
       "sortOrder": "Sort order",
       "forfaitCreated": "Bundle created"
+    },
+    "serviceFees": {
+      "sections": {
+        "mobile": "Mobile Services & Bundles",
+        "ecommerce": "Vendor Stores",
+        "restaurant": "Restaurants"
+      },
+      "fee": "Commission fee",
+      "tva": "TVA (tax)",
+      "percent": "%",
+      "flat": "Flat",
+      "flatCfa": "CFA",
+      "noServices": "No services found for this module yet.",
+      "saved": "Fee & tax settings saved",
+      "saveFailed": "Could not save fee & tax settings"
     }
   },
   "store": {

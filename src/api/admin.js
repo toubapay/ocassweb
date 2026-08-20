@@ -16,6 +16,12 @@ export const fetchAdminModules = () =>
 export const updateAdminModule = (key, payload) =>
   apiClient.patch(`/admin/modules/${key}`, payload).then((res) => res.data.module);
 
+// Per-service fees & TVA
+export const fetchAdminServiceFees = (moduleKey) =>
+  apiClient.get("/admin/service-fees", { params: { moduleKey } }).then((res) => res.data.services);
+export const upsertAdminServiceFee = (payload) =>
+  apiClient.put("/admin/service-fees", payload).then((res) => res.data.config);
+
 // Vendors
 export const fetchAdminVendors = (params) =>
   apiClient.get("/admin/vendors", { params }).then((res) => res.data);

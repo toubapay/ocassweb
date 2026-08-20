@@ -11,6 +11,7 @@ import useAuth from "../../src/hooks/useAuth";
 import AdminStatsTab from "../../src/components/admin/AdminStatsTab";
 import AdminUsersTab from "../../src/components/admin/AdminUsersTab";
 import AdminModulesTab from "../../src/components/admin/AdminModulesTab";
+import AdminServiceFeesTab from "../../src/components/admin/AdminServiceFeesTab";
 import AdminVendorsTab from "../../src/components/admin/AdminVendorsTab";
 import AdminCategoriesTab from "../../src/components/admin/AdminCategoriesTab";
 import AdminRestaurantsTab from "../../src/components/admin/AdminRestaurantsTab";
@@ -19,7 +20,7 @@ import AdminProvidersTab from "../../src/components/admin/AdminProvidersTab";
 import AdminServicesTab from "../../src/components/admin/AdminServicesTab";
 import AdminInsuranceTab from "../../src/components/admin/AdminInsuranceTab";
 
-const TABS = ["dashboard", "users", "modules", "vendors", "categories", "restaurants", "zones", "providers", "services", "insurance"];
+const TABS = ["dashboard", "users", "modules", "serviceFees", "vendors", "categories", "restaurants", "zones", "providers", "services", "insurance"];
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -58,6 +59,7 @@ export default function AdminPanel() {
         <Tab label={t("admin.tabs.dashboard")} />
         <Tab label={t("admin.tabs.users")} />
         <Tab label={t("admin.tabs.modules")} />
+        <Tab label={t("admin.tabs.serviceFees")} />
         <Tab label={t("admin.tabs.vendors")} />
         <Tab label={t("admin.tabs.categories")} />
         <Tab label={t("admin.tabs.restaurants")} />
@@ -71,6 +73,7 @@ export default function AdminPanel() {
         {TABS[tab] === "dashboard" && <AdminStatsTab />}
         {TABS[tab] === "users" && <AdminUsersTab />}
         {TABS[tab] === "modules" && <AdminModulesTab />}
+        {TABS[tab] === "serviceFees" && <AdminServiceFeesTab />}
         {TABS[tab] === "vendors" && <AdminVendorsTab />}
         {TABS[tab] === "categories" && <AdminCategoriesTab />}
         {TABS[tab] === "restaurants" && <AdminRestaurantsTab />}

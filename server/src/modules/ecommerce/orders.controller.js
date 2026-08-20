@@ -3,6 +3,39 @@ const prisma = require("../../lib/prisma");
 const paymentsService = require("../payments/payments.service");
 const walletService = require("../wallet/wallet.service");
 const { payoutVendorsForOrder } = require("../vendor/vendor.service");
+const { getServiceFeeConfig, computeFeeAndTax } = require("../../utils/serviceFee");
+
+/**
+ * Sums each vendor store's admin-configured fee/TVA (ServiceFeeConfig,
+ * moduleKey "ecommerce") across every store represented in the cart - a
+ * multi-vendor cart can owe a different fee/tax rate per store, so this
+ * mirrors payoutVendorsForOrder's own group-by-store pattern rather than
+ * applying one rate to the whole order. Deliberately independent of that
+ * payout math: this only ever adds to what the customer is charged
+ * (feeAmount/taxAmount on top of subtotal), never touches the per-line
+ * OrderItem.price the vendor's own share is computed from.
+ */
+async function computeCartFeeAndTax(cartItems) {
+  const byStore = new Map();
+  for (const item of cartItems) {
+    const storeId = item.product.storeId;
+    const lineTotal = Number(item.product.discountPrice ?? item.product.price) * item.quantity;
+    byStore.set(storeId, (byStore.get(storeId) || 0) + lineTotal);
+  }
+
+  let feeAmount = 0;
+  let taxAmount = 0;
+  for (const [storeId, storeSubtotal] of byStore.entries()) {
+    const config = await getServiceFeeConfig("ecommerce", "Store", storeId);
+    const computed = computeFeeAndTax(storeSubtotal, config);
+    feeAmount += computed.feeAmount;
+    taxAmount += computed.taxAmount;
+  }
+  return {
+    feeAmount: Math.round(feeAmount * 100) / 100,
+    taxAmount: Math.round(taxAmount * 100) / 100,
+  };
+}
 
 const createOrderSchema = z.object({
   deliveryAddressId: z.string().uuid().optional(),
@@ -35,10 +68,12 @@ async function createOrder(req, res, next) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    const total = cartItems.reduce((sum, item) => {
+    const subtotal = cartItems.reduce((sum, item) => {
       const unitPrice = item.product.discountPrice ?? item.product.price;
       return sum + Number(unitPrice) * item.quantity;
     }, 0);
+    const { feeAmount, taxAmount } = await computeCartFeeAndTax(cartItems);
+    const total = Math.round((subtotal + feeAmount + taxAmount) * 100) / 100;
 
     // Cart is intentionally left untouched until payment initiation succeeds
     // below - if PayDunya is unreachable or rejects the request, the order
@@ -48,6 +83,9 @@ async function createOrder(req, res, next) {
       data: {
         userId: req.user.id,
         deliveryAddressId,
+        subtotal,
+        feeAmount,
+        taxAmount,
         total,
         items: {
           create: cartItems.map((item) => ({

@@ -3,6 +3,7 @@ const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
 const { getModuleFeeConfig } = require("../../utils/feeConfig");
+const { getServiceFeeConfig, computeFeeAndTax } = require("../../utils/serviceFee");
 const { payoutOwnerForOrder } = require("./restaurant.service");
 
 const createOrderSchema = z.object({
@@ -70,15 +71,20 @@ async function createOrder(req, res, next) {
     }
     const menuItemById = new Map(menuItems.map((m) => [m.id, m]));
 
-    const total = data.items.reduce((sum, item) => {
+    const subtotal = data.items.reduce((sum, item) => {
       const menuItem = menuItemById.get(item.menuItemId);
       return sum + Number(menuItem.price) * item.quantity;
     }, 0);
+    const feeConfig = await getServiceFeeConfig("restaurant", "Restaurant", restaurant.id);
+    const { feeAmount, taxAmount, total } = computeFeeAndTax(subtotal, feeConfig);
 
     const order = await prisma.restaurantOrder.create({
       data: {
         userId: req.user.id,
         restaurantId: restaurant.id,
+        subtotal,
+        feeAmount,
+        taxAmount,
         total,
         note: data.note,
         deliveryAddress: data.deliveryAddress,

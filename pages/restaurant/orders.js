@@ -99,9 +99,20 @@ export default function RestaurantOrders() {
               </Typography>
             )}
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                {t("restaurant.orders.total", { amount: formatCfa(order.total) })}
-              </Typography>
+              <Box>
+                {(Number(order.feeAmount) > 0 || Number(order.taxAmount) > 0) && (
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                    {t("ecommerce.orders.subtotal", { amount: formatCfa(order.subtotal) })}
+                    {Number(order.feeAmount) > 0 &&
+                      ` · ${t("admin.serviceFees.fee")} ${formatCfa(order.feeAmount)}`}
+                    {Number(order.taxAmount) > 0 &&
+                      ` · ${t("admin.serviceFees.tva")} ${formatCfa(order.taxAmount)}`}
+                  </Typography>
+                )}
+                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  {t("restaurant.orders.total", { amount: formatCfa(order.total) })}
+                </Typography>
+              </Box>
               <Box sx={{ display: "flex", gap: 1.5 }}>
                 {order.status === "OUT_FOR_DELIVERY" && order.deliveryRequestId && (
                   <Button

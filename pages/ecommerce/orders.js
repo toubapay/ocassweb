@@ -86,7 +86,16 @@ export default function Orders() {
                 </Typography>
               ))}
             </Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 1 }}>
+            {(Number(order.feeAmount) > 0 || Number(order.taxAmount) > 0) && (
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+                {t("ecommerce.orders.subtotal", { amount: formatCfa(order.subtotal) })}
+                {Number(order.feeAmount) > 0 &&
+                  ` · ${t("admin.serviceFees.fee")} ${formatCfa(order.feeAmount)}`}
+                {Number(order.taxAmount) > 0 &&
+                  ` · ${t("admin.serviceFees.tva")} ${formatCfa(order.taxAmount)}`}
+              </Typography>
+            )}
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 0.5 }}>
               {t("ecommerce.orders.total", { amount: formatCfa(order.total) })}
             </Typography>
           </Box>

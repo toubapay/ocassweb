@@ -10,6 +10,13 @@ export const fetchMobileForfaits = (serviceId) =>
     .get("/mobile/forfaits", { params: { serviceId } })
     .then((res) => res.data.forfaits);
 
+// Lets the confirm dialog show the real total (base amount + admin-
+// configured fee + TVA) before charging anything - same fee resolution
+// createTopup/createBillPayment use server-side, so this never shows a
+// number different from what's actually charged.
+export const fetchMobileFeeQuote = (params) =>
+  apiClient.get("/mobile/fee-quote", { params }).then((res) => res.data);
+
 export const detectOperator = (phone) =>
   apiClient
     .get("/mobile/detect-operator", { params: { phone } })
