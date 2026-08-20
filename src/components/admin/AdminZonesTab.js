@@ -16,36 +16,74 @@ import { fetchAdminZones, createAdminZone, updateAdminZone, deleteAdminZone } fr
 import { MODULE_OPTIONS } from "../../constants/adminModules";
 import useGoogleMaps, { GOOGLE_MAPS_API_KEY } from "../../hooks/useGoogleMaps";
 
+/**
+ * Click-to-place-vertices polygon drawing, built on plain google.maps.Map /
+ * Polygon rather than google.maps.drawing.DrawingManager - Google
+ * deprecated the entire Drawing library in August 2025 (removal completed
+ * by the time this was written), so DrawingManager throws instead of
+ * initializing: "no longer available in the Maps JavaScript API". There's
+ * no first-party replacement widget, so this reimplements exactly the
+ * piece this tab actually needs (place points, finish, start over) rather
+ * than pulling in a third-party polyfill of unknown maintenance status for
+ * a capability that's this small to rebuild directly.
+ */
 function ZoneMap({ onPolygonComplete }) {
+  const { t } = useTranslation();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const polygonRef = useRef(null);
+  const pointsRef = useRef([]);
+  const drawingRef = useRef(true);
+  const [pointCount, setPointCount] = useState(0);
+  const [drawing, setDrawing] = useState(true);
   const status = useGoogleMaps();
 
   useEffect(() => {
+    drawingRef.current = drawing;
+  }, [drawing]);
+
+  useEffect(() => {
     if (status !== "ready" || !mapRef.current || mapInstanceRef.current) return;
-    const map = new window.google.maps.Map(mapRef.current, {
+    const google = window.google;
+    const map = new google.maps.Map(mapRef.current, {
       center: { lat: 14.6928, lng: -17.4467 }, // Dakar
       zoom: 12,
     });
-    const drawingManager = new window.google.maps.drawing.DrawingManager({
-      drawingMode: window.google.maps.drawing.OverlayType.POLYGON,
-      drawingControl: true,
-      drawingControlOptions: {
-        drawingModes: [window.google.maps.drawing.OverlayType.POLYGON],
-      },
-      polygonOptions: { editable: true },
+    const polygon = new google.maps.Polygon({
+      map,
+      paths: [],
+      strokeColor: "#0FAE58",
+      strokeWeight: 2,
+      fillColor: "#0FAE58",
+      fillOpacity: 0.2,
+      editable: false,
     });
-    drawingManager.setMap(map);
-    window.google.maps.event.addListener(drawingManager, "polygoncomplete", (polygon) => {
-      const points = polygon
-        .getPath()
-        .getArray()
-        .map((p) => ({ lat: p.lat(), lng: p.lng() }));
-      onPolygonComplete(points);
+    map.addListener("click", (e) => {
+      if (!drawingRef.current) return;
+      pointsRef.current = [...pointsRef.current, { lat: e.latLng.lat(), lng: e.latLng.lng() }];
+      polygon.setPath(pointsRef.current);
+      setPointCount(pointsRef.current.length);
     });
     mapInstanceRef.current = map;
+    polygonRef.current = polygon;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
+
+  const finishDrawing = () => {
+    if (pointsRef.current.length < 3) return;
+    setDrawing(false);
+    polygonRef.current?.setEditable(true);
+    onPolygonComplete(pointsRef.current);
+  };
+
+  const resetDrawing = () => {
+    pointsRef.current = [];
+    polygonRef.current?.setPath([]);
+    polygonRef.current?.setEditable(false);
+    setPointCount(0);
+    setDrawing(true);
+    onPolygonComplete(null);
+  };
 
   if (status === "error") {
     return <Alert severity="warning">{"Google Maps failed to load - check NEXT_PUBLIC_GOOGLE_MAPS_API_KEY."}</Alert>;
@@ -53,7 +91,19 @@ function ZoneMap({ onPolygonComplete }) {
   if (status !== "ready") {
     return <Alert severity="info">{"Loading map…"}</Alert>;
   }
-  return <Box ref={mapRef} sx={{ height: 360, borderRadius: 2, overflow: "hidden" }} />;
+  return (
+    <Box>
+      <Box ref={mapRef} sx={{ height: 360, borderRadius: 2, overflow: "hidden", mb: 1 }} />
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <Button size="small" variant="outlined" disabled={pointCount < 3} onClick={finishDrawing}>
+          {t("admin.zones.finishDrawing")}
+        </Button>
+        <Button size="small" onClick={resetDrawing} disabled={pointCount === 0}>
+          {t("admin.zones.resetDrawing")}
+        </Button>
+      </Box>
+    </Box>
+  );
 }
 
 export default function AdminZonesTab() {

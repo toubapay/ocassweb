@@ -146,6 +146,29 @@ gcloud run deploy ocass-frontend \
 
 Open the printed URL - that's the live app.
 
+**Optional - Google Maps** (admin Zones tab's polygon-drawing map,
+delivery's address autocomplete, its live tracking map - every one
+degrades to a manual/text-only fallback without this, so it's safe to
+skip): unlike `BACKEND_URL` above, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is
+inlined into the client bundle at `next build` time (see the
+Dockerfile's `ARG`), so `--set-env-vars` on `gcloud run deploy` is too
+late for it - it has to be a Docker build arg instead. The plain
+`gcloud builds submit --tag` above doesn't support `--build-arg`; build
+and push locally instead:
+
+```bash
+docker build --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<your key> \
+  -t $REGION-docker.pkg.dev/$PROJECT_ID/ocass/frontend .
+docker push $REGION-docker.pkg.dev/$PROJECT_ID/ocass/frontend
+# then the same `gcloud run deploy` command as above
+```
+
+Enable the **Maps JavaScript API** and **Places API** for the key in
+Google Cloud Console first, and restrict it (Credentials → your key →
+Application restrictions → HTTP referrers) to your Cloud Run frontend
+URL - this key ships inside client-side JS, so referrer restriction is
+what keeps it from being usable elsewhere, not secrecy.
+
 ## 5. Ongoing deploys via Cloud Build (recommended)
 
 Sections 0-4 above are a one-time bootstrap - someone with `gcloud` access

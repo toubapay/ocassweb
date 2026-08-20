@@ -82,3 +82,13 @@ services:
       # set this by hand once ocass-backend has a live URL (step 4).
       - key: BACKEND_URL
         sync: false
+      # Optional - enables the admin Zones tab's polygon-drawing map,
+      # delivery's address autocomplete, and its live tracking map (see
+      # src/hooks/useGoogleMaps.js). Every one of those features falls back
+      # to a manual/text-only mode without it, so this is safe to leave
+      # unset. NEXT_PUBLIC_* vars are inlined at `next build` time (see the
+      # Dockerfile's matching ARG), not read at container runtime, so this
+      # must be set *before* the first deploy that needs it takes effect -
+      # changing it later requires a fresh deploy, not just a restart.
+      - key: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        sync: false

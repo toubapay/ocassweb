@@ -9,6 +9,14 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* vars are inlined into the client bundle at `next build`
+# time, unlike BACKEND_URL (read fresh per-request server-side, see
+# middleware.js) - a dashboard "Environment" value alone never reaches
+# this RUN step unless mirrored into an ARG of the same name, which
+# platforms building from this Dockerfile (Render, Cloud Run, Railway)
+# populate from their own build-time env var / build-arg configuration.
+ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 RUN yarn build
 
 FROM node:22-slim AS runner

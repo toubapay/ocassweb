@@ -953,7 +953,7 @@
       "newZone": "Nouvelle zone",
       "name": "Nom de la zone",
       "feeMultiplier": "Multiplicateur de frais",
-      "drawHint": "Dessinez un polygone sur la carte pour définir les limites de cette zone.",
+      "drawHint": "Cliquez des points sur la carte pour tracer les limites de cette zone, puis Terminer (3 points minimum).",
       "pointsCaptured": "{{count}} point capturé",
       "pointsCaptured_other": "{{count}} points capturés",
       "noMapKey": "Aucune clé API Google Maps configurée (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) - collez plutôt les points de la limite au format JSON.",
@@ -964,7 +964,9 @@
       "saveFailed": "Impossible d'enregistrer la zone",
       "deleted": "Zone supprimée",
       "existing": "Zones existantes",
-      "points": "points"
+      "points": "points",
+      "finishDrawing": "Terminer",
+      "resetDrawing": "Recommencer"
     },
     "providers": {
       "newProvider": "Nouveau fournisseur",
