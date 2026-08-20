@@ -686,6 +686,7 @@
     "createStoreSubtitle": "Configurez votre boutique pour commencer à vendre sur Ocass.",
     "storeName": "Nom de la boutique",
     "storeAddress": "Adresse de la boutique",
+    "storeAddressHelp": "Utilisée comme point de retrait quand un livreur récupère une commande.",
     "storeLogoUrl": "URL du logo",
     "createStore": "Créer la boutique",
     "editStore": "Modifier la boutique",

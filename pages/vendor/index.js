@@ -12,6 +12,7 @@ import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import TopBar from "../../src/components/layout/TopBar";
+import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import useAuth from "../../src/hooks/useAuth";
 import { fetchMyStore, createStore, updateStore } from "../../src/api/vendor";
 
@@ -24,6 +25,7 @@ export default function VendorDashboard() {
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [addressCoords, setAddressCoords] = useState(null);
   const [logoUrl, setLogoUrl] = useState("");
   const [editing, setEditing] = useState(false);
 
@@ -35,12 +37,20 @@ export default function VendorDashboard() {
     if (store) {
       setName(store.name || "");
       setAddress(store.address || "");
+      setAddressCoords(store.lat != null ? { lat: store.lat, lng: store.lng } : null);
       setLogoUrl(store.logoUrl || "");
     }
   }, [store]);
 
   const createMutation = useMutation(
-    () => createStore({ name, address: address || undefined, logoUrl: logoUrl || undefined }),
+    () =>
+      createStore({
+        name,
+        address: address || undefined,
+        lat: addressCoords?.lat,
+        lng: addressCoords?.lng,
+        logoUrl: logoUrl || undefined,
+      }),
     {
       onSuccess: () => {
         toast.success(t("vendor.storeCreated"));
@@ -51,7 +61,14 @@ export default function VendorDashboard() {
   );
 
   const updateMutation = useMutation(
-    () => updateStore({ name, address: address || "", logoUrl: logoUrl || "" }),
+    () =>
+      updateStore({
+        name,
+        address: address || "",
+        lat: addressCoords?.lat,
+        lng: addressCoords?.lng,
+        logoUrl: logoUrl || "",
+      }),
     {
       onSuccess: () => {
         toast.success(t("vendor.storeUpdated"));
@@ -168,11 +185,19 @@ export default function VendorDashboard() {
             onChange={(e) => setName(e.target.value)}
             sx={{ mb: 2, mt: store ? 2 : 0 }}
           />
-          <TextField
+          <AddressAutocompleteField
             label={t("vendor.storeAddress")}
             fullWidth
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            onTextChange={(v) => {
+              setAddress(v);
+              setAddressCoords(null);
+            }}
+            onPlaceSelected={({ address: picked, lat, lng }) => {
+              setAddress(picked);
+              setAddressCoords({ lat, lng });
+            }}
+            helperText={t("vendor.storeAddressHelp")}
             sx={{ mb: 2 }}
           />
           <TextField
@@ -190,6 +215,7 @@ export default function VendorDashboard() {
                   setEditing(false);
                   setName(store.name || "");
                   setAddress(store.address || "");
+                  setAddressCoords(store.lat != null ? { lat: store.lat, lng: store.lng } : null);
                   setLogoUrl(store.logoUrl || "");
                 }}
                 sx={{ fontWeight: 700 }}
