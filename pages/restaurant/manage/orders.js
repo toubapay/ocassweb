@@ -110,9 +110,20 @@ export default function RestaurantManageOrders() {
             )}
 
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                {formatCfa(order.total)}
-              </Typography>
+              <Box>
+                {(Number(order.feeAmount) > 0 || Number(order.taxAmount) > 0) && (
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                    {t("ecommerce.orders.subtotal", { amount: formatCfa(order.subtotal) })}
+                    {Number(order.feeAmount) > 0 &&
+                      ` · ${t("admin.serviceFees.fee")} ${formatCfa(order.feeAmount)}`}
+                    {Number(order.taxAmount) > 0 &&
+                      ` · ${t("admin.serviceFees.tva")} ${formatCfa(order.taxAmount)}`}
+                  </Typography>
+                )}
+                <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                  {formatCfa(order.total)}
+                </Typography>
+              </Box>
               <Box sx={{ display: "flex", gap: 1 }}>
                 {order.status === "CONFIRMED" && (
                   <>

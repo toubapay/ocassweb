@@ -89,6 +89,13 @@ class RestaurantOrderItem {
 class RestaurantOrder {
   final String id;
   final String status;
+  // subtotal is what payoutOwnerForOrder's owner share is computed from;
+  // total is what was actually charged (subtotal + feeAmount + taxAmount,
+  // from admin-configured per-restaurant commission/TVA). feeAmount/
+  // taxAmount are 0 for orders placed before that feature existed.
+  final double subtotal;
+  final double feeAmount;
+  final double taxAmount;
   final double total;
   final String? note;
   final DateTime createdAt;
@@ -98,6 +105,9 @@ class RestaurantOrder {
   RestaurantOrder({
     required this.id,
     required this.status,
+    required this.subtotal,
+    this.feeAmount = 0,
+    this.taxAmount = 0,
     required this.total,
     this.note,
     required this.createdAt,
@@ -108,6 +118,9 @@ class RestaurantOrder {
   factory RestaurantOrder.fromJson(Map<String, dynamic> json) => RestaurantOrder(
         id: json['id'] as String,
         status: json['status'] as String,
+        subtotal: _parseDecimal(json['subtotal'] ?? json['total']),
+        feeAmount: _parseDecimal(json['feeAmount'] ?? 0),
+        taxAmount: _parseDecimal(json['taxAmount'] ?? 0),
         total: _parseDecimal(json['total']),
         note: json['note'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
@@ -150,6 +163,11 @@ class OwnerOrderDeliveryRequest {
 class OwnerRestaurantOrder {
   final String id;
   final String status;
+  // Same subtotal/fee/tax split as RestaurantOrder above - the owner's
+  // own payout share is computed from subtotal, never total.
+  final double subtotal;
+  final double feeAmount;
+  final double taxAmount;
   final double total;
   final String? note;
   final String? deliveryAddress;
@@ -161,6 +179,9 @@ class OwnerRestaurantOrder {
   OwnerRestaurantOrder({
     required this.id,
     required this.status,
+    required this.subtotal,
+    this.feeAmount = 0,
+    this.taxAmount = 0,
     required this.total,
     this.note,
     this.deliveryAddress,
@@ -173,6 +194,9 @@ class OwnerRestaurantOrder {
   factory OwnerRestaurantOrder.fromJson(Map<String, dynamic> json) => OwnerRestaurantOrder(
         id: json['id'] as String,
         status: json['status'] as String,
+        subtotal: _parseDecimal(json['subtotal'] ?? json['total']),
+        feeAmount: _parseDecimal(json['feeAmount'] ?? 0),
+        taxAmount: _parseDecimal(json['taxAmount'] ?? 0),
         total: _parseDecimal(json['total']),
         note: json['note'] as String?,
         deliveryAddress: json['deliveryAddress'] as String?,

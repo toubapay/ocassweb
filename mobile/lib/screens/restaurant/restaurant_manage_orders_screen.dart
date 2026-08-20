@@ -142,8 +142,27 @@ class _RestaurantManageOrdersScreenState extends State<RestaurantManageOrdersScr
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(formatCfa(order.total), style: const TextStyle(fontWeight: FontWeight.w800)),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (order.feeAmount > 0 || order.taxAmount > 0)
+                                      Text(
+                                        [
+                                          context.t('ecommerce.orders.subtotal',
+                                              {'amount': formatCfa(order.subtotal)}),
+                                          if (order.feeAmount > 0)
+                                            '${context.t('topup.airtime.fee')} ${formatCfa(order.feeAmount)}',
+                                          if (order.taxAmount > 0)
+                                            '${context.t('topup.airtime.tva')} ${formatCfa(order.taxAmount)}',
+                                        ].join(' · '),
+                                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                      ),
+                                    Text(formatCfa(order.total),
+                                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                                  ],
+                                ),
                                 if (order.status == 'CONFIRMED' || order.status == 'PREPARING')
                                   Row(
                                     children: [

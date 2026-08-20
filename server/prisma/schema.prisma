@@ -208,6 +208,16 @@ model Order {
   userId            String
   deliveryAddressId String?
   status            OrderStatus @default(PENDING)
+  // subtotal is the sum of line items only, and is what vendor payout
+  // (payoutVendorsForOrder) is computed from - it never changes shape
+  // regardless of fee/tax config. total is what's actually charged
+  // (subtotal + feeAmount + taxAmount), computed from admin-configured
+  // ServiceFeeConfig rows per vendor Store - see createOrder in
+  // ecommerce/orders.controller.js. feeAmount/taxAmount default to 0 so
+  // existing rows (backfilled subtotal = total) read as "no fee configured".
+  subtotal          Decimal     @db.Decimal(10, 2)
+  feeAmount         Decimal     @default(0) @db.Decimal(10, 2)
+  taxAmount         Decimal     @default(0) @db.Decimal(10, 2)
   total             Decimal     @db.Decimal(10, 2)
   // Payment is tracked separately from fulfillment status above - `paid`
   // only flips true once the PayDunya IPN webhook confirms the invoice,
@@ -517,6 +527,13 @@ model RestaurantOrder {
   userId            String
   restaurantId      String
   status            OrderStatus @default(PENDING)
+  // Same subtotal/fee/tax split as Order above - critically,
+  // payoutOwnerForOrder (restaurant.service.js) is computed from
+  // `subtotal`, not `total`, so the owner's share is never inflated by
+  // the platform fee/TVA added on top for the customer.
+  subtotal          Decimal     @db.Decimal(10, 2)
+  feeAmount         Decimal     @default(0) @db.Decimal(10, 2)
+  taxAmount         Decimal     @default(0) @db.Decimal(10, 2)
   total             Decimal     @db.Decimal(10, 2)
   note              String?
   // Tracked separately from fulfillment status, same split as Order.paid -
@@ -676,7 +693,13 @@ model MobileTransaction {
   type          MobileServiceType
   phoneNumber   String?
   accountNumber String?
+  // amount is unchanged in meaning (the forfait's price, or the amount the
+  // customer typed) - feeAmount/taxAmount are charged on top of it, from
+  // admin-configured ServiceFeeConfig, and default to 0 for the common
+  // case of no fee configured. See createTopup/createBillPayment.
   amount        Decimal                 @db.Decimal(10, 2)
+  feeAmount     Decimal                 @default(0) @db.Decimal(10, 2)
+  taxAmount     Decimal                 @default(0) @db.Decimal(10, 2)
   // Created PENDING, flipped to SUCCESS once the wallet debit clears (or
   // the row is deleted if the debit fails before any money moves) - see
   // createTopup/createBillPayment.
@@ -908,6 +931,51 @@ model ModuleConfig {
   // don't have configurable fee params yet, so this stays null for them.
   feeConfig Json?
   updatedAt DateTime @updatedAt
+}
+
+enum FeeValueType {
+  PERCENT
+  FLAT
+}
+
+// Per-service commission/fee + TVA (VAT) override, admin-configurable from
+// the admin panel's "Fees & Tax" tab (see AdminServiceFeesTab.js). This is
+// deliberately separate from ModuleConfig.feeConfig above: that JSON blob
+// holds the existing agent/rider/vendor/owner *earner-share* splits (e.g.
+// vendorSharePercent) computed off the original base price, and this table
+// is an additive customer-facing surcharge (feeAmount/taxAmount) charged on
+// top of that same base price - the two never touch the same number, so
+// there's no risk of one silently changing the other's math.
+//
+// (moduleKey, serviceType, serviceId) is a loose polymorphic reference
+// (same pattern as Payment.purpose/purposeId and
+// WalletTransaction.purpose/purposeId below) rather than a foreign key,
+// since serviceId points at a different table depending on serviceType -
+// "MobileService"/"MobileForfait" rows in the mobile module, "Store" rows
+// in ecommerce, "Restaurant" rows in the restaurant module. Only these
+// three moduleKeys are wired to actually charge this today (see
+// mobile.controller.js, ecommerce/orders.controller.js, restaurant/
+// orders.controller.js) - see AdminServiceFeesTab.js for why the admin UI
+// deliberately doesn't offer this for a module nothing reads it for yet.
+model ServiceFeeConfig {
+  id             String       @id @default(uuid())
+  moduleKey      String
+  serviceType    String
+  serviceId      String
+  // Denormalized display label (e.g. the store/service name at the time
+  // this config was last saved), so the admin list doesn't need to re-join
+  // every catalog table just to render - refreshed on every upsert.
+  label          String
+  feeEnabled     Boolean      @default(false)
+  feeType        FeeValueType @default(PERCENT)
+  feeValue       Decimal      @default(0) @db.Decimal(10, 2)
+  taxEnabled     Boolean      @default(false)
+  taxRatePercent Decimal      @default(0) @db.Decimal(5, 2)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([moduleKey, serviceType, serviceId])
+  @@index([moduleKey])
 }
 
 // Named service areas an admin draws on a map (see /admin/zones) - storage

@@ -14,6 +14,7 @@ import '../models/restaurant.dart';
 import '../models/ride_request.dart';
 import '../models/mobile_service.dart';
 import '../models/mobile_forfait.dart';
+import '../models/mobile_fee_quote.dart';
 import '../models/mobile_transaction.dart';
 import '../models/aas_insurance.dart';
 import '../models/wallet.dart';
@@ -574,6 +575,21 @@ class ApiClient {
     return (_data(res)['forfaits'] as List<dynamic>)
         .map((f) => MobileForfait.fromJson(f as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Preview of the fee/TVA a purchase will actually charge - pass either
+  /// [forfaitId] alone, or [serviceId] + [amount]. See MobileFeeQuote.
+  Future<MobileFeeQuote> fetchMobileFeeQuote({
+    String? serviceId,
+    String? forfaitId,
+    double? amount,
+  }) async {
+    final res = await _dio.get('/mobile/fee-quote', queryParameters: {
+      if (serviceId != null) 'serviceId': serviceId,
+      if (forfaitId != null) 'forfaitId': forfaitId,
+      if (amount != null) 'amount': amount,
+    });
+    return MobileFeeQuote.fromJson(_data(res));
   }
 
   Future<MobileTransaction> createTopup({

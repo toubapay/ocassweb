@@ -133,6 +133,123 @@ async function updateModule(req, res, next) {
   }
 }
 
+// ---------------- Service fees & TVA ----------------
+// Per-service commission/fee + tax overrides, separate from the earner-
+// share splits in ModuleConfig.feeConfig above (vendorSharePercent etc.) -
+// see the ServiceFeeConfig model comment in schema.prisma for why these
+// don't interact. Only the three moduleKeys actually wired to charge this
+// (see mobile.controller.js, ecommerce/orders.controller.js, restaurant/
+// orders.controller.js) are supported here, same "don't build a decorative
+// editor for something nothing reads" rule AdminModulesTab.js follows.
+
+const SERVICE_FEE_CATALOGS = {
+  mobile: async () => {
+    const [services, forfaits] = await Promise.all([
+      prisma.mobileService.findMany({ orderBy: { name: "asc" } }),
+      prisma.mobileForfait.findMany({ include: { service: true }, orderBy: { name: "asc" } }),
+    ]);
+    return [
+      ...services.map((s) => ({
+        serviceType: "MobileService",
+        serviceId: s.id,
+        label: `${s.name} (${s.type === "AIRTIME" ? "Airtime" : "Bill"})`,
+      })),
+      ...forfaits.map((f) => ({
+        serviceType: "MobileForfait",
+        serviceId: f.id,
+        label: `${f.name} - ${f.service.name}`,
+      })),
+    ];
+  },
+  ecommerce: async () => {
+    const stores = await prisma.store.findMany({
+      where: { ownerId: { not: null } },
+      orderBy: { name: "asc" },
+    });
+    return stores.map((s) => ({ serviceType: "Store", serviceId: s.id, label: s.name }));
+  },
+  restaurant: async () => {
+    const restaurants = await prisma.restaurant.findMany({
+      where: { ownerId: { not: null } },
+      orderBy: { name: "asc" },
+    });
+    return restaurants.map((r) => ({ serviceType: "Restaurant", serviceId: r.id, label: r.name }));
+  },
+};
+
+/**
+ * Merges the live catalog for one module (every MobileService/
+ * MobileForfait/Store/Restaurant row) with any ServiceFeeConfig rows
+ * already saved for it, so the admin UI always shows every service - even
+ * ones nobody has configured a fee for yet - with sensible "off" defaults.
+ */
+async function listServiceFeeCatalog(req, res, next) {
+  try {
+    const moduleKey = String(req.query.moduleKey || "");
+    const catalogFn = SERVICE_FEE_CATALOGS[moduleKey];
+    if (!catalogFn) {
+      return res.status(400).json({ message: "Unsupported module for service fees" });
+    }
+
+    const [services, configs] = await Promise.all([
+      catalogFn(),
+      prisma.serviceFeeConfig.findMany({ where: { moduleKey } }),
+    ]);
+    const byKey = new Map(configs.map((c) => [`${c.serviceType}:${c.serviceId}`, c]));
+
+    const merged = services.map((s) => {
+      const existing = byKey.get(`${s.serviceType}:${s.serviceId}`);
+      return {
+        moduleKey,
+        serviceType: s.serviceType,
+        serviceId: s.serviceId,
+        label: s.label,
+        feeEnabled: existing?.feeEnabled ?? false,
+        feeType: existing?.feeType ?? "PERCENT",
+        feeValue: existing ? Number(existing.feeValue) : 0,
+        taxEnabled: existing?.taxEnabled ?? false,
+        taxRatePercent: existing ? Number(existing.taxRatePercent) : 0,
+      };
+    });
+
+    res.json({ services: merged });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const upsertServiceFeeSchema = z.object({
+  moduleKey: z.enum(Object.keys(SERVICE_FEE_CATALOGS)),
+  serviceType: z.enum(["MobileService", "MobileForfait", "Store", "Restaurant"]),
+  serviceId: z.string().min(1),
+  label: z.string().min(1),
+  feeEnabled: z.boolean(),
+  feeType: z.enum(["PERCENT", "FLAT"]),
+  feeValue: z.number().min(0),
+  taxEnabled: z.boolean(),
+  taxRatePercent: z.number().min(0).max(100),
+});
+
+async function upsertServiceFeeConfig(req, res, next) {
+  try {
+    const data = upsertServiceFeeSchema.parse(req.body);
+    const config = await prisma.serviceFeeConfig.upsert({
+      where: {
+        moduleKey_serviceType_serviceId: {
+          moduleKey: data.moduleKey,
+          serviceType: data.serviceType,
+          serviceId: data.serviceId,
+        },
+      },
+      update: data,
+      create: data,
+    });
+    res.json({ config });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Vendors ----------------
 
 async function listVendorStores(req, res, next) {
@@ -677,6 +794,8 @@ module.exports = {
   updateUser,
   listModules,
   updateModule,
+  listServiceFeeCatalog,
+  upsertServiceFeeConfig,
   listVendorStores,
   updateVendorStore,
   listRestaurantsAdmin,

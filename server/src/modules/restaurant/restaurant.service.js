@@ -36,7 +36,11 @@ async function payoutOwnerForOrder(orderId) {
 
   await walletService.credit({
     userId: order.restaurant.ownerId,
-    amount: Math.round(Number(order.total) * ownerShare * 100) / 100,
+    // subtotal, not total - total now includes the platform's own
+    // fee/TVA surcharge (ServiceFeeConfig, moduleKey "restaurant"), which
+    // must never inflate the owner's share. See schema.prisma's
+    // RestaurantOrder comment.
+    amount: Math.round(Number(order.subtotal) * ownerShare * 100) / 100,
     type: "EARNING",
     purpose: "RESTAURANT_SALE",
     purposeId,

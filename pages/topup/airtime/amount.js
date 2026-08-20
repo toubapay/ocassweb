@@ -22,6 +22,7 @@ import { formatCfa } from "../../../src/utils/currency";
 import {
   detectOperator,
   fetchMobileForfaits,
+  fetchMobileFeeQuote,
   createTopup,
   createForfaitTopup,
 } from "../../../src/api/mobile";
@@ -124,7 +125,16 @@ export default function AirtimeAmount() {
     setConfirmOpen(true);
   };
 
-  const confirmTotal = pendingForfait ? pendingForfait.price : amount;
+  const { data: quote, isLoading: quoteLoading } = useQuery(
+    ["mobile-fee-quote", pendingForfait?.id, service?.id, amount],
+    () =>
+      fetchMobileFeeQuote(
+        pendingForfait ? { forfaitId: pendingForfait.id } : { serviceId: service.id, amount }
+      ),
+    { enabled: confirmOpen }
+  );
+
+  const confirmTotal = quote?.total ?? (pendingForfait ? pendingForfait.price : amount);
 
   const handleConfirm = () => {
     setConfirmOpen(false);
@@ -318,9 +328,37 @@ export default function AirtimeAmount() {
             <Typography sx={{ color: "text.secondary" }}>{t("topup.airtime.phoneNumber")}</Typography>
             <Typography sx={{ fontWeight: 700 }}>{phone}</Typography>
           </Box>
+          {quote && (quote.feeAmount > 0 || quote.taxAmount > 0) && (
+            <>
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {t("topup.airtime.subtotal")}
+                </Typography>
+                <Typography variant="body2">{formatCfa(quote.subtotal)}</Typography>
+              </Box>
+              {quote.feeAmount > 0 && (
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    {t("admin.serviceFees.fee")}
+                  </Typography>
+                  <Typography variant="body2">{formatCfa(quote.feeAmount)}</Typography>
+                </Box>
+              )}
+              {quote.taxAmount > 0 && (
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    {t("admin.serviceFees.tva")}
+                  </Typography>
+                  <Typography variant="body2">{formatCfa(quote.taxAmount)}</Typography>
+                </Box>
+              )}
+            </>
+          )}
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Typography sx={{ color: "text.secondary" }}>{t("topup.airtime.total")}</Typography>
-            <Typography sx={{ fontWeight: 800 }}>{formatCfa(confirmTotal)}</Typography>
+            <Typography sx={{ fontWeight: 800 }}>
+              {quoteLoading ? t("common.loading") : formatCfa(confirmTotal)}
+            </Typography>
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
@@ -328,7 +366,7 @@ export default function AirtimeAmount() {
             variant="contained"
             fullWidth
             onClick={handleConfirm}
-            disabled={topupMutation.isLoading || forfaitMutation.isLoading}
+            disabled={quoteLoading || topupMutation.isLoading || forfaitMutation.isLoading}
             sx={{ fontWeight: 800, py: 1.1 }}
           >
             {topupMutation.isLoading || forfaitMutation.isLoading ? (
