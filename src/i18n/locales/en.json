@@ -953,7 +953,7 @@
       "newZone": "New zone",
       "name": "Zone name",
       "feeMultiplier": "Fee multiplier",
-      "drawHint": "Draw a polygon on the map to set this zone's boundary.",
+      "drawHint": "Click points on the map to trace this zone's boundary, then Finish (at least 3 points).",
       "pointsCaptured": "{{count}} point captured",
       "pointsCaptured_other": "{{count}} points captured",
       "noMapKey": "No Google Maps API key configured (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) - paste boundary points as JSON instead.",
@@ -964,7 +964,9 @@
       "saveFailed": "Could not save zone",
       "deleted": "Zone deleted",
       "existing": "Existing zones",
-      "points": "points"
+      "points": "points",
+      "finishDrawing": "Finish",
+      "resetDrawing": "Start over"
     },
     "providers": {
       "newProvider": "New provider",

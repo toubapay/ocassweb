@@ -113,6 +113,33 @@ These build PayDunya's return/cancel/callback URLs (see
 publicly reachable to deliver the IPN `callback_url`, which is exactly
 what a `.onrender.com` URL is, unlike local dev.
 
+## 4b. Google Maps (optional)
+
+Enables the admin panel's Zones tab (draw a polygon on a real map instead
+of pasting boundary JSON), delivery's address autocomplete, and its live
+tracking map (see `src/hooks/useGoogleMaps.js`). Every one of those
+features degrades to a manual/text-only fallback without a key, so this
+is safe to skip entirely.
+
+1. In Google Cloud Console, enable the **Maps JavaScript API** and
+   **Places API** for your project, then create an API key.
+2. **Restrict the key** (Credentials → your key → Application restrictions
+   → HTTP referrers) to `https://ocass-frontend.onrender.com/*` (and
+   `http://localhost:3000/*` too if you also want it working in local
+   dev) - this key ships inside the client-side JS bundle, so referrer
+   restriction is what keeps it from being usable on any other site,
+   not secrecy.
+3. Add it to the **frontend** service's environment and save:
+   ```
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = <your key>
+   ```
+   Unlike `BACKEND_URL`, this one is a `NEXT_PUBLIC_*` var - Next.js
+   inlines it into the client bundle at `next build` time, not read at
+   container runtime, so it only takes effect on the *next* deploy after
+   you set it (a plain restart of the current instance won't pick it up).
+   Render passes the Dockerfile's matching `ARG` through automatically;
+   nothing else to configure.
+
 ## 5. Seed data (optional)
 
 The backend's Pre-Deploy Command only runs migrations, not the seed

@@ -94,6 +94,19 @@ since the top-level `Dockerfile` is already there):
   change without a rebuild.
 - **Settings → Networking → Generate Domain** for the frontend's own
   public URL - that's the live app.
+- **Optional - Google Maps**: add `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to
+  the same Variables tab to enable the admin Zones tab's polygon-drawing
+  map, delivery's address autocomplete, and its live tracking map (every
+  one degrades to a manual/text-only fallback without it, so skip this
+  freely). Railway passes Dockerfile-service variables through as build
+  args automatically (matching the `ARG` in the Dockerfile), so unlike
+  the GCP guide's workaround this needs no extra build step - just add
+  the variable and redeploy. Enable the **Maps JavaScript API** and
+  **Places API** for the key in Google Cloud Console, and restrict it
+  (Credentials → your key → Application restrictions → HTTP referrers)
+  to this service's Railway domain - the key ships inside client-side
+  JS, so referrer restriction is what keeps it from being usable
+  elsewhere, not secrecy.
 
 ## 4. Ongoing deploys
 
