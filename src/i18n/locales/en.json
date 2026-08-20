@@ -686,6 +686,7 @@
     "createStoreSubtitle": "Set up your storefront to start selling on Ocass.",
     "storeName": "Store name",
     "storeAddress": "Store address",
+    "storeAddressHelp": "Used as the pickup point when a delivery agent picks up an order.",
     "storeLogoUrl": "Logo URL",
     "createStore": "Create store",
     "editStore": "Edit store",

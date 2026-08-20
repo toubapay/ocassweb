@@ -11,6 +11,7 @@ import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import TopBar from "../../src/components/layout/TopBar";
+import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import useAuth from "../../src/hooks/useAuth";
 import { fetchMyStore, createStore } from "../../src/api/vendor";
 
@@ -57,6 +58,7 @@ export default function VendorRegister() {
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [addressCoords, setAddressCoords] = useState(null);
   const [logoUrl, setLogoUrl] = useState("");
 
   const { data: store, isLoading: storeLoading } = useQuery("vendor-store", fetchMyStore, {
@@ -76,7 +78,13 @@ export default function VendorRegister() {
       if (user.role !== "VENDOR") {
         await updateRole("VENDOR");
       }
-      return createStore({ name, address: address || undefined, logoUrl: logoUrl || undefined });
+      return createStore({
+        name,
+        address: address || undefined,
+        lat: addressCoords?.lat,
+        lng: addressCoords?.lng,
+        logoUrl: logoUrl || undefined,
+      });
     },
     {
       onSuccess: () => {
@@ -174,11 +182,19 @@ export default function VendorRegister() {
           onChange={(e) => setName(e.target.value)}
           sx={{ mb: 2 }}
         />
-        <TextField
+        <AddressAutocompleteField
           label={t("vendor.storeAddress")}
           fullWidth
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
+          onTextChange={(v) => {
+            setAddress(v);
+            setAddressCoords(null);
+          }}
+          onPlaceSelected={({ address: picked, lat, lng }) => {
+            setAddress(picked);
+            setAddressCoords({ lat, lng });
+          }}
+          helperText={t("vendor.storeAddressHelp")}
           sx={{ mb: 2 }}
         />
         <TextField
