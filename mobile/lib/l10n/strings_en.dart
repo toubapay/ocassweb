@@ -164,6 +164,7 @@ const Map<String, String> enStrings = {
   'ecommerce.checkout.loading': 'Loading...',
   'ecommerce.checkout.orderPlaced': 'Order placed!',
   'ecommerce.checkout.orderSummary': 'Order summary',
+  'ecommerce.checkout.cashOnDelivery': 'Cash on delivery',
   'ecommerce.checkout.payDunya': 'PayDunya (mobile money, card)',
   'ecommerce.checkout.payWith': 'Pay with',
   'ecommerce.checkout.placeOrder': 'Place order · {{total}}',

@@ -12,6 +12,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
+import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import { fetchCart, createOrder } from "../../src/api/ecommerce";
 import { fetchWallet } from "../../src/api/wallet";
@@ -23,7 +24,7 @@ export default function Checkout() {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  const [paymentMethod, setPaymentMethod] = useState("paydunya");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
 
   const { data: items, isLoading } = useQuery("cart", fetchCart);
   const { data: wallet } = useQuery("wallet", fetchWallet, { enabled: isAuthenticated });
@@ -119,6 +120,21 @@ export default function Checkout() {
           {t("ecommerce.checkout.payWith")}
         </Typography>
         <RadioGroup value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+          <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1, mb: 1 }}>
+            <FormControlLabel
+              value="cash"
+              control={<Radio />}
+              sx={{ width: "100%", m: 0 }}
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
+                  <PaymentsRoundedIcon sx={{ color: "primary.main" }} />
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {t("ecommerce.checkout.cashOnDelivery")}
+                  </Typography>
+                </Box>
+              }
+            />
+          </Box>
           <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1, mb: 1 }}>
             <FormControlLabel
               value="paydunya"

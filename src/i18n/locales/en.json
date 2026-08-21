@@ -221,6 +221,7 @@
       "deliveryFee": "Delivery fee",
       "total": "Total",
       "payWith": "Pay with",
+      "cashOnDelivery": "Cash on delivery",
       "payDunya": "PayDunya (mobile money, card)",
       "wallet": "Ocass Wallet",
       "walletBalance": "Balance: {{amount}}",

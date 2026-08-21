@@ -221,6 +221,7 @@
       "deliveryFee": "Frais de livraison",
       "total": "Total",
       "payWith": "Payer avec",
+      "cashOnDelivery": "Paiement à la livraison",
       "payDunya": "PayDunya (mobile money, carte)",
       "wallet": "Portefeuille Ocass",
       "walletBalance": "Solde : {{amount}}",

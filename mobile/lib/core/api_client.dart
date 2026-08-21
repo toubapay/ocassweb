@@ -149,7 +149,7 @@ class ApiClient {
   /// `'wallet'`, which settles synchronously - no redirect needed).
   Future<(Order, String?)> createOrder({
     String? deliveryAddressId,
-    String paymentMethod = 'paydunya',
+    String paymentMethod = 'cash',
   }) async {
     final res = await _dio.post('/ecommerce/orders', data: {
       if (deliveryAddressId != null) 'deliveryAddressId': deliveryAddressId,

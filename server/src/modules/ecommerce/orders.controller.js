@@ -39,7 +39,7 @@ async function computeCartFeeAndTax(cartItems) {
 
 const createOrderSchema = z.object({
   deliveryAddressId: z.string().uuid().optional(),
-  paymentMethod: z.enum(["paydunya", "wallet"]).default("paydunya"),
+  paymentMethod: z.enum(["paydunya", "wallet", "cash"]).default("cash"),
 });
 
 async function listOrders(req, res, next) {
@@ -132,6 +132,25 @@ async function createOrder(req, res, next) {
         console.error(`[vendor payout] order ${order.id}:`, err);
       });
 
+      return res.status(201).json({ order: updatedOrder, paymentUrl: null });
+    }
+
+    if (paymentMethod === "cash") {
+      // Cash on delivery: no gateway, no wallet debit - `paid` stays false
+      // as a record of intent until the cash is actually collected, same
+      // semantics as Anando's CASH bookings. Nothing is charged to the
+      // platform yet, so vendor payout (payoutVendorsForOrder) doesn't run
+      // here either - unlike wallet/PayDunya, there's no real money behind
+      // this order until delivery, and no fulfillment-status flow exists
+      // yet to trigger a payout once there is.
+      const [, updatedOrder] = await prisma.$transaction([
+        prisma.cartItem.deleteMany({ where: { userId: req.user.id } }),
+        prisma.order.update({
+          where: { id: order.id },
+          data: { status: "CONFIRMED" },
+          include: { items: { include: { product: true } } },
+        }),
+      ]);
       return res.status(201).json({ order: updatedOrder, paymentUrl: null });
     }
 

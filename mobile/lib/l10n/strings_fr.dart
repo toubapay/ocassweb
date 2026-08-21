@@ -164,6 +164,7 @@ const Map<String, String> frStrings = {
   'ecommerce.checkout.loading': 'Chargement...',
   'ecommerce.checkout.orderPlaced': 'Commande passée !',
   'ecommerce.checkout.orderSummary': 'Récapitulatif de la commande',
+  'ecommerce.checkout.cashOnDelivery': 'Paiement à la livraison',
   'ecommerce.checkout.payDunya': 'PayDunya (mobile money, carte)',
   'ecommerce.checkout.payWith': 'Payer avec',
   'ecommerce.checkout.placeOrder': 'Passer la commande · {{total}}',
