@@ -237,6 +237,28 @@ class ApiClient {
     return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
   }
 
+  /// Live distance + price preview, mirroring GET /delivery/fee-quote's web
+  /// usage - called once both pickup and dropoff have real coordinates, so
+  /// the customer sees cost before submitting.
+  Future<({double distanceKm, double priceEstimate})> fetchDeliveryFeeQuote({
+    required double pickupLat,
+    required double pickupLng,
+    required double dropoffLat,
+    required double dropoffLng,
+  }) async {
+    final res = await _dio.get('/delivery/fee-quote', queryParameters: {
+      'pickupLat': pickupLat,
+      'pickupLng': pickupLng,
+      'dropoffLat': dropoffLat,
+      'dropoffLng': dropoffLng,
+    });
+    final data = _data(res);
+    return (
+      distanceKm: (data['distanceKm'] as num).toDouble(),
+      priceEstimate: (data['priceEstimate'] as num).toDouble(),
+    );
+  }
+
   Future<DeliveryRequest> cancelDeliveryRequest(String id) async {
     final res = await _dio.patch('/delivery/requests/$id/cancel');
     return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);

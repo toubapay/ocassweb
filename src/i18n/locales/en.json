@@ -280,6 +280,7 @@
     "yourRequests": "Your requests",
     "estimate": "Estimate: {{amount}}",
     "priceEstimateLabel": "Estimated price",
+    "distanceAndPrice": "{{km}} km · Estimated {{amount}}",
     "track": "Track",
     "cancel": "Cancel",
     "status": {

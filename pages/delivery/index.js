@@ -15,10 +15,13 @@ import TopBar from "../../src/components/layout/TopBar";
 import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import LiveTrackingMap from "../../src/components/maps/LiveTrackingMap";
 import useAuth from "../../src/hooks/useAuth";
-import { fetchDeliveryRequests, createDeliveryRequest, cancelDeliveryRequest } from "../../src/api/modules";
+import {
+  fetchDeliveryRequests,
+  createDeliveryRequest,
+  cancelDeliveryRequest,
+  fetchDeliveryFeeQuote,
+} from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
-
-const TRACKABLE_STATUSES = ["ACCEPTED", "PICKED_UP"];
 
 export default function Delivery() {
   const router = useRouter();
@@ -49,6 +52,18 @@ export default function Delivery() {
   const { data: requests } = useQuery("delivery-requests", fetchDeliveryRequests, {
     enabled: isAuthenticated,
   });
+
+  const { data: feeQuote } = useQuery(
+    ["delivery-fee-quote", pickupCoords, dropoffCoords],
+    () =>
+      fetchDeliveryFeeQuote({
+        pickupLat: pickupCoords.lat,
+        pickupLng: pickupCoords.lng,
+        dropoffLat: dropoffCoords.lat,
+        dropoffLng: dropoffCoords.lng,
+      }),
+    { enabled: Boolean(pickupCoords && dropoffCoords) }
+  );
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -214,6 +229,14 @@ export default function Delivery() {
         {pickupCoords && dropoffCoords && (
           <Box sx={{ mb: 2 }}>
             <LiveTrackingMap pickup={pickupCoords} dropoff={dropoffCoords} height={200} />
+            {feeQuote && (
+              <Typography variant="body2" sx={{ mt: 1, fontWeight: 700, textAlign: "center" }}>
+                {t("delivery.distanceAndPrice", {
+                  km: feeQuote.distanceKm.toFixed(1),
+                  amount: formatCfa(feeQuote.priceEstimate),
+                })}
+              </Typography>
+            )}
           </Box>
         )}
 
@@ -260,16 +283,14 @@ export default function Delivery() {
                     {t("delivery.estimate", { amount: formatCfa(r.priceEstimate) })}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-                    {TRACKABLE_STATUSES.includes(r.status) && (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        onClick={() => router.push(`/delivery/track/${r.id}`)}
-                        sx={{ fontWeight: 700, minWidth: 0, py: 0.25 }}
-                      >
-                        {t("delivery.track")}
-                      </Button>
-                    )}
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => router.push(`/delivery/track/${r.id}`)}
+                      sx={{ fontWeight: 700, minWidth: 0, py: 0.25 }}
+                    >
+                      {t("delivery.track")}
+                    </Button>
                     {r.status === "REQUESTED" && (
                       <Button
                         size="small"

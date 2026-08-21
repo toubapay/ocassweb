@@ -103,6 +103,7 @@ const Map<String, String> enStrings = {
   'delivery.cancel': 'Cancel',
   'delivery.couldNotCancel': 'Could not cancel request',
   'delivery.couldNotCreate': 'Could not create request',
+  'delivery.distanceAndPrice': '{{km}} km · Estimated {{amount}}',
   'delivery.dropoffAddress': 'Dropoff address',
   'delivery.enterAddresses': 'Enter pickup and dropoff addresses',
   'delivery.enterReceiver': "Enter the receiver's name and phone number",
