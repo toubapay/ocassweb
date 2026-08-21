@@ -12,7 +12,7 @@ class ModuleTile extends StatelessWidget {
   final AppModule module;
   final double size;
 
-  const ModuleTile({super.key, required this.module, this.size = 88});
+  const ModuleTile({super.key, required this.module, this.size = 92});
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +61,7 @@ class ModuleTile extends StatelessWidget {
                 ),
                 child: Text(
                   module.label,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5, color: Color(0xFF1A1A1A)),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.1, color: Color(0xFF1A1A1A)),
                 ),
               ),
             ),

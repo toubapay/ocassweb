@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Center(
                       child: Text(
                         context.t('home.dragHint'),
-                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: const TextStyle(color: Colors.white70, fontSize: 11.6, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -136,10 +136,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     firstName != null
                         ? context.t('home.greeting', {'name': firstName})
                         : context.t('home.exploreOcass'),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 21),
                   ),
                 ),
-                const Icon(Icons.info_outline_rounded, color: AppColors.textSecondary, size: 20),
+                const Icon(Icons.info_outline_rounded, color: AppColors.textSecondary, size: 21),
               ],
             ),
           ),
@@ -175,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
             child: Text(context.t('home.popularRightNow'),
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
           ),
           SizedBox(
             height: 250,
@@ -212,16 +212,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(context.t('home.freeDeliveryTitle'),
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.8)),
                         const SizedBox(height: 4),
                         Text(context.t('home.freeDeliverySubtitle'),
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.6)),
                       ],
                     ),
                   ),
                   Container(
-                    width: 56,
-                    height: 56,
+                    width: 59,
+                    height: 59,
                     decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.green),
                     child: const Icon(Icons.card_giftcard_rounded, color: Colors.white),
                   ),

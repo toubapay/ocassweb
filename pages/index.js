@@ -67,7 +67,7 @@ export default function Home() {
   // to any module count without re-tuning the split by hand; the tile size
   // shrinks a touch once there are more than 6 so four still fit per row on
   // narrow phones without overflowing the 480px mobile frame.
-  const tileSize = orderedModules.length > 6 ? 76 : 92;
+  const tileSize = orderedModules.length > 6 ? 80 : 97;
 
   // Delay-based activation (long-press) rather than distance-based: dnd-kit's
   // distance constraint calls preventDefault() on pointerdown immediately,
@@ -133,7 +133,7 @@ export default function Home() {
         </DndContext>
 
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, mt: 2 }}>
-          <DragIndicatorRoundedIcon sx={{ fontSize: 14, color: "rgba(255,255,255,0.75)" }} />
+          <DragIndicatorRoundedIcon sx={{ fontSize: 15, color: "rgba(255,255,255,0.75)" }} />
           <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
             {t("home.dragHint")}
           </Typography>
@@ -144,7 +144,7 @@ export default function Home() {
 
       <Box sx={{ px: 2.5, pt: 3, pb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 20 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, fontSize: 21 }}>
             {firstName ? t("home.greeting", { name: firstName }) : t("home.exploreOcass")}
           </Typography>
           <InfoOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
@@ -204,8 +204,8 @@ export default function Home() {
               right: 18,
               top: "50%",
               transform: "translateY(-50%)",
-              width: 68,
-              height: 68,
+              width: 71,
+              height: 71,
               borderRadius: "50%",
               bgcolor: "primary.main",
               display: "flex",
@@ -214,7 +214,7 @@ export default function Home() {
               boxShadow: "0 6px 16px rgba(15,174,88,0.35)",
             }}
           >
-            <CardGiftcardRoundedIcon sx={{ color: "#fff", fontSize: 32 }} />
+            <CardGiftcardRoundedIcon sx={{ color: "#fff", fontSize: 34 }} />
           </Box>
 
           <IconButton
