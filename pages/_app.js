@@ -3,6 +3,7 @@ import Head from "next/head";
 import { CacheProvider } from "@emotion/react";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import { Provider as ReduxProvider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { QueryClient, QueryClientProvider } from "react-query";
@@ -42,6 +43,17 @@ export default function App(props) {
           <QueryClientProvider client={queryClient}>
             <ThemeProvider theme={theme}>
               <CssBaseline />
+              {/* Google Places Autocomplete (AddressAutocompleteField.js) appends its
+                  suggestions dropdown directly to document.body with its own default
+                  z-index, which sits below MUI's Dialog (zIndex.modal, 1300) - inside
+                  any dialog (e.g. Anando's "Publier un trajet") the dropdown rendered
+                  but was hidden behind the dialog itself. Global CSS is required since
+                  the dropdown lives outside the app's React tree. */}
+              <GlobalStyles
+                styles={(t) => ({
+                  ".pac-container": { zIndex: `${t.zIndex.tooltip} !important` },
+                })}
+              />
               <AppLayout>
                 <Component {...pageProps} />
               </AppLayout>
