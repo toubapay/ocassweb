@@ -280,7 +280,12 @@ export default function Delivery() {
                 )}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {t("delivery.estimate", { amount: formatCfa(r.priceEstimate) })}
+                    {r.distanceKm != null
+                      ? t("delivery.estimateWithDistance", {
+                          km: r.distanceKm.toFixed(1),
+                          amount: formatCfa(r.priceEstimate),
+                        })
+                      : t("delivery.estimate", { amount: formatCfa(r.priceEstimate) })}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
                     <Button

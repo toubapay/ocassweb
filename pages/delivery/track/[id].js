@@ -174,6 +174,16 @@ export default function TrackDelivery() {
               </Typography>
             </Box>
           )}
+          {request.distanceKm != null && (
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {t("delivery.distanceLabel")}
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {t("delivery.distanceKm", { km: request.distanceKm.toFixed(1) })}
+              </Typography>
+            </Box>
+          )}
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               {t("delivery.priceEstimateLabel")}

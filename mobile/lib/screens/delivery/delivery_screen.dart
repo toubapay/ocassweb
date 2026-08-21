@@ -306,7 +306,12 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                              context.t('delivery.estimate', {'amount': formatCfa(r.priceEstimate)}),
+                              r.distanceKm != null
+                                  ? context.t('delivery.estimateWithDistance', {
+                                      'km': r.distanceKm!.toStringAsFixed(1),
+                                      'amount': formatCfa(r.priceEstimate),
+                                    })
+                                  : context.t('delivery.estimate', {'amount': formatCfa(r.priceEstimate)}),
                               style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                           Row(
                             children: [

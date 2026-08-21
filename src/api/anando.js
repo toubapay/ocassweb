@@ -9,6 +9,8 @@ export const fetchMyBookings = () =>
 
 export const createPosting = (payload) =>
   apiClient.post("/anando/postings", payload).then((res) => res.data.posting);
+export const fetchAnandoFeeQuote = (params) =>
+  apiClient.get("/anando/fee-quote", { params }).then((res) => res.data);
 export const cancelPosting = (id) =>
   apiClient.patch(`/anando/postings/${id}/cancel`).then((res) => res.data);
 export const departPosting = (id) =>

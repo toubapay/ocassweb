@@ -2,6 +2,7 @@ const { Router } = require("express");
 const { requireAuth } = require("../../middleware/auth");
 const {
   createPosting,
+  getFeeQuote,
   listAvailable,
   listMyPostings,
   listMyBookings,
@@ -16,6 +17,7 @@ router.use(requireAuth);
 
 router.get("/postings/available", listAvailable);
 router.get("/postings/mine", listMyPostings);
+router.get("/fee-quote", getFeeQuote);
 router.post("/postings", createPosting);
 router.patch("/postings/:id/cancel", cancelPosting);
 router.post("/postings/:id/depart", departPosting);

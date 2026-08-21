@@ -34,6 +34,7 @@ class DeliveryRequest {
   final double? dropoffLng;
   final String? packageNote;
   final double? priceEstimate;
+  final double? distanceKm;
   final String status;
   final DeliveryAgentSummary? assignedAgent;
   final double? agentLat;
@@ -54,6 +55,7 @@ class DeliveryRequest {
     this.dropoffLng,
     this.packageNote,
     this.priceEstimate,
+    this.distanceKm,
     required this.status,
     this.assignedAgent,
     this.agentLat,
@@ -75,6 +77,7 @@ class DeliveryRequest {
         dropoffLng: _parseNullableFloat(json['dropoffLng']),
         packageNote: json['packageNote'] as String?,
         priceEstimate: _parseNullableDecimal(json['priceEstimate']),
+        distanceKm: _parseNullableFloat(json['distanceKm']),
         status: json['status'] as String,
         assignedAgent: json['assignedAgent'] == null
             ? null

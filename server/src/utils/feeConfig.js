@@ -12,4 +12,21 @@ async function getModuleFeeConfig(key, defaults) {
   return { ...defaults, ...(config?.feeConfig || {}) };
 }
 
-module.exports = { getModuleFeeConfig };
+/**
+ * Clamps a computed fee into an admin-configured [minFee, maxFee] range -
+ * either bound is optional (missing/non-numeric = no clamp on that side),
+ * so a module with only a max cap (or none at all) behaves the same as
+ * before this existed.
+ */
+function clampFee(value, { minFee, maxFee } = {}) {
+  let clamped = value;
+  if (typeof minFee === "number" && Number.isFinite(minFee) && clamped < minFee) {
+    clamped = minFee;
+  }
+  if (typeof maxFee === "number" && Number.isFinite(maxFee) && clamped > maxFee) {
+    clamped = maxFee;
+  }
+  return clamped;
+}
+
+module.exports = { getModuleFeeConfig, clampFee };

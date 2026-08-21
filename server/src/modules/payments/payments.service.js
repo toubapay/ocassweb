@@ -3,6 +3,7 @@ const paydunya = require("./paydunya.service");
 const walletService = require("../wallet/wallet.service");
 const notificationsService = require("../notifications/notifications.service");
 const { payoutVendorsForOrder } = require("../vendor/vendor.service");
+const { payoutDriverForBooking } = require("../anando/anando.service");
 
 /**
  * Creates a Payment record and a matching PayDunya invoice for it. Callers
@@ -95,6 +96,11 @@ async function applyPaymentSideEffects(payment) {
         data: { paid: true },
         include: { posting: true },
       });
+      // Best-effort, same as the WALLET path in anando.controller.js's
+      // bookSeat - the booking is already confirmed paid either way.
+      payoutDriverForBooking(booking.id).catch((err) =>
+        console.error(`[anando driver payout] booking ${booking.id}:`, err)
+      );
       await notificationsService
         .notify({
           userId: booking.posting.driverId,
