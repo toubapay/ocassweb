@@ -5,6 +5,7 @@ const {
   getRequest,
   createRequest,
   cancelRequest,
+  getFeeQuote,
   listAvailable,
   listMyJobs,
   acceptRequest,
@@ -15,6 +16,11 @@ const {
 
 const router = Router();
 const requireAgent = requireRole("DELIVERY_AGENT");
+
+// Public (no requireAuth) - lets a guest preview distance/price before
+// logging in, same as mobile's GET /mobile/fee-quote. Static path, so it
+// must come before the dynamic /requests/:id below to avoid being shadowed.
+router.get("/fee-quote", getFeeQuote);
 
 router.get("/requests", requireAuth, listMyRequests);
 router.post("/requests", requireAuth, createRequest);

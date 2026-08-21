@@ -103,6 +103,7 @@ const Map<String, String> frStrings = {
   'delivery.cancel': 'Annuler',
   'delivery.couldNotCancel': 'Impossible d\'annuler la demande',
   'delivery.couldNotCreate': 'Impossible de créer la demande',
+  'delivery.distanceAndPrice': '{{km}} km · Estimation {{amount}}',
   'delivery.dropoffAddress': 'Adresse de livraison',
   'delivery.enterAddresses': 'Entrez les adresses de retrait et de livraison',
   'delivery.enterReceiver': 'Entrez le nom et le numéro de téléphone du destinataire',

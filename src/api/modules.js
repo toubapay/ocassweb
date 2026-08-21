@@ -9,6 +9,8 @@ export const createDeliveryRequest = (payload) =>
   apiClient.post("/delivery/requests", payload).then((res) => res.data.request);
 export const cancelDeliveryRequest = (id) =>
   apiClient.patch(`/delivery/requests/${id}/cancel`).then((res) => res.data.request);
+export const fetchDeliveryFeeQuote = (params) =>
+  apiClient.get("/delivery/fee-quote", { params }).then((res) => res.data);
 
 // Delivery agent dispatch
 export const fetchAvailableDeliveryJobs = () =>

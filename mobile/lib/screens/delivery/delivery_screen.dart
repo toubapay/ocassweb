@@ -13,8 +13,6 @@ import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/live_tracking_map.dart';
 import '../../widgets/top_bar.dart';
 
-const _trackableStatuses = {'ACCEPTED', 'PICKED_UP'};
-
 class DeliveryScreen extends StatefulWidget {
   const DeliveryScreen({super.key});
 
@@ -34,6 +32,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   List<DeliveryRequest> _requests = [];
   (double, double)? _pickupCoords;
   (double, double)? _dropoffCoords;
+  ({double distanceKm, double priceEstimate})? _feeQuote;
 
   @override
   void initState() {
@@ -57,6 +56,30 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     if (!mounted || !context.read<AuthProvider>().isAuthenticated) return;
     final requests = await apiClient.fetchDeliveryRequests();
     if (mounted) setState(() => _requests = requests);
+  }
+
+  /// Refetches the live distance + price preview whenever pickup/dropoff
+  /// coordinates change, mirroring the web's delivery-fee-quote query -
+  /// lets the customer see cost before submitting.
+  Future<void> _refreshQuote() async {
+    final pickup = _pickupCoords;
+    final dropoff = _dropoffCoords;
+    if (pickup == null || dropoff == null) {
+      if (mounted) setState(() => _feeQuote = null);
+      return;
+    }
+    try {
+      final quote = await apiClient.fetchDeliveryFeeQuote(
+        pickupLat: pickup.$1,
+        pickupLng: pickup.$2,
+        dropoffLat: dropoff.$1,
+        dropoffLng: dropoff.$2,
+      );
+      if (mounted) setState(() => _feeQuote = quote);
+    } catch (_) {
+      // Silently ignored, same as elsewhere - the map preview and the
+      // final priceEstimate from creating the request still work either way.
+    }
   }
 
   Future<void> _cancel(String id) async {
@@ -85,6 +108,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       return;
     }
     setState(() => _pickupCoords = coords);
+    _refreshQuote();
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(context.tr('delivery.locationSet'))));
   }
@@ -136,6 +160,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       setState(() {
         _pickupCoords = null;
         _dropoffCoords = null;
+        _feeQuote = null;
       });
       await _loadRequests();
     } catch (_) {
@@ -177,9 +202,14 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                 child: AddressAutocompleteField(
                   controller: _pickupController,
                   label: context.t('delivery.pickupAddress'),
-                  onManualEdit: () => setState(() => _pickupCoords = null),
-                  onPlaceSelected: ({required address, required lat, required lng}) =>
-                      setState(() => _pickupCoords = (lat, lng)),
+                  onManualEdit: () {
+                    setState(() => _pickupCoords = null);
+                    _refreshQuote();
+                  },
+                  onPlaceSelected: ({required address, required lat, required lng}) {
+                    setState(() => _pickupCoords = (lat, lng));
+                    _refreshQuote();
+                  },
                 ),
               ),
               const SizedBox(width: 8),
@@ -210,9 +240,14 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
           AddressAutocompleteField(
             controller: _dropoffController,
             label: context.t('delivery.dropoffAddress'),
-            onManualEdit: () => setState(() => _dropoffCoords = null),
-            onPlaceSelected: ({required address, required lat, required lng}) =>
-                setState(() => _dropoffCoords = (lat, lng)),
+            onManualEdit: () {
+              setState(() => _dropoffCoords = null);
+              _refreshQuote();
+            },
+            onPlaceSelected: ({required address, required lat, required lng}) {
+              setState(() => _dropoffCoords = (lat, lng));
+              _refreshQuote();
+            },
           ),
           const SizedBox(height: 12),
           TextField(
@@ -221,6 +256,17 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
           if (_pickupCoords != null && _dropoffCoords != null) ...[
             const SizedBox(height: 16),
             LiveTrackingMap(pickup: _pickupCoords, dropoff: _dropoffCoords, height: 180),
+            if (_feeQuote != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                context.t('delivery.distanceAndPrice', {
+                  'km': _feeQuote!.distanceKm.toStringAsFixed(1),
+                  'amount': formatCfa(_feeQuote!.priceEstimate),
+                }),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
           ],
           const SizedBox(height: 16),
           SizedBox(
@@ -264,17 +310,16 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                               style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                           Row(
                             children: [
-                              if (_trackableStatuses.contains(r.status))
-                                TextButton(
-                                  onPressed: () => context.push('/delivery/track/${r.id}'),
-                                  style: TextButton.styleFrom(
-                                    minimumSize: Size.zero,
-                                    padding: const EdgeInsets.only(right: 8),
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text(context.t('delivery.track'),
-                                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                              TextButton(
+                                onPressed: () => context.push('/delivery/track/${r.id}'),
+                                style: TextButton.styleFrom(
+                                  minimumSize: Size.zero,
+                                  padding: const EdgeInsets.only(right: 8),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
+                                child: Text(context.t('delivery.track'),
+                                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                              ),
                               if (r.status == 'REQUESTED')
                                 TextButton(
                                   onPressed: () => _cancel(r.id),

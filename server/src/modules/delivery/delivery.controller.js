@@ -28,6 +28,13 @@ const locationSchema = z.object({
   lng: z.number(),
 });
 
+const feeQuoteSchema = z.object({
+  pickupLat: z.coerce.number(),
+  pickupLng: z.coerce.number(),
+  dropoffLat: z.coerce.number(),
+  dropoffLng: z.coerce.number(),
+});
+
 // Falls back to these when an admin hasn't set ModuleConfig("delivery").
 // feeConfig, or has only set some of these fields (see getModuleFeeConfig).
 const DEFAULT_FEE_CONFIG = {
@@ -49,12 +56,40 @@ const DEFAULT_FEE_CONFIG = {
  * GOOGLE_MAPS_SERVER_KEY is configured, falling back to Haversine
  * straight-line distance itself on any failure.
  */
+function priceForDistance(distanceKm, feeConfig) {
+  return Math.round(feeConfig.baseFare + distanceKm * feeConfig.ratePerKm);
+}
+
 async function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng }, feeConfig) {
   if (hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)) {
     const km = await roadDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
-    return Math.round(feeConfig.baseFare + km * feeConfig.ratePerKm);
+    return priceForDistance(km, feeConfig);
   }
   return 1500 + Math.round(Math.random() * 2000);
+}
+
+/**
+ * Live distance + price preview for the request form, called as soon as
+ * both pickup and dropoff have real coordinates (a picked Places
+ * suggestion or "use my location") - lets the customer see cost before
+ * submitting, rather than only finding out after creating the request.
+ * Public (no requireAuth) so a guest can preview before logging in, same
+ * as mobile's GET /mobile/fee-quote.
+ */
+async function getFeeQuote(req, res, next) {
+  try {
+    const data = feeQuoteSchema.parse(req.query);
+    const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
+    const distanceKm = await roadDistanceKm(
+      data.pickupLat,
+      data.pickupLng,
+      data.dropoffLat,
+      data.dropoffLng
+    );
+    res.json({ distanceKm, priceEstimate: priceForDistance(distanceKm, feeConfig) });
+  } catch (err) {
+    next(err);
+  }
 }
 
 async function listMyRequests(req, res, next) {
@@ -287,6 +322,7 @@ module.exports = {
   getRequest,
   createRequest,
   cancelRequest,
+  getFeeQuote,
   listAvailable,
   listMyJobs,
   acceptRequest,
