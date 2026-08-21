@@ -206,17 +206,34 @@ class ApiClient {
   Future<DeliveryRequest> createDeliveryRequest({
     required String pickupAddress,
     required String dropoffAddress,
+    required String receiverName,
+    required String receiverPhone,
+    String? senderName,
+    String? senderPhone,
     String? packageNote,
     double? pickupLat,
     double? pickupLng,
+    double? dropoffLat,
+    double? dropoffLng,
   }) async {
     final res = await _dio.post('/delivery/requests', data: {
       'pickupAddress': pickupAddress,
       'dropoffAddress': dropoffAddress,
+      'receiverName': receiverName,
+      'receiverPhone': receiverPhone,
+      if (senderName != null && senderName.isNotEmpty) 'senderName': senderName,
+      if (senderPhone != null && senderPhone.isNotEmpty) 'senderPhone': senderPhone,
       if (packageNote != null && packageNote.isNotEmpty) 'packageNote': packageNote,
       if (pickupLat != null) 'pickupLat': pickupLat,
       if (pickupLng != null) 'pickupLng': pickupLng,
+      if (dropoffLat != null) 'dropoffLat': dropoffLat,
+      if (dropoffLng != null) 'dropoffLng': dropoffLng,
     });
+    return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
+  }
+
+  Future<DeliveryRequest> fetchDeliveryRequest(String id) async {
+    final res = await _dio.get('/delivery/requests/$id');
     return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
   }
 
@@ -503,6 +520,8 @@ class ApiClient {
     String vehicleType = 'ECONOMY',
     double? pickupLat,
     double? pickupLng,
+    double? dropoffLat,
+    double? dropoffLng,
   }) async {
     final res = await _dio.post('/rideshare/rides', data: {
       'pickupAddress': pickupAddress,
@@ -510,6 +529,8 @@ class ApiClient {
       'vehicleType': vehicleType,
       if (pickupLat != null) 'pickupLat': pickupLat,
       if (pickupLng != null) 'pickupLng': pickupLng,
+      if (dropoffLat != null) 'dropoffLat': dropoffLat,
+      if (dropoffLng != null) 'dropoffLng': dropoffLng,
     });
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
   }
@@ -742,6 +763,23 @@ class ApiClient {
     double? lng,
   }) async {
     final res = await _dio.post('/vendor/store', data: {
+      'name': name,
+      if (logoUrl != null && logoUrl.isNotEmpty) 'logoUrl': logoUrl,
+      if (address != null && address.isNotEmpty) 'address': address,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+    });
+    return Store.fromJson(_data(res)['store'] as Map<String, dynamic>);
+  }
+
+  Future<Store> updateVendorStore({
+    required String name,
+    String? logoUrl,
+    String? address,
+    double? lat,
+    double? lng,
+  }) async {
+    final res = await _dio.patch('/vendor/store', data: {
       'name': name,
       if (logoUrl != null && logoUrl.isNotEmpty) 'logoUrl': logoUrl,
       if (address != null && address.isNotEmpty) 'address': address,

@@ -5,6 +5,7 @@ import '../../core/api_client.dart';
 import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/top_bar.dart';
 
 /// Mirrors the "post a ride" dialog in pages/anando/index.js: origin/
@@ -24,6 +25,7 @@ class _AnandoPostScreenState extends State<AnandoPostScreen> {
   final _priceController = TextEditingController();
   final _noteController = TextEditingController();
   (double, double)? _originCoords;
+  (double, double)? _destinationCoords;
   bool _isInstant = false;
   DateTime? _departureAt;
   int _seats = 1;
@@ -83,6 +85,8 @@ class _AnandoPostScreenState extends State<AnandoPostScreen> {
         destinationAddress: _destinationController.text.trim(),
         originLat: _originCoords?.$1,
         originLng: _originCoords?.$2,
+        destinationLat: _destinationCoords?.$1,
+        destinationLng: _destinationCoords?.$2,
         isInstant: _isInstant,
         departureAt: _isInstant ? null : _departureAt,
         seatsTotal: _seats,
@@ -114,9 +118,13 @@ class _AnandoPostScreenState extends State<AnandoPostScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: TextField(
-                    controller: _originController,
-                    decoration: InputDecoration(labelText: context.t('anando.origin'))),
+                child: AddressAutocompleteField(
+                  controller: _originController,
+                  label: context.t('anando.origin'),
+                  onManualEdit: () => setState(() => _originCoords = null),
+                  onPlaceSelected: ({required address, required lat, required lng}) =>
+                      setState(() => _originCoords = (lat, lng)),
+                ),
               ),
               const SizedBox(width: 8),
               IconButton(
@@ -132,9 +140,13 @@ class _AnandoPostScreenState extends State<AnandoPostScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(
-              controller: _destinationController,
-              decoration: InputDecoration(labelText: context.t('anando.destination'))),
+          AddressAutocompleteField(
+            controller: _destinationController,
+            label: context.t('anando.destination'),
+            onManualEdit: () => setState(() => _destinationCoords = null),
+            onPlaceSelected: ({required address, required lat, required lng}) =>
+                setState(() => _destinationCoords = (lat, lng)),
+          ),
           const SizedBox(height: 16),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,

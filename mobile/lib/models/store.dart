@@ -4,6 +4,8 @@ class Store {
   final String slug;
   final String? logoUrl;
   final String? address;
+  final double? lat;
+  final double? lng;
   final double rating;
 
   Store({
@@ -12,6 +14,8 @@ class Store {
     required this.slug,
     this.logoUrl,
     this.address,
+    this.lat,
+    this.lng,
     this.rating = 0,
   });
 
@@ -21,6 +25,8 @@ class Store {
         slug: json['slug'] as String,
         logoUrl: json['logoUrl'] as String?,
         address: json['address'] as String?,
+        lat: (json['lat'] as num?)?.toDouble(),
+        lng: (json['lng'] as num?)?.toDouble(),
         rating: (json['rating'] as num?)?.toDouble() ?? 0,
       );
 }

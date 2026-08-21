@@ -27,9 +27,23 @@ fixing whatever it finds** - most likely spots, in rough order of risk:
    not verified against a real build: `LocationSettings` replaced an older
    `desiredAccuracy` positional param in some prior major version, so this
    is worth a second look if `flutter analyze` flags it.
-4. Anywhere using Dart 3 records (`(a, b, c)` / `.$1` field access) -
+4. `widgets/live_tracking_map.dart` and any `GoogleMap(...)` usage -
+   `google_maps_flutter: ^2.10.0` was added without a Flutter SDK to
+   compile against; its API has been stable for a while but this specific
+   version's signatures (`CameraUpdate.newLatLngBounds`, marker hue
+   constants) weren't verified against a real build.
+5. Anywhere using Dart 3 records (`(a, b, c)` / `.$1` field access) -
    straightforward but easy to typo by hand.
-5. Minor Flutter-version drift (a Material 3 API renamed between the
+6. Every `onPlaceSelected: ({required address, required lat, required lng}) => ...`
+   callback (delivery/ride-sharing/Anando/vendor screens, calling into
+   `AddressAutocompleteField`) relies on Dart inferring the named
+   parameters' types from the assignment target's declared function type
+   rather than spelling them out - a well-established Dart 3 pattern, but
+   this exact shape (required + untyped, all three params) wasn't compiled
+   here. If `flutter analyze` flags it, the fix is adding the types back
+   explicitly (`{required String address, required double lat, required double lng}`)
+   in each call site - a mechanical, low-risk change.
+7. Minor Flutter-version drift (a Material 3 API renamed between the
    version this assumes and whatever you have installed).
 
 ## First-time setup
@@ -80,6 +94,33 @@ For the "use my location" pickup button in Delivery/Ride Sharing
   <string>Ocass uses your location to set an accurate delivery/ride pickup point.</string>
   ```
 
+For the Google Maps live tracking/vendor-map widget (`google_maps_flutter`,
+`widgets/live_tracking_map.dart`), add a **native** API key - separate from
+the `GOOGLE_MAPS_API_KEY` dart-define below, which only covers the Places
+Autocomplete/Details REST calls in `core/places.dart`. This mirrors the web
+app needing both `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` *and* the Maps
+JavaScript API enabled in Google Cloud Console - here it's a dart-define
+*and* this native key, enabling **Maps SDK for Android** / **Maps SDK for
+iOS** respectively (plus **Places API** for the key used in the dart-define
+below). Use a real key only in a local, gitignored file - never commit one:
+
+- **Android** (`android/app/src/main/AndroidManifest.xml`), inside
+  `<application>`:
+  ```xml
+  <meta-data android:name="com.google.android.geo.API_KEY" android:value="YOUR_KEY"/>
+  ```
+  `google_maps_flutter` also requires `minSdkVersion 21+` in
+  `android/app/build.gradle` (`flutter create` generates this at whatever
+  its current default is - bump it if `flutter analyze`/build complains).
+- **iOS** (`ios/Runner/AppDelegate.swift`), before
+  `GeneratedPluginRegistrant.register`:
+  ```swift
+  import GoogleMaps
+  GMSServices.provideAPIKey("YOUR_KEY")
+  ```
+  (Adds a `pod 'GoogleMaps'` dependency automatically via
+  `google_maps_flutter_ios` - no manual Podfile edit needed.)
+
 ## Running against the backend
 
 The API base URL is a compile-time define (`lib/core/constants.dart`):
@@ -97,6 +138,20 @@ flutter run --dart-define=API_BASE_URL=https://your-backend-url/api
 
 Start the backend first (`cd ../server && npm run dev`, or point at the
 deployed Cloud Run backend from /DEPLOY_GCP.md).
+
+Address autopick (Delivery, ride-sharing, Anando, Vendor - see
+`core/places.dart`) needs a second compile-time define, on top of the
+native Maps key from the setup step above:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000/api \
+  --dart-define=GOOGLE_MAPS_API_KEY=YOUR_KEY
+```
+
+Every screen using `AddressAutocompleteField`/`LiveTrackingMap` degrades to
+a plain text field / omitted map when this is unset, same fallback
+philosophy as the web app's `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` - so it's
+safe to skip during normal development.
 
 ## Structure
 
@@ -143,14 +198,26 @@ order/ride/delivery statuses) where only a known subset is translated.
 one, and walk it through pickup/start to delivered/completed - same
 backend endpoints and race-safe accept as the web app. The "use my
 location" pickup button (`lib/core/geo.dart`, via the `geolocator` package)
-mirrors the web's `navigator.geolocation` button: pickup-only, no
-geocoding, since there's no maps API key configured anywhere in this app.
+mirrors the web's `navigator.geolocation` button, and sits alongside real
+Places-suggestion picking (see below) as a second way to get coordinates.
+
+**Address autopick + live tracking** (`core/places.dart`,
+`widgets/address_autocomplete_field.dart`, `widgets/live_tracking_map.dart`
+- Dart ports of `src/components/maps/AddressAutocompleteField.js` and
+`LiveTrackingMap.js`): Delivery's request form (sender/receiver, pickup/
+dropoff), ride-sharing's pickup/dropoff, Anando's origin/destination, and
+the Vendor store form all use Places Autocomplete/Details instead of plain
+text, and Delivery gets a dedicated `/delivery/track/:id` screen polling
+the agent's live position onto a map, same as `pages/delivery/track/[id].js`
+on web. Every one of these degrades to a plain text field (autocomplete)
+or an omitted map (tracking) when `GOOGLE_MAPS_API_KEY` isn't set - see
+"Running against the backend" above.
 
 **Vendor marketplace**: any user can opt into the `VENDOR` role from the
-profile screen, create/edit a store, add products (category, price,
-discount price, stock - no image upload, same as the store logo field: a
-plain URL), and view orders containing their products. Matches
-`pages/vendor/*.js` on the web.
+profile screen, create/edit a store (name, address with map picking, logo
+URL), add products (category, price, discount price, stock - no image
+upload, same as the store logo field: a plain URL), and view orders
+containing their products. Matches `pages/vendor/*.js` on the web.
 
 **Anando** (peer-to-peer carpooling), independent of the `RIDER` gig-work
 role above - any user can post a ride they're already making (scheduled
