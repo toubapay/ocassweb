@@ -10,6 +10,9 @@
     "startShopping": "Commencer les achats",
     "note": "Remarque",
     "setDeliveryAddress": "Définissez votre adresse de livraison",
+    "deliveryAddress": "Adresse de livraison",
+    "useMyLocation": "Utiliser ma position",
+    "locationError": "Impossible d'obtenir votre position",
     "language": "Langue",
     "french": "Français",
     "english": "English"

@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/ride_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/top_bar.dart';
 
 const _vehicleCodes = ['MOTO', 'ECONOMY', 'COMFORT'];
@@ -27,6 +28,7 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
   bool _submitting = false;
   List<RideRequest> _rides = [];
   (double, double)? _pickupCoords;
+  (double, double)? _dropoffCoords;
 
   @override
   void initState() {
@@ -61,10 +63,9 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
     }
   }
 
-  /// There's no geocoding/maps integration in this app (no API key
-  /// configured), so a typed address never has coordinates on its own -
-  /// this is the one way to get a real pickup point for distance-based
-  /// pricing. Dropoff stays address-text-only until a map picker exists.
+  /// Alternative to picking a real Places suggestion in the pickup field
+  /// below (AddressAutocompleteField) - the device's actual GPS position
+  /// also produces real coordinates for distance-based pricing.
   Future<void> _useMyLocation() async {
     final coords = await getCurrentLatLng();
     if (!mounted) return;
@@ -98,6 +99,8 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
         vehicleType: _vehicleType,
         pickupLat: _pickupCoords?.$1,
         pickupLng: _pickupCoords?.$2,
+        dropoffLat: _dropoffCoords?.$1,
+        dropoffLng: _dropoffCoords?.$2,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -105,7 +108,10 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
               'rideSharing.rideRequested', {'amount': formatCfa(ride.priceEstimate)}))));
       _pickupController.clear();
       _dropoffController.clear();
-      setState(() => _pickupCoords = null);
+      setState(() {
+        _pickupCoords = null;
+        _dropoffCoords = null;
+      });
       await _loadRides();
     } catch (_) {
       if (!mounted) return;
@@ -131,9 +137,13 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: TextField(
-                    controller: _pickupController,
-                    decoration: InputDecoration(labelText: context.t('rideSharing.pickupLocation'))),
+                child: AddressAutocompleteField(
+                  controller: _pickupController,
+                  label: context.t('rideSharing.pickupLocation'),
+                  onManualEdit: () => setState(() => _pickupCoords = null),
+                  onPlaceSelected: ({required address, required lat, required lng}) =>
+                      setState(() => _pickupCoords = (lat, lng)),
+                ),
               ),
               const SizedBox(width: 8),
               IconButton(
@@ -148,9 +158,13 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(
-              controller: _dropoffController,
-              decoration: InputDecoration(labelText: context.t('rideSharing.dropoffLocation'))),
+          AddressAutocompleteField(
+            controller: _dropoffController,
+            label: context.t('rideSharing.dropoffLocation'),
+            onManualEdit: () => setState(() => _dropoffCoords = null),
+            onPlaceSelected: ({required address, required lat, required lng}) =>
+                setState(() => _dropoffCoords = (lat, lng)),
+          ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,

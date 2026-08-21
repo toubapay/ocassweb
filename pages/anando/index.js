@@ -23,6 +23,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import AnandoIcon from "../../src/components/icons/AnandoIcon";
+import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import useAuth from "../../src/hooks/useAuth";
 import {
   fetchAvailablePostings,
@@ -38,7 +39,11 @@ import { formatCfa } from "../../src/utils/currency";
 
 const emptyForm = {
   originAddress: "",
+  originLat: null,
+  originLng: null,
   destinationAddress: "",
+  destinationLat: null,
+  destinationLng: null,
   isInstant: false,
   departureAt: "",
   seatsTotal: "3",
@@ -161,7 +166,11 @@ export default function Anando() {
     }
     createMutation.mutate({
       originAddress: form.originAddress.trim(),
+      originLat: form.originLat ?? undefined,
+      originLng: form.originLng ?? undefined,
       destinationAddress: form.destinationAddress.trim(),
+      destinationLat: form.destinationLat ?? undefined,
+      destinationLng: form.destinationLng ?? undefined,
       isInstant: form.isInstant,
       departureAt: form.isInstant ? undefined : new Date(form.departureAt).toISOString(),
       seatsTotal: Number(form.seatsTotal) || 1,
@@ -373,17 +382,25 @@ export default function Anando() {
       <Dialog open={postOpen} onClose={() => setPostOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontWeight: 800 }}>{t("anando.postTitle")}</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-          <TextField
+          <AddressAutocompleteField
             label={t("anando.origin")}
             fullWidth
             value={form.originAddress}
-            onChange={(e) => setForm({ ...form, originAddress: e.target.value })}
+            onTextChange={(v) => setForm({ ...form, originAddress: v, originLat: null, originLng: null })}
+            onPlaceSelected={({ address, lat, lng }) =>
+              setForm({ ...form, originAddress: address, originLat: lat, originLng: lng })
+            }
           />
-          <TextField
+          <AddressAutocompleteField
             label={t("anando.destination")}
             fullWidth
             value={form.destinationAddress}
-            onChange={(e) => setForm({ ...form, destinationAddress: e.target.value })}
+            onTextChange={(v) =>
+              setForm({ ...form, destinationAddress: v, destinationLat: null, destinationLng: null })
+            }
+            onPlaceSelected={({ address, lat, lng }) =>
+              setForm({ ...form, destinationAddress: address, destinationLat: lat, destinationLng: lng })
+            }
           />
           <FormControlLabel
             control={

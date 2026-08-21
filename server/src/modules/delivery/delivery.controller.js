@@ -1,7 +1,8 @@
 const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
-const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
+const { hasCoordinates } = require("../../utils/geo");
+const { roadDistanceKm } = require("../../utils/distanceMatrix");
 const { getModuleFeeConfig } = require("../../utils/feeConfig");
 
 const createSchema = z.object({
@@ -39,14 +40,18 @@ const DEFAULT_FEE_CONFIG = {
 
 /**
  * Real distance-based pricing when both pickup and dropoff coordinates are
- * available (e.g. from the browser's Geolocation API - there's no
- * geocoding in this app, so a typed address alone never has coordinates).
- * Falls back to a flat-ish random estimate otherwise, so the flow still
- * works without location permission.
+ * available - from the browser's Geolocation API, or from a real Places
+ * suggestion picked in AddressAutocompleteField.js, which resolves to a
+ * geocoded lat/lng client-side before the request ever reaches here (this
+ * backend never geocodes an address itself). Falls back to a flat-ish
+ * random estimate otherwise, so the flow still works without location
+ * permission. roadDistanceKm() uses Google's Distance Matrix API when
+ * GOOGLE_MAPS_SERVER_KEY is configured, falling back to Haversine
+ * straight-line distance itself on any failure.
  */
-function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng }, feeConfig) {
+async function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng }, feeConfig) {
   if (hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)) {
-    const km = haversineDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    const km = await roadDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
     return Math.round(feeConfig.baseFare + km * feeConfig.ratePerKm);
   }
   return 1500 + Math.round(Math.random() * 2000);
@@ -93,7 +98,7 @@ async function createRequest(req, res, next) {
         senderName: data.senderName || req.user.name || undefined,
         senderPhone: data.senderPhone || req.user.phone,
         userId: req.user.id,
-        priceEstimate: estimatePrice(data, feeConfig),
+        priceEstimate: await estimatePrice(data, feeConfig),
       },
     });
     res.status(201).json({ request });

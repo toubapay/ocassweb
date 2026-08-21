@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/store.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/top_bar.dart';
 
 /// Mirrors pages/vendor/index.js: create-or-edit-store form, then once a
@@ -22,6 +23,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _logoUrlController = TextEditingController();
+  (double, double)? _addressCoords;
   Store? _store;
   bool _loading = true;
   bool _editing = false;
@@ -51,6 +53,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         _store = store;
         _nameController.text = store?.name ?? '';
         _addressController.text = store?.address ?? '';
+        _addressCoords = store?.lat != null ? (store!.lat!, store.lng!) : null;
         _logoUrlController.text = store?.logoUrl ?? '';
       });
     } finally {
@@ -62,11 +65,22 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     if (_nameController.text.trim().isEmpty) return;
     setState(() => _saving = true);
     try {
-      final store = await apiClient.createVendorStore(
-        name: _nameController.text.trim(),
-        address: _addressController.text.trim(),
-        logoUrl: _logoUrlController.text.trim(),
-      );
+      final create = _store == null;
+      final store = create
+          ? await apiClient.createVendorStore(
+              name: _nameController.text.trim(),
+              address: _addressController.text.trim(),
+              lat: _addressCoords?.$1,
+              lng: _addressCoords?.$2,
+              logoUrl: _logoUrlController.text.trim(),
+            )
+          : await apiClient.updateVendorStore(
+              name: _nameController.text.trim(),
+              address: _addressController.text.trim(),
+              lat: _addressCoords?.$1,
+              lng: _addressCoords?.$2,
+              logoUrl: _logoUrlController.text.trim(),
+            );
       if (!mounted) return;
       setState(() {
         _store = store;
@@ -197,9 +211,13 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 controller: _nameController,
                 decoration: InputDecoration(labelText: context.t('vendor.storeName'))),
             const SizedBox(height: 12),
-            TextField(
-                controller: _addressController,
-                decoration: InputDecoration(labelText: context.t('vendor.storeAddress'))),
+            AddressAutocompleteField(
+              controller: _addressController,
+              label: context.t('vendor.storeAddress'),
+              onManualEdit: () => setState(() => _addressCoords = null),
+              onPlaceSelected: ({required address, required lat, required lng}) =>
+                  setState(() => _addressCoords = (lat, lng)),
+            ),
             const SizedBox(height: 12),
             TextField(
                 controller: _logoUrlController,
@@ -213,6 +231,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       _editing = false;
                       _nameController.text = _store!.name;
                       _addressController.text = _store!.address ?? '';
+                      _addressCoords = _store!.lat != null ? (_store!.lat!, _store!.lng!) : null;
                       _logoUrlController.text = _store!.logoUrl ?? '';
                     }),
                     child: Text(context.t('vendor.cancel')),
