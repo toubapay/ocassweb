@@ -22,21 +22,21 @@ class ShortcutCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push(route),
       child: SizedBox(
-        width: 84,
+        width: 88,
         child: Column(
           children: [
             Container(
-              width: 84,
-              height: 84,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18)),
-              child: Icon(icon, color: color, size: 32),
+              child: Icon(icon, color: color, size: 34),
             ),
             const SizedBox(height: 6),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.6),
             ),
           ],
         ),

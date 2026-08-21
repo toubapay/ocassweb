@@ -5,11 +5,11 @@ import Typography from "@mui/material/Typography";
 export default function ShortcutCard({ icon: Icon, label, href, color = "#0FAE58", bg = "#E7F7EE" }) {
   return (
     <Link href={href} style={{ textDecoration: "none" }}>
-      <Box sx={{ width: 84, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.75 }}>
+      <Box sx={{ width: 88, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.75 }}>
         <Box
           sx={{
-            width: 84,
-            height: 84,
+            width: 88,
+            height: 88,
             borderRadius: 3.5,
             bgcolor: bg,
             display: "flex",
@@ -17,7 +17,7 @@ export default function ShortcutCard({ icon: Icon, label, href, color = "#0FAE58
             justifyContent: "center",
           }}
         >
-          <Icon sx={{ color, fontSize: 32 }} />
+          <Icon sx={{ color, fontSize: 34 }} />
         </Box>
         <Typography
           variant="caption"
