@@ -297,6 +297,11 @@ model DeliveryRequest {
   dropoffLng      Float?
   packageNote     String?
   priceEstimate   Decimal?       @db.Decimal(10, 2)
+  // Distance used to compute priceEstimate (road distance via Google's
+  // Distance Matrix API when configured, else Haversine - see
+  // server/src/utils/distanceMatrix.js). Null when priceEstimate fell back
+  // to the no-coordinates flat-ish random estimate.
+  distanceKm      Float?
   status          DeliveryStatus @default(REQUESTED)
   assignedAgentId String?
   // Agent's last-reported GPS position while this job is ACCEPTED/PICKED_UP

@@ -3,7 +3,7 @@ const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const { hasCoordinates } = require("../../utils/geo");
 const { roadDistanceKm } = require("../../utils/distanceMatrix");
-const { getModuleFeeConfig } = require("../../utils/feeConfig");
+const { getModuleFeeConfig, clampFee } = require("../../utils/feeConfig");
 
 const createSchema = z.object({
   pickupAddress: z.string().min(3),
@@ -18,8 +18,17 @@ const createSchema = z.object({
 // Falls back to these when an admin hasn't set ModuleConfig("rideshare").
 // feeConfig, or has only set some of these fields (see getModuleFeeConfig).
 const DEFAULT_FEE_CONFIG = {
+  // FIXED: a flat fare per vehicle type regardless of distance. PER_KM:
+  // baseFare + distanceKm * ratePerKmByVehicle[vehicleType]. Admin-
+  // selectable (admin > Modules).
+  feeType: "PER_KM",
+  fixedFareByVehicle: { MOTO: 800, ECONOMY: 1200, COMFORT: 2000 },
   baseFare: 500,
   ratePerKmByVehicle: { MOTO: 150, ECONOMY: 250, COMFORT: 400 },
+  // Optional clamp applied to the computed price either way - undefined
+  // means "no bound on this side" (see clampFee).
+  minFee: undefined,
+  maxFee: undefined,
   // Percent of the fare credited to the rider on completion; the rest is
   // an implicit platform fee (not tracked as its own ledger anywhere yet).
   riderSharePercent: 80,
@@ -29,21 +38,26 @@ const DEFAULT_FEE_CONFIG = {
  * Real distance-based pricing when both pickup and dropoff coordinates are
  * available (e.g. from the browser's Geolocation API, or a real Places
  * suggestion picked in AddressAutocompleteField.js - this backend never
- * geocodes an address itself). Falls back to the original simulated-distance
- * estimate otherwise, so the flow still works without location permission.
+ * geocodes an address itself). Falls back to a simulated distance
+ * otherwise, so the flow still works without location permission -
+ * either way, the same feeType formula (+ min/max clamp) applies to
+ * whatever distance was determined.
  * roadDistanceKm() uses Google's Distance Matrix API when
  * GOOGLE_MAPS_SERVER_KEY is configured, falling back to Haversine
  * straight-line distance itself on any failure.
  */
 async function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng, vehicleType }, feeConfig) {
   const ratesByVehicle = feeConfig.ratePerKmByVehicle || DEFAULT_FEE_CONFIG.ratePerKmByVehicle;
-  const rate = ratesByVehicle[vehicleType] || ratesByVehicle.ECONOMY;
-  if (hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)) {
-    const km = await roadDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
-    return Math.round(feeConfig.baseFare + km * rate);
-  }
-  const simulatedKm = 3 + Math.round(Math.random() * 7);
-  return feeConfig.baseFare + simulatedKm * rate;
+  const fixedByVehicle = feeConfig.fixedFareByVehicle || DEFAULT_FEE_CONFIG.fixedFareByVehicle;
+  const rate = ratesByVehicle[vehicleType] ?? ratesByVehicle.ECONOMY;
+  const fixed = fixedByVehicle[vehicleType] ?? fixedByVehicle.ECONOMY;
+
+  const km = hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)
+    ? await roadDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng)
+    : 3 + Math.round(Math.random() * 7);
+
+  const raw = feeConfig.feeType === "FIXED" ? fixed : feeConfig.baseFare + km * rate;
+  return Math.round(clampFee(raw, feeConfig));
 }
 
 async function listMyRides(req, res, next) {

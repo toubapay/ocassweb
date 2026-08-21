@@ -204,6 +204,17 @@ class _DeliveryTrackScreenState extends State<DeliveryTrackScreen> {
               ],
             ),
           ],
+          if (request.distanceKm != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(context.t('delivery.distanceLabel'), style: const TextStyle(color: AppColors.textSecondary)),
+                Text(context.t('delivery.distanceKm', {'km': request.distanceKm!.toStringAsFixed(1)}),
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ],
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

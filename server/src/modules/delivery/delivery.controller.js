@@ -3,7 +3,7 @@ const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const { hasCoordinates } = require("../../utils/geo");
 const { roadDistanceKm } = require("../../utils/distanceMatrix");
-const { getModuleFeeConfig } = require("../../utils/feeConfig");
+const { getModuleFeeConfig, clampFee } = require("../../utils/feeConfig");
 
 const createSchema = z.object({
   // Optional - falls back to the requester's own name/phone at creation
@@ -38,12 +38,26 @@ const feeQuoteSchema = z.object({
 // Falls back to these when an admin hasn't set ModuleConfig("delivery").
 // feeConfig, or has only set some of these fields (see getModuleFeeConfig).
 const DEFAULT_FEE_CONFIG = {
+  // FIXED: every delivery costs fixedFee regardless of distance. PER_KM:
+  // baseFare + distanceKm * ratePerKm. Admin-selectable (admin > Modules).
+  feeType: "PER_KM",
+  fixedFee: 1500,
   baseFare: 500,
   ratePerKm: 300,
+  // Optional clamp applied to the computed price either way - undefined
+  // means "no bound on this side" (see clampFee).
+  minFee: undefined,
+  maxFee: undefined,
   // Percent of the fare credited to the delivery agent on completion; the
   // rest is an implicit platform fee (not tracked as its own ledger yet).
   agentSharePercent: 80,
 };
+
+function priceForDistance(distanceKm, feeConfig) {
+  const raw =
+    feeConfig.feeType === "FIXED" ? feeConfig.fixedFee : feeConfig.baseFare + distanceKm * feeConfig.ratePerKm;
+  return Math.round(clampFee(raw, feeConfig));
+}
 
 /**
  * Real distance-based pricing when both pickup and dropoff coordinates are
@@ -51,21 +65,17 @@ const DEFAULT_FEE_CONFIG = {
  * suggestion picked in AddressAutocompleteField.js, which resolves to a
  * geocoded lat/lng client-side before the request ever reaches here (this
  * backend never geocodes an address itself). Falls back to a flat-ish
- * random estimate otherwise, so the flow still works without location
- * permission. roadDistanceKm() uses Google's Distance Matrix API when
- * GOOGLE_MAPS_SERVER_KEY is configured, falling back to Haversine
- * straight-line distance itself on any failure.
+ * random estimate (and no distance) otherwise, so the flow still works
+ * without location permission. roadDistanceKm() uses Google's Distance
+ * Matrix API when GOOGLE_MAPS_SERVER_KEY is configured, falling back to
+ * Haversine straight-line distance itself on any failure.
  */
-function priceForDistance(distanceKm, feeConfig) {
-  return Math.round(feeConfig.baseFare + distanceKm * feeConfig.ratePerKm);
-}
-
-async function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng }, feeConfig) {
+async function computeQuote({ pickupLat, pickupLng, dropoffLat, dropoffLng }, feeConfig) {
   if (hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)) {
-    const km = await roadDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
-    return priceForDistance(km, feeConfig);
+    const distanceKm = await roadDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    return { distanceKm, priceEstimate: priceForDistance(distanceKm, feeConfig) };
   }
-  return 1500 + Math.round(Math.random() * 2000);
+  return { distanceKm: null, priceEstimate: 1500 + Math.round(Math.random() * 2000) };
 }
 
 /**
@@ -80,13 +90,8 @@ async function getFeeQuote(req, res, next) {
   try {
     const data = feeQuoteSchema.parse(req.query);
     const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
-    const distanceKm = await roadDistanceKm(
-      data.pickupLat,
-      data.pickupLng,
-      data.dropoffLat,
-      data.dropoffLng
-    );
-    res.json({ distanceKm, priceEstimate: priceForDistance(distanceKm, feeConfig) });
+    const quote = await computeQuote(data, feeConfig);
+    res.json(quote);
   } catch (err) {
     next(err);
   }
@@ -125,6 +130,7 @@ async function createRequest(req, res, next) {
   try {
     const data = createSchema.parse(req.body);
     const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
+    const quote = await computeQuote(data, feeConfig);
     const request = await prisma.deliveryRequest.create({
       data: {
         ...data,
@@ -133,7 +139,8 @@ async function createRequest(req, res, next) {
         senderName: data.senderName || req.user.name || undefined,
         senderPhone: data.senderPhone || req.user.phone,
         userId: req.user.id,
-        priceEstimate: await estimatePrice(data, feeConfig),
+        distanceKm: quote.distanceKm,
+        priceEstimate: quote.priceEstimate,
       },
     });
     res.status(201).json({ request });

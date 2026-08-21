@@ -3,6 +3,7 @@ const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const paymentsService = require("../payments/payments.service");
 const notificationsService = require("../notifications/notifications.service");
+const { getAnandoFeeConfig, clampPricePerSeat, suggestPrice, payoutDriverForBooking } = require("./anando.service");
 
 const DRIVER_SELECT = { id: true, name: true, phone: true };
 
@@ -44,9 +45,33 @@ const createPostingSchema = z.object({
   note: z.string().max(300).optional(),
 });
 
+const feeQuoteSchema = z.object({
+  originLat: z.coerce.number(),
+  originLng: z.coerce.number(),
+  destinationLat: z.coerce.number(),
+  destinationLng: z.coerce.number(),
+});
+
+/**
+ * Advisory distance-based price suggestion for the posting form's
+ * "Suggest price" action - the driver can still enter anything (subject
+ * to the min/max clamp applied in createPosting below).
+ */
+async function getFeeQuote(req, res, next) {
+  try {
+    const data = feeQuoteSchema.parse(req.query);
+    const feeConfig = await getAnandoFeeConfig();
+    const quote = await suggestPrice(data, feeConfig);
+    res.json(quote);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function createPosting(req, res, next) {
   try {
     const data = createPostingSchema.parse(req.body);
+    const feeConfig = await getAnandoFeeConfig();
 
     let departureAt;
     if (data.isInstant) {
@@ -78,7 +103,7 @@ async function createPosting(req, res, next) {
         isInstant: data.isInstant,
         seatsTotal: data.seatsTotal,
         seatsAvailable: data.seatsTotal,
-        pricePerSeat: data.pricePerSeat ?? null,
+        pricePerSeat: clampPricePerSeat(data.pricePerSeat ?? null, feeConfig),
         note: data.note,
       },
     });
@@ -207,6 +232,13 @@ async function bookSeat(req, res, next) {
           description: `Anando: ${posting.originAddress} → ${posting.destinationAddress}`,
         });
         await prisma.rideBooking.update({ where: { id: booking.id }, data: { paid: true } });
+        // Best-effort: the passenger's payment already succeeded and the
+        // booking is valid either way, so a payout hiccup here shouldn't
+        // roll back a booking that's otherwise fine (unlike the debit
+        // above, which the outer catch legitimately treats as fatal).
+        payoutDriverForBooking(booking.id).catch((err) =>
+          console.error(`[anando driver payout] booking ${booking.id}:`, err)
+        );
       } catch (debitErr) {
         await releaseSeats();
         if (debitErr instanceof walletService.InsufficientBalanceError) {
@@ -368,6 +400,7 @@ async function departPosting(req, res, next) {
 
 module.exports = {
   createPosting,
+  getFeeQuote,
   listAvailable,
   listMyPostings,
   listMyBookings,

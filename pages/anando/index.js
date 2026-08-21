@@ -30,6 +30,7 @@ import {
   fetchMyPostings,
   fetchMyBookings,
   createPosting,
+  fetchAnandoFeeQuote,
   cancelPosting,
   departPosting,
   bookSeat,
@@ -90,6 +91,29 @@ export default function Anando() {
     queryClient.invalidateQueries("anando-my-postings");
     queryClient.invalidateQueries("anando-my-bookings");
   };
+
+  // Advisory only - the driver can still edit or clear the field after this
+  // fills it in. Uses admin's per-km/fixed tariff config (admin > Modules),
+  // same formula as delivery/ride-sharing's live quote.
+  const suggestPriceMutation = useMutation(
+    () =>
+      fetchAnandoFeeQuote({
+        originLat: form.originLat,
+        originLng: form.originLng,
+        destinationLat: form.destinationLat,
+        destinationLng: form.destinationLng,
+      }),
+    {
+      onSuccess: (quote) => {
+        if (quote.suggestedPrice == null) return;
+        setForm((f) => ({ ...f, pricePerSeat: String(quote.suggestedPrice) }));
+        toast.success(t("anando.suggestedPriceApplied"));
+      },
+    }
+  );
+  const canSuggestPrice = Boolean(
+    form.originLat != null && form.originLng != null && form.destinationLat != null && form.destinationLng != null
+  );
 
   const createMutation = useMutation((payload) => createPosting(payload), {
     onSuccess: () => {
@@ -438,6 +462,14 @@ export default function Anando() {
               onChange={(e) => setForm({ ...form, pricePerSeat: e.target.value })}
             />
           </Box>
+          <Button
+            size="small"
+            onClick={() => suggestPriceMutation.mutate()}
+            disabled={!canSuggestPrice || suggestPriceMutation.isLoading}
+            sx={{ alignSelf: "flex-start", fontWeight: 700 }}
+          >
+            {suggestPriceMutation.isLoading ? t("common.loading") : t("anando.suggestPrice")}
+          </Button>
           <TextField
             label={t("anando.noteOptional")}
             fullWidth

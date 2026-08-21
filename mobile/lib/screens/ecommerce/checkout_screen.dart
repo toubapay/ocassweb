@@ -21,7 +21,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _placing = false;
-  String _paymentMethod = 'paydunya';
+  String _paymentMethod = 'cash';
   Wallet? _wallet;
   static const double _deliveryFee = 500;
 
@@ -155,6 +155,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Text(context.t('ecommerce.checkout.payWith'),
               style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.divider),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: RadioListTile<String>(
+              value: 'cash',
+              groupValue: _paymentMethod,
+              onChanged: (v) => setState(() => _paymentMethod = v!),
+              title: Text(context.t('ecommerce.checkout.cashOnDelivery'),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              secondary: const Icon(Icons.payments_rounded, color: AppColors.green),
+            ),
+          ),
+          const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
               border: Border.all(color: AppColors.divider),

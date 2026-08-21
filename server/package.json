@@ -13,7 +13,8 @@
     "prisma:studio": "prisma studio",
     "seed": "node prisma/seed.js",
     "seed:test-data": "node prisma/seed-test-data.js",
-    "aas:standin": "node scripts/run-aas-standin.js"
+    "aas:standin": "node scripts/run-aas-standin.js",
+    "wallet:credit-all": "node scripts/creditAllWallets.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
