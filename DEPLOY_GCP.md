@@ -169,6 +169,21 @@ Application restrictions → HTTP referrers) to your Cloud Run frontend
 URL - this key ships inside client-side JS, so referrer restriction is
 what keeps it from being usable elsewhere, not secrecy.
 
+**Optional, separate feature - real road-distance pricing**: delivery and
+ride-sharing price by straight-line distance unless a server-side
+`GOOGLE_MAPS_SERVER_KEY` is set on the *backend* service, in which case
+they use Google's Distance Matrix API instead (falls back automatically
+on any failure, so this is safe to skip). Unlike the frontend key above,
+it's a plain runtime env var - `--set-env-vars` on `gcloud run deploy`
+works fine, no build arg needed - and should be restricted by **IP
+address**, not HTTP referrer, since it's only ever called server-side:
+```bash
+gcloud run deploy ocass-backend --region $REGION \
+  --update-env-vars GOOGLE_MAPS_SERVER_KEY=<your key>
+```
+Enable the **Distance Matrix API** for that key. See
+`server/src/utils/distanceMatrix.js`.
+
 ## 5. Ongoing deploys via Cloud Build (recommended)
 
 Sections 0-4 above are a one-time bootstrap - someone with `gcloud` access

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
@@ -29,6 +29,7 @@ import { SortableContext, arrayMove, rectSortingStrategy } from "@dnd-kit/sortab
 import { getOrderedModules } from "../src/constants/modules";
 import { setModuleOrder } from "../src/redux/slices/layoutSlice";
 import AddressBar from "../src/components/home/AddressBar";
+import DeliveryAddressDialog from "../src/components/home/DeliveryAddressDialog";
 import SortableModuleTile from "../src/components/home/SortableModuleTile";
 import HeaderWave from "../src/components/home/HeaderWave";
 import ShortcutCard from "../src/components/home/ShortcutCard";
@@ -51,6 +52,8 @@ export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const dispatch = useDispatch();
   const savedOrder = useSelector((state) => state.layout.moduleOrder);
+  const deliveryAddress = useSelector((state) => state.location.address);
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const { data } = useQuery("home-products", () => fetchProducts({ pageSize: 6 }));
   const { data: categories } = useQuery("categories", fetchCategories);
   const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
@@ -97,7 +100,7 @@ export default function Home() {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <AddressBar address="Plateau, Dakar" />
+          <AddressBar address={deliveryAddress} onClick={() => setAddressDialogOpen(true)} />
           {isAuthenticated && (
             <IconButton
               onClick={() => router.push("/notifications")}
@@ -229,6 +232,8 @@ export default function Home() {
           </IconButton>
         </Box>
       </Box>
+
+      <DeliveryAddressDialog open={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} />
     </Box>
   );
 }

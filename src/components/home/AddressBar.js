@@ -4,10 +4,11 @@ import Typography from "@mui/material/Typography";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 
-export default function AddressBar({ address }) {
+export default function AddressBar({ address, onClick }) {
   const { t } = useTranslation();
   return (
     <Box
+      onClick={onClick}
       sx={{
         display: "inline-flex",
         alignItems: "center",

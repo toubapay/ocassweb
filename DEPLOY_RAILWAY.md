@@ -107,6 +107,13 @@ since the top-level `Dockerfile` is already there):
   to this service's Railway domain - the key ships inside client-side
   JS, so referrer restriction is what keeps it from being usable
   elsewhere, not secrecy.
+- **Optional, separate feature - real road-distance pricing**: add
+  `GOOGLE_MAPS_SERVER_KEY` to the **backend** service's Variables to make
+  delivery/ride-sharing price off Google's Distance Matrix API instead of
+  straight-line distance (falls back automatically without it). Restrict
+  this key by **IP address**, not HTTP referrer - it's only ever called
+  server-side. Enable the **Distance Matrix API** for it. See
+  `server/src/utils/distanceMatrix.js`.
 
 ## 4. Ongoing deploys
 

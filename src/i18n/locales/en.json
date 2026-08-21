@@ -10,6 +10,9 @@
     "startShopping": "Start shopping",
     "note": "Note",
     "setDeliveryAddress": "Set your delivery address",
+    "deliveryAddress": "Delivery address",
+    "useMyLocation": "Use my location",
+    "locationError": "Could not get your location",
     "language": "Language",
     "french": "Français",
     "english": "English"

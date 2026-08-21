@@ -139,6 +139,18 @@ is safe to skip entirely.
    you set it (a plain restart of the current instance won't pick it up).
    Render passes the Dockerfile's matching `ARG` through automatically;
    nothing else to configure.
+4. Optional, separate from the above: real road-distance pricing for
+   delivery and ride-sharing (Google's Distance Matrix API) instead of
+   straight-line distance - falls back automatically with no key, so skip
+   freely. Enable the **Distance Matrix API** for the same or a different
+   key, restrict it by **IP address** instead of HTTP referrer (it's only
+   ever called server-side, never shipped to the browser), and add it to
+   the **backend** service's environment:
+   ```
+   GOOGLE_MAPS_SERVER_KEY = <your key>
+   ```
+   This one is read at runtime (not build time), so a plain restart picks
+   it up - no rebuild needed. See `server/src/utils/distanceMatrix.js`.
 
 ## 5. Seed data (optional)
 

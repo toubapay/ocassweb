@@ -4,17 +4,19 @@ import storage from "redux-persist/lib/storage";
 import authReducer from "./slices/authSlice";
 import layoutReducer from "./slices/layoutSlice";
 import i18nReducer from "./slices/i18nSlice";
+import locationReducer from "./slices/locationSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
   layout: layoutReducer,
   i18n: i18nReducer,
+  location: locationReducer,
 });
 
 const persistConfig = {
   key: "ocass-root",
   storage,
-  whitelist: ["auth", "layout", "i18n"],
+  whitelist: ["auth", "layout", "i18n", "location"],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
