@@ -9,9 +9,9 @@ import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
 import TopBar from "../../../src/components/layout/TopBar";
 import LiveTrackingMap from "../../../src/components/maps/LiveTrackingMap";
 import DeliveryDistancePriceCard from "../../../src/components/delivery/DeliveryDistancePriceCard";
-import { packageTypeConfig } from "../../../src/constants/deliveryPackageTypes";
+import { packageTypeIconComponent, packageTypeColors } from "../../../src/constants/deliveryPackageTypeOptions";
 import useAuth from "../../../src/hooks/useAuth";
-import { fetchDeliveryRequest } from "../../../src/api/modules";
+import { fetchDeliveryRequest, fetchDeliveryPackageTypes } from "../../../src/api/modules";
 import { haversineDistanceKm } from "../../../src/utils/geo";
 
 const STEPS = ["REQUESTED", "ACCEPTED", "PICKED_UP", "DELIVERED"];
@@ -46,15 +46,20 @@ function StatusTrack({ status, t }) {
 
 export default function TrackDelivery() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { id } = router.query;
+  const isFrench = i18n.language?.startsWith("fr");
 
   const { data: request, isLoading, isError } = useQuery(
     ["delivery-request", id],
     () => fetchDeliveryRequest(id),
     { enabled: Boolean(id) && isAuthenticated, refetchInterval: POLL_MS }
   );
+  // Includes deactivated types too, so a request whose type was later
+  // retired by an admin still shows a real label/icon here (see
+  // GET /delivery/package-types).
+  const { data: packageTypes } = useQuery("delivery-package-types", fetchDeliveryPackageTypes);
 
   if (!isAuthenticated) {
     return (
@@ -98,6 +103,7 @@ export default function TrackDelivery() {
 
   const distanceToDropoffKm =
     agent && dropoff ? haversineDistanceKm(agent.lat, agent.lng, dropoff.lat, dropoff.lng) : null;
+  const packageType = (packageTypes || []).find((pt) => pt.key === request.packageType);
 
   return (
     <Box sx={{ pb: 4 }}>
@@ -106,29 +112,30 @@ export default function TrackDelivery() {
       <Box sx={{ p: 2 }}>
         <StatusTrack status={request.status} t={t} />
 
-        {request.packageType && (
-          <Box
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.75,
-              px: 1.25,
-              py: 0.5,
-              mb: 1.5,
-              borderRadius: 5,
-              border: "1px dashed #CCCCCC",
-            }}
-          >
-            {(() => {
-              const cfg = packageTypeConfig(request.packageType);
-              const Icon = cfg.icon;
-              return <Icon fontSize="small" sx={{ color: cfg.color }} />;
-            })()}
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              {t(`delivery.packageType.${request.packageType}.label`)}
-            </Typography>
-          </Box>
-        )}
+        {packageType &&
+          (() => {
+            const Icon = packageTypeIconComponent(packageType.icon);
+            const { color } = packageTypeColors(packageType.colorKey);
+            return (
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 0.75,
+                  px: 1.25,
+                  py: 0.5,
+                  mb: 1.5,
+                  borderRadius: 5,
+                  border: "1px dashed #CCCCCC",
+                }}
+              >
+                <Icon fontSize="small" sx={{ color }} />
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {isFrench ? packageType.labelFr : packageType.labelEn}
+                </Typography>
+              </Box>
+            );
+          })()}
 
         <LiveTrackingMap pickup={pickup} dropoff={dropoff} agent={agent} height={260} />
 

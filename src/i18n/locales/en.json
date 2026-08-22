@@ -261,11 +261,7 @@
     "title": "Package Delivery",
     "heading": "Send a package across town",
     "packageType": {
-      "heading": "What are you sending?",
-      "PACKAGE": { "label": "Package", "hint": "No passport or bank cheques allowed" },
-      "ELECTRONICS": { "label": "Electronics", "hint": "Bubble wrapped, note if fragile" },
-      "FOOD": { "label": "Food & Groceries", "hint": "Perishable, note if it needs to stay cold" },
-      "DOCUMENT": { "label": "Documents", "hint": "Envelopes, papers, ID copies" }
+      "heading": "What are you sending?"
     },
     "senderSectionTitle": "Sender",
     "receiverSectionTitle": "Receiver",
@@ -273,9 +269,16 @@
     "senderPhone": "Sender phone",
     "receiverName": "Receiver name",
     "receiverPhone": "Receiver phone",
+    "estimatedWeightKg": "Estimated weight (kg)",
     "pickupAddress": "Pickup address",
     "dropoffAddress": "Dropoff address",
     "packageNote": "What are you sending? (optional)",
+    "pickOnMap": "Pick on map",
+    "mapPicker": {
+      "searchPlaceholder": "Search for a place",
+      "movePinHint": "Move the map to place the pin",
+      "confirmLocation": "Confirm location"
+    },
     "requesting": "Requesting...",
     "getEstimate": "Get a price estimate",
     "loginToRequest": "Log in to request a delivery",
@@ -867,10 +870,29 @@
       "nameRequired": "Enter a category name",
       "saveFailed": "Could not save category"
     },
+    "deliveryPackageTypes": {
+      "title": "Delivery package types",
+      "subtitle": "What a sender can pick when requesting a delivery. Deactivating hides a type from the picker without deleting it; deleting is blocked while any delivery request still uses it.",
+      "labelEn": "Label (English)",
+      "labelFr": "Label (French)",
+      "hintEn": "Hint (English)",
+      "hintFr": "Hint (French)",
+      "sortOrder": "Sort order",
+      "add": "Add",
+      "editType": "Edit package type",
+      "created": "Package type created",
+      "updated": "Package type updated",
+      "deleted": "Package type deleted",
+      "labelsRequired": "Enter both English and French labels",
+      "saveFailed": "Could not save package type",
+      "deleteFailed": "Could not delete package type",
+      "confirmDelete": "Delete \"{{name}}\"? This can't be undone."
+    },
     "tabs": {
       "dashboard": "Dashboard",
       "users": "Users",
       "modules": "Modules & fees",
+      "deliveryPackageTypes": "Package types",
       "vendors": "Vendors",
       "categories": "Categories",
       "restaurants": "Restaurants",

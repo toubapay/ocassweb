@@ -9,6 +9,7 @@ import '../models/cart_item.dart';
 import '../models/order.dart';
 import '../models/wishlist_item.dart';
 import '../models/delivery_request.dart';
+import '../models/delivery_package_type.dart';
 import '../models/insurance.dart';
 import '../models/restaurant.dart';
 import '../models/ride_request.dart';
@@ -209,6 +210,7 @@ class ApiClient {
     required String receiverName,
     required String receiverPhone,
     String packageType = 'PACKAGE',
+    double? packageWeightKg,
     String? senderName,
     String? senderPhone,
     String? packageNote,
@@ -223,6 +225,7 @@ class ApiClient {
       'receiverName': receiverName,
       'receiverPhone': receiverPhone,
       'packageType': packageType,
+      if (packageWeightKg != null) 'packageWeightKg': packageWeightKg,
       if (senderName != null && senderName.isNotEmpty) 'senderName': senderName,
       if (senderPhone != null && senderPhone.isNotEmpty) 'senderPhone': senderPhone,
       if (packageNote != null && packageNote.isNotEmpty) 'packageNote': packageNote,
@@ -264,6 +267,17 @@ class ApiClient {
   Future<DeliveryRequest> cancelDeliveryRequest(String id) async {
     final res = await _dio.patch('/delivery/requests/$id/cancel');
     return DeliveryRequest.fromJson(_data(res)['request'] as Map<String, dynamic>);
+  }
+
+  /// Admin-managed catalog of what a delivery can contain (see
+  /// AdminDeliveryPackageTypesTab.js on web) - returns every row, active or
+  /// not, so a request whose type was later deactivated can still resolve
+  /// a label/icon for its badge; callers filter to isActive for the picker.
+  Future<List<DeliveryPackageType>> fetchDeliveryPackageTypes() async {
+    final res = await _dio.get('/delivery/package-types');
+    return (_data(res)['packageTypes'] as List<dynamic>)
+        .map((p) => DeliveryPackageType.fromJson(p as Map<String, dynamic>))
+        .toList();
   }
 
   // ---------------- Delivery agent dispatch ----------------

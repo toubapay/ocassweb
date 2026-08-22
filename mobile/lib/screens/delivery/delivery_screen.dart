@@ -7,12 +7,15 @@ import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/delivery_package_type.dart';
 import '../../models/delivery_request.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/delivery_distance_price_card.dart';
 import '../../widgets/live_tracking_map.dart';
+import '../../widgets/map_address_picker_screen.dart';
 import '../../widgets/top_bar.dart';
 
 class DeliveryScreen extends StatefulWidget {
@@ -30,9 +33,11 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   final _receiverPhoneController = TextEditingController();
   final _dropoffController = TextEditingController();
   final _noteController = TextEditingController();
+  final _weightController = TextEditingController();
   bool _submitting = false;
   String _packageType = 'PACKAGE';
   List<DeliveryRequest> _requests = [];
+  List<DeliveryPackageType> _packageTypes = [];
   (double, double)? _pickupCoords;
   (double, double)? _dropoffCoords;
   ({double distanceKm, double priceEstimate})? _feeQuote;
@@ -40,7 +45,27 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRequests());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRequests();
+      _loadPackageTypes();
+    });
+  }
+
+  Future<void> _loadPackageTypes() async {
+    try {
+      final packageTypes = await apiClient.fetchDeliveryPackageTypes();
+      if (mounted) setState(() => _packageTypes = packageTypes);
+    } catch (_) {
+      // Picker just stays empty - createDeliveryRequest still defaults to
+      // 'PACKAGE' server-side if this never loads.
+    }
+  }
+
+  DeliveryPackageType? _packageTypeByKey(String key) {
+    for (final p in _packageTypes) {
+      if (p.key == key) return p;
+    }
+    return null;
   }
 
   @override
@@ -52,6 +77,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     _receiverPhoneController.dispose();
     _dropoffController.dispose();
     _noteController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -116,6 +142,25 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
         .showSnackBar(SnackBar(content: Text(context.tr('delivery.locationSet'))));
   }
 
+  /// Alternative to both the address autocomplete field and "use my
+  /// location" - pans a map under a fixed pin instead of typing or using
+  /// the device's own position, for pickup and dropoff alike.
+  Future<void> _pickOnMap({required bool isPickup}) async {
+    final current = isPickup ? _pickupCoords : _dropoffCoords;
+    final result = await showMapAddressPicker(context, initialCenter: current);
+    if (result == null || !mounted) return;
+    setState(() {
+      if (isPickup) {
+        _pickupController.text = result.address;
+        _pickupCoords = (result.lat, result.lng);
+      } else {
+        _dropoffController.text = result.address;
+        _dropoffCoords = (result.lat, result.lng);
+      }
+    });
+    _refreshQuote();
+  }
+
   Future<void> _submit() async {
     if (!context.read<AuthProvider>().isAuthenticated) {
       ScaffoldMessenger.of(context)
@@ -136,8 +181,10 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     }
     setState(() => _submitting = true);
     try {
+      final weightText = _weightController.text.trim();
       final request = await apiClient.createDeliveryRequest(
         packageType: _packageType,
+        packageWeightKg: weightText.isEmpty ? null : double.tryParse(weightText),
         pickupAddress: _pickupController.text.trim(),
         dropoffAddress: _dropoffController.text.trim(),
         receiverName: _receiverNameController.text.trim(),
@@ -161,6 +208,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       _receiverPhoneController.clear();
       _dropoffController.clear();
       _noteController.clear();
+      _weightController.clear();
       setState(() {
         _pickupCoords = null;
         _dropoffCoords = null;
@@ -179,6 +227,8 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final language = context.watch<LocaleProvider>().language;
+    final activePackageTypes = _packageTypes.where((p) => p.isActive).toList();
     return Scaffold(
       appBar: TopBar(
           title: context.t('delivery.title'), showBack: false, showSearch: false, showCart: false),
@@ -198,8 +248,10 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
             childAspectRatio: 2.6,
-            children: deliveryPackageTypes.map((p) {
+            children: activePackageTypes.map((p) {
               final selected = _packageType == p.key;
+              final colors = packageTypeColor(p.colorKey);
+              final hint = p.hint(language);
               return InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () => setState(() => _packageType = p.key),
@@ -218,8 +270,8 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                       Container(
                         width: 36,
                         height: 36,
-                        decoration: BoxDecoration(color: p.bg, borderRadius: BorderRadius.circular(8)),
-                        child: Icon(p.icon, color: p.color, size: 18),
+                        decoration: BoxDecoration(color: colors.bg, borderRadius: BorderRadius.circular(8)),
+                        child: Icon(packageTypeIcon(p.icon), color: colors.color, size: 18),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -227,13 +279,14 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(context.t('delivery.packageType.${p.key}.label'),
+                            Text(p.label(language),
                                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                                 overflow: TextOverflow.ellipsis),
-                            Text(context.t('delivery.packageType.${p.key}.hint'),
-                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
+                            if (hint != null && hint.isNotEmpty)
+                              Text(hint,
+                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
@@ -242,6 +295,12 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                 ),
               );
             }).toList(),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _weightController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(labelText: context.t('delivery.estimatedWeightKg')),
           ),
           const SizedBox(height: 20),
           Text(context.t('delivery.senderSectionTitle'),
@@ -283,6 +342,15 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                   foregroundColor: _pickupCoords != null ? Colors.white : AppColors.amber,
                 ),
               ),
+              IconButton(
+                onPressed: () => _pickOnMap(isPickup: true),
+                tooltip: context.t('delivery.pickOnMap'),
+                icon: const Icon(Icons.map_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: AppColors.divider),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -298,17 +366,34 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(labelText: context.t('delivery.receiverPhone'))),
           const SizedBox(height: 12),
-          AddressAutocompleteField(
-            controller: _dropoffController,
-            label: context.t('delivery.dropoffAddress'),
-            onManualEdit: () {
-              setState(() => _dropoffCoords = null);
-              _refreshQuote();
-            },
-            onPlaceSelected: ({required address, required lat, required lng}) {
-              setState(() => _dropoffCoords = (lat, lng));
-              _refreshQuote();
-            },
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AddressAutocompleteField(
+                  controller: _dropoffController,
+                  label: context.t('delivery.dropoffAddress'),
+                  onManualEdit: () {
+                    setState(() => _dropoffCoords = null);
+                    _refreshQuote();
+                  },
+                  onPlaceSelected: ({required address, required lat, required lng}) {
+                    setState(() => _dropoffCoords = (lat, lng));
+                    _refreshQuote();
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => _pickOnMap(isPickup: false),
+                tooltip: context.t('delivery.pickOnMap'),
+                icon: const Icon(Icons.map_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: AppColors.divider),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           TextField(
@@ -362,16 +447,21 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                               visualDensity: VisualDensity.compact),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Chip(
-                        avatar: Icon(packageTypeConfig(r.packageType).icon,
-                            size: 16, color: packageTypeConfig(r.packageType).color),
-                        label: Text(context.t('delivery.packageType.${r.packageType}.label'),
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                        visualDensity: VisualDensity.compact,
-                        backgroundColor: Colors.white,
-                        side: const BorderSide(color: AppColors.divider),
-                      ),
+                      if (_packageTypeByKey(r.packageType) != null) ...[
+                        const SizedBox(height: 4),
+                        Builder(builder: (context) {
+                          final pt = _packageTypeByKey(r.packageType)!;
+                          final colors = packageTypeColor(pt.colorKey);
+                          return Chip(
+                            avatar: Icon(packageTypeIcon(pt.icon), size: 16, color: colors.color),
+                            label: Text(pt.label(language),
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                            visualDensity: VisualDensity.compact,
+                            backgroundColor: Colors.white,
+                            side: const BorderSide(color: AppColors.divider),
+                          );
+                        }),
+                      ],
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

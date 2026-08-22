@@ -261,11 +261,7 @@
     "title": "Livraison de colis",
     "heading": "Envoyez un colis à travers la ville",
     "packageType": {
-      "heading": "Que souhaitez-vous envoyer ?",
-      "PACKAGE": { "label": "Colis", "hint": "Passeport et chèques bancaires interdits" },
-      "ELECTRONICS": { "label": "Électronique", "hint": "Emballage à bulles, précisez si fragile" },
-      "FOOD": { "label": "Alimentation", "hint": "Périssable, précisez si à garder au frais" },
-      "DOCUMENT": { "label": "Documents", "hint": "Enveloppes, papiers, copies de pièces d'identité" }
+      "heading": "Que souhaitez-vous envoyer ?"
     },
     "senderSectionTitle": "Expéditeur",
     "receiverSectionTitle": "Destinataire",
@@ -273,9 +269,16 @@
     "senderPhone": "Téléphone de l'expéditeur",
     "receiverName": "Nom du destinataire",
     "receiverPhone": "Téléphone du destinataire",
+    "estimatedWeightKg": "Poids estimé (kg)",
     "pickupAddress": "Adresse de retrait",
     "dropoffAddress": "Adresse de livraison",
     "packageNote": "Que envoyez-vous ? (facultatif)",
+    "pickOnMap": "Choisir sur la carte",
+    "mapPicker": {
+      "searchPlaceholder": "Rechercher un lieu",
+      "movePinHint": "Déplacez la carte pour placer le repère",
+      "confirmLocation": "Confirmer l'emplacement"
+    },
     "requesting": "Demande en cours...",
     "getEstimate": "Obtenir une estimation de prix",
     "loginToRequest": "Connectez-vous pour demander une livraison",
@@ -867,10 +870,29 @@
       "nameRequired": "Entrez un nom de catégorie",
       "saveFailed": "Impossible d'enregistrer la catégorie"
     },
+    "deliveryPackageTypes": {
+      "title": "Types de colis pour la livraison",
+      "subtitle": "Ce qu'un expéditeur peut choisir en demandant une livraison. Désactiver un type le masque du sélecteur sans le supprimer ; la suppression est bloquée tant qu'une demande de livraison l'utilise encore.",
+      "labelEn": "Libellé (anglais)",
+      "labelFr": "Libellé (français)",
+      "hintEn": "Indication (anglais)",
+      "hintFr": "Indication (français)",
+      "sortOrder": "Ordre d'affichage",
+      "add": "Ajouter",
+      "editType": "Modifier le type de colis",
+      "created": "Type de colis créé",
+      "updated": "Type de colis mis à jour",
+      "deleted": "Type de colis supprimé",
+      "labelsRequired": "Saisissez les libellés en anglais et en français",
+      "saveFailed": "Impossible d'enregistrer le type de colis",
+      "deleteFailed": "Impossible de supprimer le type de colis",
+      "confirmDelete": "Supprimer « {{name}} » ? Cette action est irréversible."
+    },
     "tabs": {
       "dashboard": "Tableau de bord",
       "users": "Utilisateurs",
       "modules": "Modules et frais",
+      "deliveryPackageTypes": "Types de colis",
       "vendors": "Vendeurs",
       "categories": "Catégories",
       "restaurants": "Restaurants",

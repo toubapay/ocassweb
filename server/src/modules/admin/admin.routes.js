@@ -18,6 +18,10 @@ const {
   listCategoriesAdmin,
   createCategoryAdmin,
   updateCategoryAdmin,
+  listDeliveryPackageTypesAdmin,
+  createDeliveryPackageTypeAdmin,
+  updateDeliveryPackageTypeAdmin,
+  deleteDeliveryPackageTypeAdmin,
   listProviders,
   createProvider,
   updateProvider,
@@ -65,6 +69,11 @@ router.delete("/zones/:id", deleteZone);
 router.get("/categories", listCategoriesAdmin);
 router.post("/categories", createCategoryAdmin);
 router.patch("/categories/:id", updateCategoryAdmin);
+
+router.get("/delivery-package-types", listDeliveryPackageTypesAdmin);
+router.post("/delivery-package-types", createDeliveryPackageTypeAdmin);
+router.patch("/delivery-package-types/:id", updateDeliveryPackageTypeAdmin);
+router.delete("/delivery-package-types/:id", deleteDeliveryPackageTypeAdmin);
 
 router.get("/providers", listProviders);
 router.post("/providers", createProvider);

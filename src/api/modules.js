@@ -11,6 +11,8 @@ export const cancelDeliveryRequest = (id) =>
   apiClient.patch(`/delivery/requests/${id}/cancel`).then((res) => res.data.request);
 export const fetchDeliveryFeeQuote = (params) =>
   apiClient.get("/delivery/fee-quote", { params }).then((res) => res.data);
+export const fetchDeliveryPackageTypes = () =>
+  apiClient.get("/delivery/package-types").then((res) => res.data.packageTypes);
 
 // Delivery agent dispatch
 export const fetchAvailableDeliveryJobs = () =>

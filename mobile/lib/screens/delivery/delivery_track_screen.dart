@@ -9,8 +9,10 @@ import '../../constants/delivery_package_types.dart';
 import '../../core/api_client.dart';
 import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/delivery_package_type.dart';
 import '../../models/delivery_request.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/delivery_distance_price_card.dart';
 import '../../widgets/live_tracking_map.dart';
@@ -36,6 +38,7 @@ class _DeliveryTrackScreenState extends State<DeliveryTrackScreen> {
   bool _loading = true;
   bool _notFound = false;
   Timer? _pollTimer;
+  List<DeliveryPackageType> _packageTypes = [];
 
   @override
   void initState() {
@@ -43,7 +46,19 @@ class _DeliveryTrackScreenState extends State<DeliveryTrackScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _load();
       _pollTimer = Timer.periodic(_pollInterval, (_) => _load());
+      _loadPackageTypes();
     });
+  }
+
+  // Includes deactivated types too, so a request whose type was later
+  // retired by an admin still resolves a real label/icon here.
+  Future<void> _loadPackageTypes() async {
+    try {
+      final packageTypes = await apiClient.fetchDeliveryPackageTypes();
+      if (mounted) setState(() => _packageTypes = packageTypes);
+    } catch (_) {
+      // Badge just stays hidden if this never loads.
+    }
   }
 
   @override
@@ -106,6 +121,14 @@ class _DeliveryTrackScreenState extends State<DeliveryTrackScreen> {
     final distanceAwayKm =
         agent != null && dropoff != null ? haversineDistanceKm(agent.$1, agent.$2, dropoff.$1, dropoff.$2) : null;
     final stepIndex = request.status == 'CANCELLED' ? -1 : _steps.indexOf(request.status);
+    final language = context.watch<LocaleProvider>().language;
+    DeliveryPackageType? packageType;
+    for (final p in _packageTypes) {
+      if (p.key == request.packageType) {
+        packageType = p;
+        break;
+      }
+    }
 
     return Scaffold(
       appBar: TopBar(title: context.t('delivery.tracking.title'), showCart: false, showSearch: false),
@@ -133,19 +156,23 @@ class _DeliveryTrackScreenState extends State<DeliveryTrackScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w700)),
             ],
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Chip(
-              avatar: Icon(packageTypeConfig(request.packageType).icon,
-                  size: 16, color: packageTypeConfig(request.packageType).color),
-              label: Text(context.t('delivery.packageType.${request.packageType}.label'),
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-              visualDensity: VisualDensity.compact,
-              backgroundColor: Colors.white,
-              shape: StadiumBorder(side: BorderSide(color: Colors.grey.shade400, style: BorderStyle.solid)),
+          if (packageType != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Builder(builder: (context) {
+                final colors = packageTypeColor(packageType!.colorKey);
+                return Chip(
+                  avatar: Icon(packageTypeIcon(packageType.icon), size: 16, color: colors.color),
+                  label: Text(packageType.label(language),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: Colors.white,
+                  shape: StadiumBorder(side: BorderSide(color: Colors.grey.shade400, style: BorderStyle.solid)),
+                );
+              }),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           LiveTrackingMap(pickup: pickup, dropoff: dropoff, agent: agent, height: 240),
           const SizedBox(height: 16),
