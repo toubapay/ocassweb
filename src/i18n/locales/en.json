@@ -260,6 +260,13 @@
   "delivery": {
     "title": "Package Delivery",
     "heading": "Send a package across town",
+    "packageType": {
+      "heading": "What are you sending?",
+      "PACKAGE": { "label": "Package", "hint": "No passport or bank cheques allowed" },
+      "ELECTRONICS": { "label": "Electronics", "hint": "Bubble wrapped, note if fragile" },
+      "FOOD": { "label": "Food & Groceries", "hint": "Perishable, note if it needs to stay cold" },
+      "DOCUMENT": { "label": "Documents", "hint": "Envelopes, papers, ID copies" }
+    },
     "senderSectionTitle": "Sender",
     "receiverSectionTitle": "Receiver",
     "senderName": "Sender name",

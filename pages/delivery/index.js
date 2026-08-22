@@ -14,6 +14,8 @@ import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import LiveTrackingMap from "../../src/components/maps/LiveTrackingMap";
+import DeliveryDistancePriceCard from "../../src/components/delivery/DeliveryDistancePriceCard";
+import { DELIVERY_PACKAGE_TYPES, packageTypeConfig } from "../../src/constants/deliveryPackageTypes";
 import useAuth from "../../src/hooks/useAuth";
 import {
   fetchDeliveryRequests,
@@ -29,6 +31,7 @@ export default function Delivery() {
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
 
+  const [packageType, setPackageType] = useState("PACKAGE");
   const [senderName, setSenderName] = useState("");
   const [senderPhone, setSenderPhone] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
@@ -82,6 +85,7 @@ export default function Delivery() {
   const mutation = useMutation(
     () =>
       createDeliveryRequest({
+        packageType,
         senderName: senderName || undefined,
         senderPhone: senderPhone || undefined,
         pickupAddress,
@@ -98,6 +102,7 @@ export default function Delivery() {
       onSuccess: (request) => {
         toast.success(t("delivery.requestCreated", { amount: formatCfa(request.priceEstimate) }));
         queryClient.invalidateQueries("delivery-requests");
+        setPackageType("PACKAGE");
         setPickupAddress("");
         setPickupCoords(null);
         setReceiverName("");
@@ -143,6 +148,66 @@ export default function Delivery() {
         <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2 }}>
           {t("delivery.heading")}
         </Typography>
+
+        <Typography variant="caption" sx={{ fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
+          {t("delivery.packageType.heading")}
+        </Typography>
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, mt: 1, mb: 2.5 }}>
+          {DELIVERY_PACKAGE_TYPES.map((p) => {
+            const Icon = p.icon;
+            const selected = packageType === p.key;
+            return (
+              <Box
+                key={p.key}
+                onClick={() => setPackageType(p.key)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.25,
+                  p: 1.25,
+                  borderRadius: 3,
+                  cursor: "pointer",
+                  bgcolor: "background.paper",
+                  border: selected ? "2px solid" : "1px solid #EEEEEE",
+                  borderColor: selected ? "primary.main" : "#EEEEEE",
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    bgcolor: p.bg,
+                    color: p.color,
+                  }}
+                >
+                  <Icon fontSize="small" />
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                    {t(`delivery.packageType.${p.key}.label`)}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      display: "block",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {t(`delivery.packageType.${p.key}.hint`)}
+                  </Typography>
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
 
         <Typography variant="caption" sx={{ fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
           {t("delivery.senderSectionTitle")}
@@ -230,12 +295,9 @@ export default function Delivery() {
           <Box sx={{ mb: 2 }}>
             <LiveTrackingMap pickup={pickupCoords} dropoff={dropoffCoords} height={200} />
             {feeQuote && (
-              <Typography variant="body2" sx={{ mt: 1, fontWeight: 700, textAlign: "center" }}>
-                {t("delivery.distanceAndPrice", {
-                  km: feeQuote.distanceKm.toFixed(1),
-                  amount: formatCfa(feeQuote.priceEstimate),
-                })}
-              </Typography>
+              <Box sx={{ mt: 1 }}>
+                <DeliveryDistancePriceCard distanceKm={feeQuote.distanceKm} priceEstimate={feeQuote.priceEstimate} />
+              </Box>
             )}
           </Box>
         )}
@@ -266,13 +328,29 @@ export default function Delivery() {
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
             {requests.map((r) => (
-              <Box key={r.id} sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1.5 }}>
+              <Box
+                key={r.id}
+                onClick={() => router.push(`/delivery/track/${r.id}`)}
+                sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1.5, cursor: "pointer" }}
+              >
                 <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {r.pickupAddress} → {r.dropoffAddress}
                   </Typography>
                   <Chip label={t(`delivery.status.${r.status}`, { defaultValue: r.status })} size="small" />
                 </Box>
+                {r.packageType && (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    icon={(() => {
+                      const Icon = packageTypeConfig(r.packageType).icon;
+                      return <Icon fontSize="small" sx={{ color: `${packageTypeConfig(r.packageType).color} !important` }} />;
+                    })()}
+                    label={t(`delivery.packageType.${r.packageType}.label`)}
+                    sx={{ mt: 0.75, fontWeight: 700, borderColor: "#EEEEEE" }}
+                  />
+                )}
                 {r.receiverName && (
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.25 }}>
                     {t("delivery.tracking.receiver")}: {r.receiverName} · {r.receiverPhone}
@@ -291,7 +369,10 @@ export default function Delivery() {
                     <Button
                       size="small"
                       variant="contained"
-                      onClick={() => router.push(`/delivery/track/${r.id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/delivery/track/${r.id}`);
+                      }}
                       sx={{ fontWeight: 700, minWidth: 0, py: 0.25 }}
                     >
                       {t("delivery.track")}
@@ -301,7 +382,10 @@ export default function Delivery() {
                         size="small"
                         color="error"
                         disabled={cancelMutation.isLoading}
-                        onClick={() => cancelMutation.mutate(r.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          cancelMutation.mutate(r.id);
+                        }}
                         sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
                       >
                         {t("delivery.cancel")}

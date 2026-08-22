@@ -260,6 +260,13 @@
   "delivery": {
     "title": "Livraison de colis",
     "heading": "Envoyez un colis à travers la ville",
+    "packageType": {
+      "heading": "Que souhaitez-vous envoyer ?",
+      "PACKAGE": { "label": "Colis", "hint": "Passeport et chèques bancaires interdits" },
+      "ELECTRONICS": { "label": "Électronique", "hint": "Emballage à bulles, précisez si fragile" },
+      "FOOD": { "label": "Alimentation", "hint": "Périssable, précisez si à garder au frais" },
+      "DOCUMENT": { "label": "Documents", "hint": "Enveloppes, papiers, copies de pièces d'identité" }
+    },
     "senderSectionTitle": "Expéditeur",
     "receiverSectionTitle": "Destinataire",
     "senderName": "Nom de l'expéditeur",
