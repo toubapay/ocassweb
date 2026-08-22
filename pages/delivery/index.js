@@ -168,7 +168,7 @@ export default function Delivery() {
         <Typography variant="caption" sx={{ fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
           {t("delivery.packageType.heading")}
         </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, mt: 1, mb: 2.5 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 1, mt: 1, mb: 2.5 }}>
           {activePackageTypes.map((p) => {
             const Icon = packageTypeIconComponent(p.icon);
             const { color, bg } = packageTypeColors(p.colorKey);
@@ -272,12 +272,13 @@ export default function Delivery() {
               setPickupAddress(address);
               setPickupCoords({ lat, lng });
             }}
-            sx={{ bgcolor: "background.paper" }}
+            sx={{ flex: 1, minWidth: 0, bgcolor: "background.paper" }}
           />
           <IconButton
             onClick={useMyLocation}
             title={t("delivery.useMyLocation")}
             sx={{
+              flexShrink: 0,
               bgcolor: pickupCoords ? "primary.main" : "primary.light",
               color: pickupCoords ? "#fff" : "primary.main",
             }}
@@ -287,7 +288,7 @@ export default function Delivery() {
           <IconButton
             onClick={() => setMapPickerFor("pickup")}
             title={t("delivery.pickOnMap")}
-            sx={{ bgcolor: "background.paper", border: "1px solid #EEEEEE" }}
+            sx={{ flexShrink: 0, bgcolor: "background.paper", border: "1px solid #EEEEEE" }}
           >
             <MapRoundedIcon />
           </IconButton>
@@ -327,12 +328,12 @@ export default function Delivery() {
               setDropoffAddress(address);
               setDropoffCoords({ lat, lng });
             }}
-            sx={{ bgcolor: "background.paper" }}
+            sx={{ flex: 1, minWidth: 0, bgcolor: "background.paper" }}
           />
           <IconButton
             onClick={() => setMapPickerFor("dropoff")}
             title={t("delivery.pickOnMap")}
-            sx={{ bgcolor: "background.paper", border: "1px solid #EEEEEE" }}
+            sx={{ flexShrink: 0, bgcolor: "background.paper", border: "1px solid #EEEEEE" }}
           >
             <MapRoundedIcon />
           </IconButton>
