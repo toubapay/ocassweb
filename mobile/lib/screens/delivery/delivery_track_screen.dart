@@ -5,13 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../constants/delivery_package_types.dart';
 import '../../core/api_client.dart';
-import '../../core/format.dart';
 import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/delivery_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/delivery_distance_price_card.dart';
 import '../../widgets/live_tracking_map.dart';
 import '../../widgets/top_bar.dart';
 
@@ -132,7 +133,20 @@ class _DeliveryTrackScreenState extends State<DeliveryTrackScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w700)),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Chip(
+              avatar: Icon(packageTypeConfig(request.packageType).icon,
+                  size: 16, color: packageTypeConfig(request.packageType).color),
+              label: Text(context.t('delivery.packageType.${request.packageType}.label'),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+              visualDensity: VisualDensity.compact,
+              backgroundColor: Colors.white,
+              shape: StadiumBorder(side: BorderSide(color: Colors.grey.shade400, style: BorderStyle.solid)),
+            ),
+          ),
+          const SizedBox(height: 12),
           LiveTrackingMap(pickup: pickup, dropoff: dropoff, agent: agent, height: 240),
           const SizedBox(height: 16),
           if (request.assignedAgent == null && request.status == 'REQUESTED')
@@ -204,25 +218,8 @@ class _DeliveryTrackScreenState extends State<DeliveryTrackScreen> {
               ],
             ),
           ],
-          if (request.distanceKm != null) ...[
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(context.t('delivery.distanceLabel'), style: const TextStyle(color: AppColors.textSecondary)),
-                Text(context.t('delivery.distanceKm', {'km': request.distanceKm!.toStringAsFixed(1)}),
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ],
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(context.t('delivery.priceEstimateLabel'), style: const TextStyle(color: AppColors.textSecondary)),
-              Text(formatCfa(request.priceEstimate), style: const TextStyle(fontWeight: FontWeight.w700)),
-            ],
-          ),
+          const SizedBox(height: 12),
+          DeliveryDistancePriceCard(distanceKm: request.distanceKm, priceEstimate: request.priceEstimate),
         ],
       ),
     );

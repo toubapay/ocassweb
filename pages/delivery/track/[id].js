@@ -8,9 +8,10 @@ import Chip from "@mui/material/Chip";
 import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
 import TopBar from "../../../src/components/layout/TopBar";
 import LiveTrackingMap from "../../../src/components/maps/LiveTrackingMap";
+import DeliveryDistancePriceCard from "../../../src/components/delivery/DeliveryDistancePriceCard";
+import { packageTypeConfig } from "../../../src/constants/deliveryPackageTypes";
 import useAuth from "../../../src/hooks/useAuth";
 import { fetchDeliveryRequest } from "../../../src/api/modules";
-import { formatCfa } from "../../../src/utils/currency";
 import { haversineDistanceKm } from "../../../src/utils/geo";
 
 const STEPS = ["REQUESTED", "ACCEPTED", "PICKED_UP", "DELIVERED"];
@@ -105,6 +106,30 @@ export default function TrackDelivery() {
       <Box sx={{ p: 2 }}>
         <StatusTrack status={request.status} t={t} />
 
+        {request.packageType && (
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 1.25,
+              py: 0.5,
+              mb: 1.5,
+              borderRadius: 5,
+              border: "1px dashed #CCCCCC",
+            }}
+          >
+            {(() => {
+              const cfg = packageTypeConfig(request.packageType);
+              const Icon = cfg.icon;
+              return <Icon fontSize="small" sx={{ color: cfg.color }} />;
+            })()}
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {t(`delivery.packageType.${request.packageType}.label`)}
+            </Typography>
+          </Box>
+        )}
+
         <LiveTrackingMap pickup={pickup} dropoff={dropoff} agent={agent} height={260} />
 
         <Box sx={{ mt: 2, mb: 2 }}>
@@ -174,24 +199,10 @@ export default function TrackDelivery() {
               </Typography>
             </Box>
           )}
-          {request.distanceKm != null && (
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {t("delivery.distanceLabel")}
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {t("delivery.distanceKm", { km: request.distanceKm.toFixed(1) })}
-              </Typography>
-            </Box>
-          )}
-          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {t("delivery.priceEstimateLabel")}
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              {formatCfa(request.priceEstimate)}
-            </Typography>
-          </Box>
+        </Box>
+
+        <Box sx={{ mt: 2 }}>
+          <DeliveryDistancePriceCard distanceKm={request.distanceKm} priceEstimate={request.priceEstimate} />
         </Box>
       </Box>
     </Box>

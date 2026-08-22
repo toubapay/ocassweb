@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../constants/delivery_package_types.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/geo.dart';
@@ -10,6 +11,7 @@ import '../../models/delivery_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_autocomplete_field.dart';
+import '../../widgets/delivery_distance_price_card.dart';
 import '../../widgets/live_tracking_map.dart';
 import '../../widgets/top_bar.dart';
 
@@ -29,6 +31,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   final _dropoffController = TextEditingController();
   final _noteController = TextEditingController();
   bool _submitting = false;
+  String _packageType = 'PACKAGE';
   List<DeliveryRequest> _requests = [];
   (double, double)? _pickupCoords;
   (double, double)? _dropoffCoords;
@@ -134,6 +137,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     setState(() => _submitting = true);
     try {
       final request = await apiClient.createDeliveryRequest(
+        packageType: _packageType,
         pickupAddress: _pickupController.text.trim(),
         dropoffAddress: _dropoffController.text.trim(),
         receiverName: _receiverNameController.text.trim(),
@@ -161,6 +165,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
         _pickupCoords = null;
         _dropoffCoords = null;
         _feeQuote = null;
+        _packageType = 'PACKAGE';
       });
       await _loadRequests();
     } catch (_) {
@@ -183,6 +188,62 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
           Text(context.t('delivery.heading'),
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 16),
+          Text(context.t('delivery.packageType.heading'),
+              style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+          const SizedBox(height: 8),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 2.6,
+            children: deliveryPackageTypes.map((p) {
+              final selected = _packageType == p.key;
+              return InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => setState(() => _packageType = p.key),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    border: Border.all(
+                      color: selected ? Theme.of(context).colorScheme.primary : AppColors.divider,
+                      width: selected ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(color: p.bg, borderRadius: BorderRadius.circular(8)),
+                        child: Icon(p.icon, color: p.color, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(context.t('delivery.packageType.${p.key}.label'),
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                overflow: TextOverflow.ellipsis),
+                            Text(context.t('delivery.packageType.${p.key}.hint'),
+                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
           Text(context.t('delivery.senderSectionTitle'),
               style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
@@ -258,13 +319,9 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
             LiveTrackingMap(pickup: _pickupCoords, dropoff: _dropoffCoords, height: 180),
             if (_feeQuote != null) ...[
               const SizedBox(height: 8),
-              Text(
-                context.t('delivery.distanceAndPrice', {
-                  'km': _feeQuote!.distanceKm.toStringAsFixed(1),
-                  'amount': formatCfa(_feeQuote!.priceEstimate),
-                }),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+              DeliveryDistancePriceCard(
+                distanceKm: _feeQuote!.distanceKm,
+                priceEstimate: _feeQuote!.priceEstimate,
               ),
             ],
           ],
@@ -284,7 +341,10 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
             const SizedBox(height: 28),
             Text(context.t('delivery.yourRequests'), style: const TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),
-            ..._requests.map((r) => Container(
+            ..._requests.map((r) => InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => context.push('/delivery/track/${r.id}'),
+                  child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -301,6 +361,16 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                               label: Text(context.tOr('delivery.status.${r.status}', r.status)),
                               visualDensity: VisualDensity.compact),
                         ],
+                      ),
+                      const SizedBox(height: 4),
+                      Chip(
+                        avatar: Icon(packageTypeConfig(r.packageType).icon,
+                            size: 16, color: packageTypeConfig(r.packageType).color),
+                        label: Text(context.t('delivery.packageType.${r.packageType}.label'),
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: Colors.white,
+                        side: const BorderSide(color: AppColors.divider),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,6 +412,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                         ],
                       ),
                     ],
+                  ),
                   ),
                 )),
           ],

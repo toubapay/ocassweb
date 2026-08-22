@@ -10,6 +10,7 @@ const createSchema = z.object({
   // time (see createRequest) when sending on their own behalf.
   senderName: z.string().min(2).optional(),
   senderPhone: z.string().min(6).optional(),
+  packageType: z.enum(["PACKAGE", "ELECTRONICS", "FOOD", "DOCUMENT"]).default("PACKAGE"),
   pickupAddress: z.string().min(3),
   pickupLat: z.number().optional(),
   pickupLng: z.number().optional(),

@@ -269,6 +269,16 @@ model Review {
 
 // ---------- Delivery module (stub) ----------
 
+// What's being sent - purely informational for the sender/agent (no
+// pricing or eligibility logic reads this yet), matching the category
+// picker on the request form.
+enum DeliveryPackageType {
+  PACKAGE
+  ELECTRONICS
+  FOOD
+  DOCUMENT
+}
+
 enum DeliveryStatus {
   REQUESTED
   ACCEPTED
@@ -278,7 +288,7 @@ enum DeliveryStatus {
 }
 
 model DeliveryRequest {
-  id              String         @id @default(uuid())
+  id              String              @id @default(uuid())
   userId          String
   // Contact details for whoever's handing off / receiving the package -
   // may differ from the requesting account (e.g. sending a package on
@@ -287,6 +297,7 @@ model DeliveryRequest {
   // duplicating them here when the requester is also the sender.
   senderName      String?
   senderPhone     String?
+  packageType     DeliveryPackageType @default(PACKAGE)
   pickupAddress   String
   pickupLat       Float?
   pickupLng       Float?
@@ -296,13 +307,13 @@ model DeliveryRequest {
   dropoffLat      Float?
   dropoffLng      Float?
   packageNote     String?
-  priceEstimate   Decimal?       @db.Decimal(10, 2)
+  priceEstimate   Decimal?            @db.Decimal(10, 2)
   // Distance used to compute priceEstimate (road distance via Google's
   // Distance Matrix API when configured, else Haversine - see
   // server/src/utils/distanceMatrix.js). Null when priceEstimate fell back
   // to the no-coordinates flat-ish random estimate.
   distanceKm      Float?
-  status          DeliveryStatus @default(REQUESTED)
+  status          DeliveryStatus      @default(REQUESTED)
   assignedAgentId String?
   // Agent's last-reported GPS position while this job is ACCEPTED/PICKED_UP
   // (see PATCH /delivery/jobs/:id/location) - powers the customer-facing
@@ -311,7 +322,7 @@ model DeliveryRequest {
   agentLat        Float?
   agentLng        Float?
   agentLocationAt DateTime?
-  createdAt       DateTime       @default(now())
+  createdAt       DateTime            @default(now())
 
   user            User             @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
   assignedAgent   User?            @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
