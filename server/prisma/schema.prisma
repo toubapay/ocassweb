@@ -323,6 +323,9 @@ model DeliveryRequest {
   // blocked at the application layer while any request still uses the
   // key - see deleteDeliveryPackageTypeAdmin).
   packageType     String              @default("PACKAGE")
+  // Sender-entered, purely informational (like packageType/packageNote) -
+  // no pricing logic reads this yet.
+  packageWeightKg Float?
   pickupAddress   String
   pickupLat       Float?
   pickupLng       Float?

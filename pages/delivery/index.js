@@ -11,8 +11,10 @@ import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Divider from "@mui/material/Divider";
 import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
+import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
+import MapAddressPickerDialog from "../../src/components/maps/MapAddressPickerDialog";
 import LiveTrackingMap from "../../src/components/maps/LiveTrackingMap";
 import DeliveryDistancePriceCard from "../../src/components/delivery/DeliveryDistancePriceCard";
 import { packageTypeIconComponent, packageTypeColors } from "../../src/constants/deliveryPackageTypeOptions";
@@ -34,6 +36,8 @@ export default function Delivery() {
   const isFrench = i18n.language?.startsWith("fr");
 
   const [packageType, setPackageType] = useState("PACKAGE");
+  const [packageWeightKg, setPackageWeightKg] = useState("");
+  const [mapPickerFor, setMapPickerFor] = useState(null); // null | "pickup" | "dropoff"
   const [senderName, setSenderName] = useState("");
   const [senderPhone, setSenderPhone] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
@@ -96,6 +100,7 @@ export default function Delivery() {
     () =>
       createDeliveryRequest({
         packageType,
+        packageWeightKg: packageWeightKg ? Number(packageWeightKg) : undefined,
         senderName: senderName || undefined,
         senderPhone: senderPhone || undefined,
         pickupAddress,
@@ -113,6 +118,7 @@ export default function Delivery() {
         toast.success(t("delivery.requestCreated", { amount: formatCfa(request.priceEstimate) }));
         queryClient.invalidateQueries("delivery-requests");
         setPackageType("PACKAGE");
+        setPackageWeightKg("");
         setPickupAddress("");
         setPickupCoords(null);
         setReceiverName("");
@@ -224,6 +230,16 @@ export default function Delivery() {
           })}
         </Box>
 
+        <TextField
+          label={t("delivery.estimatedWeightKg")}
+          type="number"
+          fullWidth
+          inputProps={{ min: 0, step: "0.1" }}
+          value={packageWeightKg}
+          onChange={(e) => setPackageWeightKg(e.target.value)}
+          sx={{ mb: 2.5, bgcolor: "background.paper" }}
+        />
+
         <Typography variant="caption" sx={{ fontWeight: 800, color: "text.secondary", textTransform: "uppercase" }}>
           {t("delivery.senderSectionTitle")}
         </Typography>
@@ -268,6 +284,13 @@ export default function Delivery() {
           >
             <MyLocationRoundedIcon />
           </IconButton>
+          <IconButton
+            onClick={() => setMapPickerFor("pickup")}
+            title={t("delivery.pickOnMap")}
+            sx={{ bgcolor: "background.paper", border: "1px solid #EEEEEE" }}
+          >
+            <MapRoundedIcon />
+          </IconButton>
         </Box>
 
         <Divider sx={{ mb: 2.5 }} />
@@ -291,20 +314,29 @@ export default function Delivery() {
             sx={{ bgcolor: "background.paper" }}
           />
         </Box>
-        <AddressAutocompleteField
-          label={t("delivery.dropoffAddress")}
-          fullWidth
-          value={dropoffAddress}
-          onTextChange={(v) => {
-            setDropoffAddress(v);
-            setDropoffCoords(null);
-          }}
-          onPlaceSelected={({ address, lat, lng }) => {
-            setDropoffAddress(address);
-            setDropoffCoords({ lat, lng });
-          }}
-          sx={{ mb: 2, bgcolor: "background.paper" }}
-        />
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
+          <AddressAutocompleteField
+            label={t("delivery.dropoffAddress")}
+            fullWidth
+            value={dropoffAddress}
+            onTextChange={(v) => {
+              setDropoffAddress(v);
+              setDropoffCoords(null);
+            }}
+            onPlaceSelected={({ address, lat, lng }) => {
+              setDropoffAddress(address);
+              setDropoffCoords({ lat, lng });
+            }}
+            sx={{ bgcolor: "background.paper" }}
+          />
+          <IconButton
+            onClick={() => setMapPickerFor("dropoff")}
+            title={t("delivery.pickOnMap")}
+            sx={{ bgcolor: "background.paper", border: "1px solid #EEEEEE" }}
+          >
+            <MapRoundedIcon />
+          </IconButton>
+        </Box>
 
         {pickupCoords && dropoffCoords && (
           <Box sx={{ mb: 2 }}>
@@ -416,6 +448,21 @@ export default function Delivery() {
           </Box>
         </Box>
       )}
+
+      <MapAddressPickerDialog
+        open={Boolean(mapPickerFor)}
+        onClose={() => setMapPickerFor(null)}
+        initialCenter={mapPickerFor === "pickup" ? pickupCoords : mapPickerFor === "dropoff" ? dropoffCoords : null}
+        onConfirm={({ address, lat, lng }) => {
+          if (mapPickerFor === "pickup") {
+            setPickupAddress(address);
+            setPickupCoords({ lat, lng });
+          } else if (mapPickerFor === "dropoff") {
+            setDropoffAddress(address);
+            setDropoffCoords({ lat, lng });
+          }
+        }}
+      />
     </Box>
   );
 }

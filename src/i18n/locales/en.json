@@ -269,9 +269,16 @@
     "senderPhone": "Sender phone",
     "receiverName": "Receiver name",
     "receiverPhone": "Receiver phone",
+    "estimatedWeightKg": "Estimated weight (kg)",
     "pickupAddress": "Pickup address",
     "dropoffAddress": "Dropoff address",
     "packageNote": "What are you sending? (optional)",
+    "pickOnMap": "Pick on map",
+    "mapPicker": {
+      "searchPlaceholder": "Search for a place",
+      "movePinHint": "Move the map to place the pin",
+      "confirmLocation": "Confirm location"
+    },
     "requesting": "Requesting...",
     "getEstimate": "Get a price estimate",
     "loginToRequest": "Log in to request a delivery",

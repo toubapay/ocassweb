@@ -25,6 +25,7 @@ class DeliveryRequest {
   final String? senderName;
   final String? senderPhone;
   final String packageType;
+  final double? packageWeightKg;
   final String pickupAddress;
   final double? pickupLat;
   final double? pickupLng;
@@ -47,6 +48,7 @@ class DeliveryRequest {
     this.senderName,
     this.senderPhone,
     this.packageType = 'PACKAGE',
+    this.packageWeightKg,
     required this.pickupAddress,
     this.pickupLat,
     this.pickupLng,
@@ -70,6 +72,7 @@ class DeliveryRequest {
         senderName: json['senderName'] as String?,
         senderPhone: json['senderPhone'] as String?,
         packageType: json['packageType'] as String? ?? 'PACKAGE',
+        packageWeightKg: _parseNullableFloat(json['packageWeightKg']),
         pickupAddress: json['pickupAddress'] as String,
         pickupLat: _parseNullableFloat(json['pickupLat']),
         pickupLng: _parseNullableFloat(json['pickupLng']),

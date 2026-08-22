@@ -15,6 +15,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/delivery_distance_price_card.dart';
 import '../../widgets/live_tracking_map.dart';
+import '../../widgets/map_address_picker_screen.dart';
 import '../../widgets/top_bar.dart';
 
 class DeliveryScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   final _receiverPhoneController = TextEditingController();
   final _dropoffController = TextEditingController();
   final _noteController = TextEditingController();
+  final _weightController = TextEditingController();
   bool _submitting = false;
   String _packageType = 'PACKAGE';
   List<DeliveryRequest> _requests = [];
@@ -75,6 +77,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     _receiverPhoneController.dispose();
     _dropoffController.dispose();
     _noteController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -139,6 +142,25 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
         .showSnackBar(SnackBar(content: Text(context.tr('delivery.locationSet'))));
   }
 
+  /// Alternative to both the address autocomplete field and "use my
+  /// location" - pans a map under a fixed pin instead of typing or using
+  /// the device's own position, for pickup and dropoff alike.
+  Future<void> _pickOnMap({required bool isPickup}) async {
+    final current = isPickup ? _pickupCoords : _dropoffCoords;
+    final result = await showMapAddressPicker(context, initialCenter: current);
+    if (result == null || !mounted) return;
+    setState(() {
+      if (isPickup) {
+        _pickupController.text = result.address;
+        _pickupCoords = (result.lat, result.lng);
+      } else {
+        _dropoffController.text = result.address;
+        _dropoffCoords = (result.lat, result.lng);
+      }
+    });
+    _refreshQuote();
+  }
+
   Future<void> _submit() async {
     if (!context.read<AuthProvider>().isAuthenticated) {
       ScaffoldMessenger.of(context)
@@ -159,8 +181,10 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     }
     setState(() => _submitting = true);
     try {
+      final weightText = _weightController.text.trim();
       final request = await apiClient.createDeliveryRequest(
         packageType: _packageType,
+        packageWeightKg: weightText.isEmpty ? null : double.tryParse(weightText),
         pickupAddress: _pickupController.text.trim(),
         dropoffAddress: _dropoffController.text.trim(),
         receiverName: _receiverNameController.text.trim(),
@@ -184,6 +208,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       _receiverPhoneController.clear();
       _dropoffController.clear();
       _noteController.clear();
+      _weightController.clear();
       setState(() {
         _pickupCoords = null;
         _dropoffCoords = null;
@@ -271,6 +296,12 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
               );
             }).toList(),
           ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _weightController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(labelText: context.t('delivery.estimatedWeightKg')),
+          ),
           const SizedBox(height: 20),
           Text(context.t('delivery.senderSectionTitle'),
               style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
@@ -311,6 +342,15 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                   foregroundColor: _pickupCoords != null ? Colors.white : AppColors.amber,
                 ),
               ),
+              IconButton(
+                onPressed: () => _pickOnMap(isPickup: true),
+                tooltip: context.t('delivery.pickOnMap'),
+                icon: const Icon(Icons.map_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: AppColors.divider),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -326,17 +366,34 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(labelText: context.t('delivery.receiverPhone'))),
           const SizedBox(height: 12),
-          AddressAutocompleteField(
-            controller: _dropoffController,
-            label: context.t('delivery.dropoffAddress'),
-            onManualEdit: () {
-              setState(() => _dropoffCoords = null);
-              _refreshQuote();
-            },
-            onPlaceSelected: ({required address, required lat, required lng}) {
-              setState(() => _dropoffCoords = (lat, lng));
-              _refreshQuote();
-            },
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AddressAutocompleteField(
+                  controller: _dropoffController,
+                  label: context.t('delivery.dropoffAddress'),
+                  onManualEdit: () {
+                    setState(() => _dropoffCoords = null);
+                    _refreshQuote();
+                  },
+                  onPlaceSelected: ({required address, required lat, required lng}) {
+                    setState(() => _dropoffCoords = (lat, lng));
+                    _refreshQuote();
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => _pickOnMap(isPickup: false),
+                tooltip: context.t('delivery.pickOnMap'),
+                icon: const Icon(Icons.map_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: AppColors.divider),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           TextField(

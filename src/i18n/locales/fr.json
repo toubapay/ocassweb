@@ -269,9 +269,16 @@
     "senderPhone": "Téléphone de l'expéditeur",
     "receiverName": "Nom du destinataire",
     "receiverPhone": "Téléphone du destinataire",
+    "estimatedWeightKg": "Poids estimé (kg)",
     "pickupAddress": "Adresse de retrait",
     "dropoffAddress": "Adresse de livraison",
     "packageNote": "Que envoyez-vous ? (facultatif)",
+    "pickOnMap": "Choisir sur la carte",
+    "mapPicker": {
+      "searchPlaceholder": "Rechercher un lieu",
+      "movePinHint": "Déplacez la carte pour placer le repère",
+      "confirmLocation": "Confirmer l'emplacement"
+    },
     "requesting": "Demande en cours...",
     "getEstimate": "Obtenir une estimation de prix",
     "loginToRequest": "Connectez-vous pour demander une livraison",

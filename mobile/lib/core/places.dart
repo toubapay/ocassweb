@@ -17,6 +17,7 @@ class PlaceSuggestion {
 }
 
 final Dio _placesDio = Dio(BaseOptions(baseUrl: 'https://maps.googleapis.com/maps/api/place'));
+final Dio _geocodeDio = Dio(BaseOptions(baseUrl: 'https://maps.googleapis.com/maps/api/geocode'));
 
 /// Senegal-restricted autocomplete, mirroring
 /// AddressAutocompleteField.js's `componentRestrictions: { country: "sn" }`.
@@ -60,6 +61,27 @@ Future<({String address, double lat, double lng})?> fetchPlaceDetails(String pla
       lat: (loc['lat'] as num).toDouble(),
       lng: (loc['lng'] as num).toDouble(),
     );
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Resolves coordinates back to a formatted address - the Dart mirror of
+/// MapAddressPickerDialog.js's `new google.maps.Geocoder().geocode(...)`
+/// call, used by MapAddressPickerScreen while the user pans the map under
+/// the fixed center pin. Returns null on any failure (no key, network
+/// error, zero results), same uniform-failure convention as the rest of
+/// this file.
+Future<String?> reverseGeocode(double lat, double lng) async {
+  if (googleMapsApiKey.isEmpty) return null;
+  try {
+    final res = await _geocodeDio.get('/json', queryParameters: {
+      'latlng': '$lat,$lng',
+      'key': googleMapsApiKey,
+    });
+    final results = (res.data['results'] as List?) ?? [];
+    if (results.isEmpty) return null;
+    return results.first['formatted_address'] as String?;
   } catch (_) {
     return null;
   }

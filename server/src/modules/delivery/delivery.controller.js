@@ -14,6 +14,7 @@ const createSchema = z.object({
   // below, not a fixed enum here - see admin.controller.js, which lets an
   // admin add/retire types without a deploy.
   packageType: z.string().min(1).default("PACKAGE"),
+  packageWeightKg: z.coerce.number().positive().max(1000).optional(),
   pickupAddress: z.string().min(3),
   pickupLat: z.number().optional(),
   pickupLng: z.number().optional(),
