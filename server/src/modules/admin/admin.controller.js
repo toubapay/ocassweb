@@ -501,6 +501,124 @@ async function updateCategoryAdmin(req, res, next) {
   }
 }
 
+// ---------------- Delivery package types ----------------
+// Admin-managed catalog of what a delivery can contain (see
+// DeliveryPackageType in schema.prisma) - GET /delivery/package-types
+// (public, delivery.controller.js) is what the request form's picker
+// actually reads, so an admin can add/edit/retire types without a
+// deploy. `icon`/`colorKey` are symbolic names, validated against the
+// same fixed lists the web/Flutter clients use to resolve them to an
+// actual icon+color - keeping this list in sync across all three is a
+// manual convention (documented at each copy), same as elsewhere in the
+// app (e.g. USER_ROLES, MODULE_KEYS).
+
+const DELIVERY_PACKAGE_TYPE_ICONS = [
+  "Inventory2Rounded",
+  "DevicesOtherRounded",
+  "LocalGroceryStoreRounded",
+  "DescriptionRounded",
+  "CardGiftcardRounded",
+  "LocalFloristRounded",
+  "CheckroomRounded",
+  "MedicalServicesRounded",
+  "LuggageRounded",
+  "BuildRounded",
+];
+
+const DELIVERY_PACKAGE_TYPE_COLOR_KEYS = [
+  "slate",
+  "blue",
+  "amber",
+  "green",
+  "red",
+  "purple",
+  "teal",
+  "orange",
+  "pink",
+];
+
+const packageTypeSchema = z.object({
+  labelEn: z.string().min(2),
+  labelFr: z.string().min(2),
+  hintEn: z.string().optional(),
+  hintFr: z.string().optional(),
+  icon: z.enum(DELIVERY_PACKAGE_TYPE_ICONS),
+  colorKey: z.enum(DELIVERY_PACKAGE_TYPE_COLOR_KEYS),
+  sortOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+
+/** Generates a stable UPPER_SNAKE key from labelEn, e.g. "Gift Basket" -> "GIFT_BASKET". */
+function packageTypeKey(text) {
+  return (
+    text
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 40) || "TYPE"
+  );
+}
+
+async function uniquePackageTypeKey(base) {
+  let key = packageTypeKey(base);
+  let attempt = 0;
+  while (await prisma.deliveryPackageType.findUnique({ where: { key } })) {
+    attempt += 1;
+    key = `${packageTypeKey(base)}_${attempt + 1}`;
+    if (attempt > 10) throw new Error("Could not generate a unique package type key");
+  }
+  return key;
+}
+
+async function listDeliveryPackageTypesAdmin(req, res, next) {
+  try {
+    const packageTypes = await prisma.deliveryPackageType.findMany({ orderBy: { sortOrder: "asc" } });
+    res.json({ packageTypes });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createDeliveryPackageTypeAdmin(req, res, next) {
+  try {
+    const data = packageTypeSchema.parse(req.body);
+    const key = await uniquePackageTypeKey(data.labelEn);
+    const packageType = await prisma.deliveryPackageType.create({ data: { ...data, key } });
+    res.status(201).json({ packageType });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateDeliveryPackageTypeAdmin(req, res, next) {
+  try {
+    const data = packageTypeSchema.partial().parse(req.body);
+    const packageType = await prisma.deliveryPackageType.update({ where: { id: req.params.id }, data });
+    res.json({ packageType });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteDeliveryPackageTypeAdmin(req, res, next) {
+  try {
+    const existing = await prisma.deliveryPackageType.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ message: "Package type not found" });
+    const inUse = await prisma.deliveryRequest.count({ where: { packageType: existing.key } });
+    if (inUse > 0) {
+      return res.status(400).json({
+        message: `Cannot delete: ${inUse} delivery request(s) use this package type. Deactivate it instead.`,
+      });
+    }
+    await prisma.deliveryPackageType.delete({ where: { id: req.params.id } });
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Providers (SMS gateway, and other services) ----------------
 
 const providerSchema = z.object({
@@ -807,6 +925,10 @@ module.exports = {
   listCategoriesAdmin,
   createCategoryAdmin,
   updateCategoryAdmin,
+  listDeliveryPackageTypesAdmin,
+  createDeliveryPackageTypeAdmin,
+  updateDeliveryPackageTypeAdmin,
+  deleteDeliveryPackageTypeAdmin,
   listProviders,
   createProvider,
   updateProvider,

@@ -7,8 +7,10 @@ import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/delivery_package_type.dart';
 import '../../models/delivery_request.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/delivery_distance_price_card.dart';
@@ -33,6 +35,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   bool _submitting = false;
   String _packageType = 'PACKAGE';
   List<DeliveryRequest> _requests = [];
+  List<DeliveryPackageType> _packageTypes = [];
   (double, double)? _pickupCoords;
   (double, double)? _dropoffCoords;
   ({double distanceKm, double priceEstimate})? _feeQuote;
@@ -40,7 +43,27 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRequests());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRequests();
+      _loadPackageTypes();
+    });
+  }
+
+  Future<void> _loadPackageTypes() async {
+    try {
+      final packageTypes = await apiClient.fetchDeliveryPackageTypes();
+      if (mounted) setState(() => _packageTypes = packageTypes);
+    } catch (_) {
+      // Picker just stays empty - createDeliveryRequest still defaults to
+      // 'PACKAGE' server-side if this never loads.
+    }
+  }
+
+  DeliveryPackageType? _packageTypeByKey(String key) {
+    for (final p in _packageTypes) {
+      if (p.key == key) return p;
+    }
+    return null;
   }
 
   @override
@@ -179,6 +202,8 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final language = context.watch<LocaleProvider>().language;
+    final activePackageTypes = _packageTypes.where((p) => p.isActive).toList();
     return Scaffold(
       appBar: TopBar(
           title: context.t('delivery.title'), showBack: false, showSearch: false, showCart: false),
@@ -198,8 +223,10 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
             childAspectRatio: 2.6,
-            children: deliveryPackageTypes.map((p) {
+            children: activePackageTypes.map((p) {
               final selected = _packageType == p.key;
+              final colors = packageTypeColor(p.colorKey);
+              final hint = p.hint(language);
               return InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () => setState(() => _packageType = p.key),
@@ -218,8 +245,8 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                       Container(
                         width: 36,
                         height: 36,
-                        decoration: BoxDecoration(color: p.bg, borderRadius: BorderRadius.circular(8)),
-                        child: Icon(p.icon, color: p.color, size: 18),
+                        decoration: BoxDecoration(color: colors.bg, borderRadius: BorderRadius.circular(8)),
+                        child: Icon(packageTypeIcon(p.icon), color: colors.color, size: 18),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -227,13 +254,14 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(context.t('delivery.packageType.${p.key}.label'),
+                            Text(p.label(language),
                                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                                 overflow: TextOverflow.ellipsis),
-                            Text(context.t('delivery.packageType.${p.key}.hint'),
-                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
+                            if (hint != null && hint.isNotEmpty)
+                              Text(hint,
+                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
@@ -362,16 +390,21 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                               visualDensity: VisualDensity.compact),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Chip(
-                        avatar: Icon(packageTypeConfig(r.packageType).icon,
-                            size: 16, color: packageTypeConfig(r.packageType).color),
-                        label: Text(context.t('delivery.packageType.${r.packageType}.label'),
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                        visualDensity: VisualDensity.compact,
-                        backgroundColor: Colors.white,
-                        side: const BorderSide(color: AppColors.divider),
-                      ),
+                      if (_packageTypeByKey(r.packageType) != null) ...[
+                        const SizedBox(height: 4),
+                        Builder(builder: (context) {
+                          final pt = _packageTypeByKey(r.packageType)!;
+                          final colors = packageTypeColor(pt.colorKey);
+                          return Chip(
+                            avatar: Icon(packageTypeIcon(pt.icon), size: 16, color: colors.color),
+                            label: Text(pt.label(language),
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                            visualDensity: VisualDensity.compact,
+                            backgroundColor: Colors.white,
+                            side: const BorderSide(color: AppColors.divider),
+                          );
+                        }),
+                      ],
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

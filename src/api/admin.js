@@ -53,6 +53,16 @@ export const createAdminCategory = (payload) =>
 export const updateAdminCategory = (id, payload) =>
   apiClient.patch(`/admin/categories/${id}`, payload).then((res) => res.data.category);
 
+// Delivery package types
+export const fetchAdminDeliveryPackageTypes = () =>
+  apiClient.get("/admin/delivery-package-types").then((res) => res.data.packageTypes);
+export const createAdminDeliveryPackageType = (payload) =>
+  apiClient.post("/admin/delivery-package-types", payload).then((res) => res.data.packageType);
+export const updateAdminDeliveryPackageType = (id, payload) =>
+  apiClient.patch(`/admin/delivery-package-types/${id}`, payload).then((res) => res.data.packageType);
+export const deleteAdminDeliveryPackageType = (id) =>
+  apiClient.delete(`/admin/delivery-package-types/${id}`);
+
 // Providers
 export const fetchAdminProviders = (category) =>
   apiClient

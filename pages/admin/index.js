@@ -10,6 +10,7 @@ import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import PercentRoundedIcon from "@mui/icons-material/PercentRounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import CloudRoundedIcon from "@mui/icons-material/CloudRounded";
@@ -23,6 +24,7 @@ import AdminModulesTab from "../../src/components/admin/AdminModulesTab";
 import AdminServiceFeesTab from "../../src/components/admin/AdminServiceFeesTab";
 import AdminVendorsTab from "../../src/components/admin/AdminVendorsTab";
 import AdminCategoriesTab from "../../src/components/admin/AdminCategoriesTab";
+import AdminDeliveryPackageTypesTab from "../../src/components/admin/AdminDeliveryPackageTypesTab";
 import AdminRestaurantsTab from "../../src/components/admin/AdminRestaurantsTab";
 import AdminZonesTab from "../../src/components/admin/AdminZonesTab";
 import AdminProvidersTab from "../../src/components/admin/AdminProvidersTab";
@@ -36,6 +38,12 @@ const TABS = [
   { id: "dashboard", labelKey: "admin.tabs.dashboard", icon: DashboardRoundedIcon, Component: AdminStatsTab },
   { id: "users", labelKey: "admin.tabs.users", icon: PeopleRoundedIcon, Component: AdminUsersTab },
   { id: "modules", labelKey: "admin.tabs.modules", icon: TuneRoundedIcon, Component: AdminModulesTab },
+  {
+    id: "deliveryPackageTypes",
+    labelKey: "admin.tabs.deliveryPackageTypes",
+    icon: Inventory2RoundedIcon,
+    Component: AdminDeliveryPackageTypesTab,
+  },
   {
     id: "serviceFees",
     labelKey: "admin.tabs.serviceFees",

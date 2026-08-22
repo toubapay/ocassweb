@@ -15,21 +15,23 @@ import TopBar from "../../src/components/layout/TopBar";
 import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import LiveTrackingMap from "../../src/components/maps/LiveTrackingMap";
 import DeliveryDistancePriceCard from "../../src/components/delivery/DeliveryDistancePriceCard";
-import { DELIVERY_PACKAGE_TYPES, packageTypeConfig } from "../../src/constants/deliveryPackageTypes";
+import { packageTypeIconComponent, packageTypeColors } from "../../src/constants/deliveryPackageTypeOptions";
 import useAuth from "../../src/hooks/useAuth";
 import {
   fetchDeliveryRequests,
   createDeliveryRequest,
   cancelDeliveryRequest,
   fetchDeliveryFeeQuote,
+  fetchDeliveryPackageTypes,
 } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
 
 export default function Delivery() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
+  const isFrench = i18n.language?.startsWith("fr");
 
   const [packageType, setPackageType] = useState("PACKAGE");
   const [senderName, setSenderName] = useState("");
@@ -55,6 +57,14 @@ export default function Delivery() {
   const { data: requests } = useQuery("delivery-requests", fetchDeliveryRequests, {
     enabled: isAuthenticated,
   });
+
+  // Admin-managed catalog (see AdminDeliveryPackageTypesTab.js /
+  // GET /delivery/package-types) - the picker below only offers active
+  // types, but a lookup by key still needs every row (active or not) so a
+  // request's badge can resolve even after its type is later deactivated.
+  const { data: packageTypes } = useQuery("delivery-package-types", fetchDeliveryPackageTypes);
+  const activePackageTypes = (packageTypes || []).filter((pt) => pt.isActive);
+  const packageTypeByKey = (key) => (packageTypes || []).find((pt) => pt.key === key);
 
   const { data: feeQuote } = useQuery(
     ["delivery-fee-quote", pickupCoords, dropoffCoords],
@@ -153,9 +163,12 @@ export default function Delivery() {
           {t("delivery.packageType.heading")}
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, mt: 1, mb: 2.5 }}>
-          {DELIVERY_PACKAGE_TYPES.map((p) => {
-            const Icon = p.icon;
+          {activePackageTypes.map((p) => {
+            const Icon = packageTypeIconComponent(p.icon);
+            const { color, bg } = packageTypeColors(p.colorKey);
             const selected = packageType === p.key;
+            const label = isFrench ? p.labelFr : p.labelEn;
+            const hint = isFrench ? p.hintFr : p.hintEn;
             return (
               <Box
                 key={p.key}
@@ -181,28 +194,30 @@ export default function Delivery() {
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
-                    bgcolor: p.bg,
-                    color: p.color,
+                    bgcolor: bg,
+                    color,
                   }}
                 >
                   <Icon fontSize="small" />
                 </Box>
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                    {t(`delivery.packageType.${p.key}.label`)}
+                    {label}
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "text.secondary",
-                      display: "block",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {t(`delivery.packageType.${p.key}.hint`)}
-                  </Typography>
+                  {hint && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {hint}
+                    </Typography>
+                  )}
                 </Box>
               </Box>
             );
@@ -339,18 +354,21 @@ export default function Delivery() {
                   </Typography>
                   <Chip label={t(`delivery.status.${r.status}`, { defaultValue: r.status })} size="small" />
                 </Box>
-                {r.packageType && (
-                  <Chip
-                    size="small"
-                    variant="outlined"
-                    icon={(() => {
-                      const Icon = packageTypeConfig(r.packageType).icon;
-                      return <Icon fontSize="small" sx={{ color: `${packageTypeConfig(r.packageType).color} !important` }} />;
-                    })()}
-                    label={t(`delivery.packageType.${r.packageType}.label`)}
-                    sx={{ mt: 0.75, fontWeight: 700, borderColor: "#EEEEEE" }}
-                  />
-                )}
+                {(() => {
+                  const pt = packageTypeByKey(r.packageType);
+                  if (!pt) return null;
+                  const Icon = packageTypeIconComponent(pt.icon);
+                  const { color } = packageTypeColors(pt.colorKey);
+                  return (
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      icon={<Icon fontSize="small" sx={{ color: `${color} !important` }} />}
+                      label={isFrench ? pt.labelFr : pt.labelEn}
+                      sx={{ mt: 0.75, fontWeight: 700, borderColor: "#EEEEEE" }}
+                    />
+                  );
+                })()}
                 {r.receiverName && (
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.25 }}>
                     {t("delivery.tracking.receiver")}: {r.receiverName} · {r.receiverPhone}

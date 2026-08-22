@@ -10,7 +10,10 @@ const createSchema = z.object({
   // time (see createRequest) when sending on their own behalf.
   senderName: z.string().min(2).optional(),
   senderPhone: z.string().min(6).optional(),
-  packageType: z.enum(["PACKAGE", "ELECTRONICS", "FOOD", "DOCUMENT"]).default("PACKAGE"),
+  // Validated against the live DeliveryPackageType catalog in createRequest
+  // below, not a fixed enum here - see admin.controller.js, which lets an
+  // admin add/retire types without a deploy.
+  packageType: z.string().min(1).default("PACKAGE"),
   pickupAddress: z.string().min(3),
   pickupLat: z.number().optional(),
   pickupLng: z.number().optional(),
@@ -98,6 +101,23 @@ async function getFeeQuote(req, res, next) {
   }
 }
 
+/**
+ * Public catalog of what a delivery can contain (see DeliveryPackageType
+ * in schema.prisma), for the request form's picker. Returns every row,
+ * active or not - the create-form filters to isActive client-side for the
+ * picker, but a completed/historical request may reference a type an
+ * admin has since deactivated, and its badge still needs a label/icon to
+ * render (see DeliveryDistancePriceCard's call sites).
+ */
+async function listPackageTypes(req, res, next) {
+  try {
+    const packageTypes = await prisma.deliveryPackageType.findMany({ orderBy: { sortOrder: "asc" } });
+    res.json({ packageTypes });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listMyRequests(req, res, next) {
   try {
     const requests = await prisma.deliveryRequest.findMany({
@@ -130,6 +150,10 @@ async function getRequest(req, res, next) {
 async function createRequest(req, res, next) {
   try {
     const data = createSchema.parse(req.body);
+    const packageType = await prisma.deliveryPackageType.findUnique({ where: { key: data.packageType } });
+    if (!packageType || !packageType.isActive) {
+      return res.status(400).json({ message: "Unknown package type" });
+    }
     const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
     const quote = await computeQuote(data, feeConfig);
     const request = await prisma.deliveryRequest.create({
@@ -331,6 +355,7 @@ module.exports = {
   createRequest,
   cancelRequest,
   getFeeQuote,
+  listPackageTypes,
   listAvailable,
   listMyJobs,
   acceptRequest,

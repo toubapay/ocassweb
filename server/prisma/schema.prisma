@@ -269,14 +269,34 @@ model Review {
 
 // ---------- Delivery module (stub) ----------
 
-// What's being sent - purely informational for the sender/agent (no
-// pricing or eligibility logic reads this yet), matching the category
-// picker on the request form.
-enum DeliveryPackageType {
-  PACKAGE
-  ELECTRONICS
-  FOOD
-  DOCUMENT
+// Admin-managed catalog of what a delivery can contain - purely
+// informational for the sender/agent (no pricing or eligibility logic
+// reads this yet), matching the category picker on the request form.
+// `key` is what DeliveryRequest.packageType actually stores (a plain
+// String, not a relation - see the field below), generated once from
+// labelEn at creation time and never changed after, so existing requests
+// keep resolving even if the label is later edited. Deleting a row is
+// blocked server-side while any request still references its key (see
+// deleteDeliveryPackageTypeAdmin) - isActive is the normal retire lever,
+// same pattern as Category.isActive.
+model DeliveryPackageType {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  labelEn   String
+  labelFr   String
+  hintEn    String?
+  hintFr    String?
+  // Both are symbolic names resolved into an actual icon/color by a fixed,
+  // matching lookup table on each client (web: src/constants/
+  // deliveryPackageTypeOptions.js, Flutter: constants/delivery_package_types.dart)
+  // - kept as names rather than raw hex/asset refs so the exact rendering
+  // can be tweaked per-platform without a migration.
+  icon      String   @default("Inventory2Rounded")
+  colorKey  String   @default("slate")
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum DeliveryStatus {
@@ -297,7 +317,12 @@ model DeliveryRequest {
   // duplicating them here when the requester is also the sender.
   senderName      String?
   senderPhone     String?
-  packageType     DeliveryPackageType @default(PACKAGE)
+  // References DeliveryPackageType.key, not its id - deliberately a plain
+  // string rather than a relation so a row can be hard-deleted from the
+  // admin catalog without a FK ever blocking it (deletion is instead
+  // blocked at the application layer while any request still uses the
+  // key - see deleteDeliveryPackageTypeAdmin).
+  packageType     String              @default("PACKAGE")
   pickupAddress   String
   pickupLat       Float?
   pickupLng       Float?

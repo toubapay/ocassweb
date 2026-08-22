@@ -6,6 +6,7 @@ const {
   createRequest,
   cancelRequest,
   getFeeQuote,
+  listPackageTypes,
   listAvailable,
   listMyJobs,
   acceptRequest,
@@ -21,6 +22,7 @@ const requireAgent = requireRole("DELIVERY_AGENT");
 // logging in, same as mobile's GET /mobile/fee-quote. Static path, so it
 // must come before the dynamic /requests/:id below to avoid being shadowed.
 router.get("/fee-quote", getFeeQuote);
+router.get("/package-types", listPackageTypes);
 
 router.get("/requests", requireAuth, listMyRequests);
 router.post("/requests", requireAuth, createRequest);
