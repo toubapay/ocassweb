@@ -20,9 +20,13 @@ import { fetchMyMobileTransactions } from "../../../src/api/mobile";
 // "Favorites" is just the distinct phone numbers pulled from the user's
 // own AIRTIME transaction history (there's no separate favorites concept
 // server-side). The browser Contact Picker API (navigator.contacts) only
-// works on supported mobile browsers and only returns what the user
-// explicitly picks per invocation - unlike the Flutter app there's no
-// persistent, browsable device contacts list here.
+// works on supported mobile browsers (Chrome for Android; notably not
+// iOS Safari, which has no web API for contacts access at all) and only
+// returns what the user explicitly picks per invocation - unlike the
+// Flutter app (flutter_contacts) there's no persistent, browsable device
+// contacts list here. "Choose from contacts" stays visible either way,
+// rather than silently disappearing on unsupported browsers, so it
+// explains itself (contactsNotSupported) instead of just not being there.
 export default function AirtimeRecipient() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -71,6 +75,10 @@ export default function AirtimeRecipient() {
   };
 
   const pickContact = async () => {
+    if (!contactsSupported) {
+      toast(t("topup.airtime.contactsNotSupported"));
+      return;
+    }
     try {
       const contacts = await navigator.contacts.select(["tel", "name"], { multiple: false });
       const picked = contacts[0];
@@ -111,17 +119,31 @@ export default function AirtimeRecipient() {
           <Typography sx={{ fontWeight: 700 }}>{t("topup.airtime.buyForNewNumber")}</Typography>
         </Box>
 
-        {contactsSupported && (
-          <Box
-            onClick={pickContact}
-            sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1, cursor: "pointer" }}
+        <Box
+          onClick={pickContact}
+          sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1, cursor: "pointer" }}
+        >
+          <Avatar
+            sx={{
+              bgcolor: contactsSupported ? "primary.light" : "action.selected",
+              color: contactsSupported ? "primary.main" : "text.disabled",
+              width: 36,
+              height: 36,
+            }}
           >
-            <Avatar sx={{ bgcolor: "primary.light", color: "primary.main", width: 36, height: 36 }}>
-              <ContactPhoneRoundedIcon fontSize="small" />
-            </Avatar>
-            <Typography sx={{ fontWeight: 700 }}>{t("topup.airtime.chooseFromContacts")}</Typography>
+            <ContactPhoneRoundedIcon fontSize="small" />
+          </Avatar>
+          <Box>
+            <Typography sx={{ fontWeight: 700, color: contactsSupported ? "text.primary" : "text.secondary" }}>
+              {t("topup.airtime.chooseFromContacts")}
+            </Typography>
+            {!contactsSupported && (
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                {t("topup.airtime.contactsNotSupported")}
+              </Typography>
+            )}
           </Box>
-        )}
+        </Box>
 
         {filteredFavorites.length > 0 && (
           <Box sx={{ mt: 3 }}>
