@@ -45,7 +45,7 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
   }
 
   Future<void> _load() async {
-    if (!mounted || context.read<AuthProvider>().user?.role != 'VENDOR') return;
+    if (!mounted || context.read<AuthProvider>().user?.store == null) return;
     setState(() => _loading = true);
     try {
       final results = await Future.wait([

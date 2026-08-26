@@ -117,8 +117,18 @@
   "profile": {
     "notSignedIn": "Vous n'êtes pas connecté",
     "defaultName": "Utilisateur Ocass",
+    "badges": {
+      "client": "Client",
+      "vendor": "Commerçant",
+      "restaurant": "Restaurateur",
+      "agent": "Livreur",
+      "rider": "Chauffeur",
+      "admin": "Administrateur"
+    },
     "links": {
       "wallet": "Portefeuille",
+      "myBoutique": "Ma boutique",
+      "myRestaurant": "Mon restaurant",
       "myOrders": "Mes commandes",
       "myFoodOrders": "Mes commandes de repas",
       "myWishlist": "Ma liste de souhaits",
@@ -138,8 +148,6 @@
     "stopGigWork": "Repasser en client",
     "agentDashboard": "Tableau de bord livreur",
     "driverDashboard": "Tableau de bord chauffeur",
-    "vendorDashboard": "Tableau de bord vendeur",
-    "restaurantDashboard": "Tableau de bord restaurant",
     "roleUpdated": "Rôle mis à jour",
     "couldNotUpdateRole": "Impossible de mettre à jour le rôle"
   },

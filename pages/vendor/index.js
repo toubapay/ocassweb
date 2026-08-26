@@ -21,7 +21,10 @@ export default function VendorDashboard() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
-  const isVendor = isAuthenticated && user?.role === "VENDOR";
+  // Store ownership, not the self-serve `role` toggle, is what actually
+  // gates access server-side (see requireStoreOwner) - a vendor who later
+  // also becomes e.g. a delivery agent keeps their store dashboard.
+  const isVendor = isAuthenticated && Boolean(user?.store);
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");

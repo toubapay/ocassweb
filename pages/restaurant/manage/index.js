@@ -21,7 +21,10 @@ export default function RestaurantManageDashboard() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
-  const isOwner = isAuthenticated && user?.role === "RESTAURANT_OWNER";
+  // Restaurant ownership, not the self-serve `role` toggle, is what
+  // actually gates access server-side (see requireRestaurantOwner) - an
+  // owner who later also becomes e.g. a rider keeps their dashboard.
+  const isOwner = isAuthenticated && Boolean(user?.restaurant);
 
   const [name, setName] = useState("");
   const [cuisine, setCuisine] = useState("");

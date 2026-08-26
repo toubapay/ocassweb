@@ -44,7 +44,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   }
 
   Future<void> _load() async {
-    if (!mounted || context.read<AuthProvider>().user?.role != 'VENDOR') return;
+    if (!mounted || context.read<AuthProvider>().user?.store == null) return;
     setState(() => _loading = true);
     try {
       final store = await apiClient.fetchMyStore();
@@ -100,7 +100,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isAuthenticated = context.watch<AuthProvider>().isAuthenticated;
-    final isVendor = isAuthenticated && context.watch<AuthProvider>().user?.role == 'VENDOR';
+    // Store ownership, not the self-serve `role` toggle, is what actually
+    // gates access server-side (see requireStoreOwner) - a vendor who
+    // later also becomes e.g. a delivery agent keeps their dashboard.
+    final isVendor = isAuthenticated && context.watch<AuthProvider>().user?.store != null;
 
     if (!isAuthenticated) {
       return Scaffold(

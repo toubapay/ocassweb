@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { requireAuth, requireRole } = require("../../middleware/auth");
+const { requireAuth, requireStoreOwner } = require("../../middleware/auth");
 const {
   getStoreBySlug,
   getMyStore,
@@ -14,14 +14,22 @@ const {
 
 const router = Router();
 
-// Public - before the auth/role gate below, for shoppers browsing a
-// vendor's storefront (see pages/store/[slug].js).
+// Public - before the auth gate below, for shoppers browsing a vendor's
+// storefront (see pages/store/[slug].js).
 router.get("/stores/:slug", getStoreBySlug);
 
-router.use(requireAuth, requireRole("VENDOR"));
+router.use(requireAuth);
+
+// Creating a store is the "become a vendor" step itself, so it can't be
+// gated on already owning one - createStore self-guards against
+// duplicates. Everything else requires actually owning a store (see
+// requireStoreOwner), which stays true regardless of the self-serve role
+// toggle in profile.js - so a vendor who later also becomes a delivery
+// agent doesn't lose access to their own store.
+router.post("/store", createStore);
+router.use(requireStoreOwner);
 
 router.get("/store", getMyStore);
-router.post("/store", createStore);
 router.patch("/store", updateStore);
 
 router.get("/products", listMyProducts);

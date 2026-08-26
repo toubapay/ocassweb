@@ -48,7 +48,7 @@ class _RestaurantManageScreenState extends State<RestaurantManageScreen> {
   }
 
   Future<void> _load() async {
-    if (!mounted || context.read<AuthProvider>().user?.role != 'RESTAURANT_OWNER') return;
+    if (!mounted || context.read<AuthProvider>().user?.restaurant == null) return;
     setState(() => _loading = true);
     try {
       final restaurant = await apiClient.fetchMyRestaurant();
@@ -99,7 +99,10 @@ class _RestaurantManageScreenState extends State<RestaurantManageScreen> {
   @override
   Widget build(BuildContext context) {
     final isAuthenticated = context.watch<AuthProvider>().isAuthenticated;
-    final isOwner = isAuthenticated && context.watch<AuthProvider>().user?.role == 'RESTAURANT_OWNER';
+    // Restaurant ownership, not the self-serve `role` toggle, is what
+    // actually gates access server-side (see requireRestaurantOwner) - an
+    // owner who later also becomes e.g. a rider keeps their dashboard.
+    final isOwner = isAuthenticated && context.watch<AuthProvider>().user?.restaurant != null;
 
     if (!isAuthenticated) {
       return Scaffold(

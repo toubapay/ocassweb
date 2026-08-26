@@ -6,15 +6,19 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
+import RestaurantMenuRoundedIcon from "@mui/icons-material/RestaurantMenuRounded";
+import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
 import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
+import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
 import HealthAndSafetyRoundedIcon from "@mui/icons-material/HealthAndSafetyRounded";
 import SimCardRoundedIcon from "@mui/icons-material/SimCardRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
@@ -48,8 +52,42 @@ export default function Profile() {
     );
   }
 
+  // Store/restaurant ownership is independent of the self-serve `role`
+  // toggle below (see server/src/middleware/auth.js requireStoreOwner) -
+  // someone who owns a store keeps their "Commerçant" badge and "My
+  // boutique" link even after switching their active role to e.g.
+  // DELIVERY_AGENT, since the two are no longer the same flag. This is
+  // what makes "client + vendor + livreur" all show at once instead of
+  // forcing a single mutually-exclusive hat.
+  const hasStore = Boolean(user?.store);
+  const hasRestaurant = Boolean(user?.restaurant);
+  const isAgent = user?.role === "DELIVERY_AGENT";
+  const isRider = user?.role === "RIDER";
+  const isAdmin = user?.role === "ADMIN";
+
+  const badges = [
+    { key: "client", label: t("profile.badges.client"), color: "default" },
+    ...(hasStore ? [{ key: "vendor", label: t("profile.badges.vendor"), color: "success" }] : []),
+    ...(hasRestaurant ? [{ key: "restaurant", label: t("profile.badges.restaurant"), color: "warning" }] : []),
+    ...(isAgent ? [{ key: "agent", label: t("profile.badges.agent"), color: "info" }] : []),
+    ...(isRider ? [{ key: "rider", label: t("profile.badges.rider"), color: "secondary" }] : []),
+    ...(isAdmin ? [{ key: "admin", label: t("profile.badges.admin"), color: "error" }] : []),
+  ];
+
   const links = [
     { label: t("profile.links.wallet"), icon: AccountBalanceWalletRoundedIcon, href: "/wallet" },
+    ...(hasStore
+      ? [{ label: t("profile.links.myBoutique"), icon: StorefrontRoundedIcon, href: "/vendor" }]
+      : []),
+    ...(hasRestaurant
+      ? [{ label: t("profile.links.myRestaurant"), icon: RestaurantMenuRoundedIcon, href: "/restaurant/manage" }]
+      : []),
+    ...(isAgent
+      ? [{ label: t("profile.agentDashboard"), icon: LocalShippingRoundedIcon, href: "/delivery/agent" }]
+      : []),
+    ...(isRider
+      ? [{ label: t("profile.driverDashboard"), icon: DirectionsCarFilledRoundedIcon, href: "/ride-sharing/driver" }]
+      : []),
     { label: t("profile.links.myOrders"), icon: ReceiptLongRoundedIcon, href: "/ecommerce/orders" },
     { label: t("profile.links.myFoodOrders"), icon: RestaurantRoundedIcon, href: "/restaurant/orders" },
     { label: t("profile.links.myWishlist"), icon: FavoriteRoundedIcon, href: "/ecommerce/wishlist" },
@@ -57,9 +95,7 @@ export default function Profile() {
     { label: t("profile.links.myRides"), icon: TwoWheelerRoundedIcon, href: "/ride-sharing" },
     { label: t("profile.links.myInsurancePolicies"), icon: HealthAndSafetyRoundedIcon, href: "/insurance" },
     { label: t("profile.links.topupsAndBills"), icon: SimCardRoundedIcon, href: "/topup" },
-    ...(user?.role === "ADMIN"
-      ? [{ label: t("profile.links.admin"), icon: AdminPanelSettingsRoundedIcon, href: "/admin" }]
-      : []),
+    ...(isAdmin ? [{ label: t("profile.links.admin"), icon: AdminPanelSettingsRoundedIcon, href: "/admin" }] : []),
   ];
 
   return (
@@ -73,9 +109,14 @@ export default function Profile() {
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
             {user?.name || t("profile.defaultName")}
           </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.75 }}>
             {user?.phone}
           </Typography>
+          <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+            {badges.map((badge) => (
+              <Chip key={badge.key} label={badge.label} color={badge.color} size="small" sx={{ fontWeight: 700 }} />
+            ))}
+          </Box>
         </Box>
       </Box>
 
@@ -100,8 +141,28 @@ export default function Profile() {
         <Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1 }}>
           {t("profile.workSectionTitle")}
         </Typography>
-        {user?.role === "CUSTOMER" && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          {!hasStore && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => router.push("/vendor/register")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.becomeVendor")}
+            </Button>
+          )}
+          {!hasRestaurant && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => router.push("/restaurant/register")}
+              sx={{ fontWeight: 700 }}
+            >
+              {t("profile.becomeRestaurantOwner")}
+            </Button>
+          )}
+          {!isAgent && (
             <Button
               variant="outlined"
               size="small"
@@ -111,6 +172,8 @@ export default function Profile() {
             >
               {t("profile.becomeAgent")}
             </Button>
+          )}
+          {!isRider && (
             <Button
               variant="outlined"
               size="small"
@@ -120,34 +183,8 @@ export default function Profile() {
             >
               {t("profile.becomeRider")}
             </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => router.push("/vendor/register")}
-              sx={{ fontWeight: 700 }}
-            >
-              {t("profile.becomeVendor")}
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => router.push("/restaurant/register")}
-              sx={{ fontWeight: 700 }}
-            >
-              {t("profile.becomeRestaurantOwner")}
-            </Button>
-          </Box>
-        )}
-        {user?.role === "DELIVERY_AGENT" && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => router.push("/delivery/agent")}
-              sx={{ fontWeight: 700 }}
-            >
-              {t("profile.agentDashboard")}
-            </Button>
+          )}
+          {(isAgent || isRider) && (
             <Button
               variant="text"
               size="small"
@@ -156,68 +193,8 @@ export default function Profile() {
             >
               {t("profile.stopGigWork")}
             </Button>
-          </Box>
-        )}
-        {user?.role === "RIDER" && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => router.push("/ride-sharing/driver")}
-              sx={{ fontWeight: 700 }}
-            >
-              {t("profile.driverDashboard")}
-            </Button>
-            <Button
-              variant="text"
-              size="small"
-              disabled={roleMutation.isLoading}
-              onClick={() => roleMutation.mutate("CUSTOMER")}
-            >
-              {t("profile.stopGigWork")}
-            </Button>
-          </Box>
-        )}
-        {user?.role === "VENDOR" && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => router.push("/vendor")}
-              sx={{ fontWeight: 700 }}
-            >
-              {t("profile.vendorDashboard")}
-            </Button>
-            <Button
-              variant="text"
-              size="small"
-              disabled={roleMutation.isLoading}
-              onClick={() => roleMutation.mutate("CUSTOMER")}
-            >
-              {t("profile.stopGigWork")}
-            </Button>
-          </Box>
-        )}
-        {user?.role === "RESTAURANT_OWNER" && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => router.push("/restaurant/manage")}
-              sx={{ fontWeight: 700 }}
-            >
-              {t("profile.restaurantDashboard")}
-            </Button>
-            <Button
-              variant="text"
-              size="small"
-              disabled={roleMutation.isLoading}
-              onClick={() => roleMutation.mutate("CUSTOMER")}
-            >
-              {t("profile.stopGigWork")}
-            </Button>
-          </Box>
-        )}
+          )}
+        </Box>
       </Box>
 
       <LanguageSwitcher />

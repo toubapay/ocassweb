@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { requireAuth, requireRole } = require("../../middleware/auth");
+const { requireAuth, requireRestaurantOwner } = require("../../middleware/auth");
 const {
   listRestaurants,
   getRestaurant,
@@ -20,24 +20,29 @@ const {
 } = require("./orders.controller");
 
 const router = Router();
-const requireOwner = requireRole("RESTAURANT_OWNER");
 
 // Static routes must be registered before the "/:slug" catch-all below, or
 // Express would match them as slug="orders" / slug="owner".
 router.get("/orders", requireAuth, listMyOrders);
 router.patch("/orders/:id/cancel", requireAuth, cancelOrder);
 
-router.get("/owner/restaurant", requireAuth, requireOwner, getMyRestaurant);
-router.post("/owner/restaurant", requireAuth, requireOwner, createRestaurant);
-router.patch("/owner/restaurant", requireAuth, requireOwner, updateRestaurant);
+// Creating a restaurant is the "become an owner" step itself, so it can't
+// be gated on already owning one - createRestaurant self-guards against
+// duplicates. Everything else requires actually owning a restaurant (see
+// requireRestaurantOwner), which stays true regardless of the self-serve
+// role toggle in profile.js - so an owner who later also becomes a rider
+// doesn't lose access to their own restaurant.
+router.post("/owner/restaurant", requireAuth, createRestaurant);
+router.get("/owner/restaurant", requireAuth, requireRestaurantOwner, getMyRestaurant);
+router.patch("/owner/restaurant", requireAuth, requireRestaurantOwner, updateRestaurant);
 
-router.get("/owner/menu-items", requireAuth, requireOwner, listMyMenuItems);
-router.post("/owner/menu-items", requireAuth, requireOwner, createMenuItem);
-router.patch("/owner/menu-items/:id", requireAuth, requireOwner, updateMenuItem);
-router.delete("/owner/menu-items/:id", requireAuth, requireOwner, deactivateMenuItem);
+router.get("/owner/menu-items", requireAuth, requireRestaurantOwner, listMyMenuItems);
+router.post("/owner/menu-items", requireAuth, requireRestaurantOwner, createMenuItem);
+router.patch("/owner/menu-items/:id", requireAuth, requireRestaurantOwner, updateMenuItem);
+router.delete("/owner/menu-items/:id", requireAuth, requireRestaurantOwner, deactivateMenuItem);
 
-router.get("/owner/orders", requireAuth, requireOwner, listMyRestaurantOrders);
-router.patch("/owner/orders/:id/status", requireAuth, requireOwner, updateOrderStatus);
+router.get("/owner/orders", requireAuth, requireRestaurantOwner, listMyRestaurantOrders);
+router.patch("/owner/orders/:id/status", requireAuth, requireRestaurantOwner, updateOrderStatus);
 
 router.get("/", listRestaurants);
 router.get("/:slug", getRestaurant);
