@@ -41,7 +41,7 @@ class _RestaurantManageOrdersScreenState extends State<RestaurantManageOrdersScr
   }
 
   Future<void> _load() async {
-    if (!mounted || context.read<AuthProvider>().user?.role != 'RESTAURANT_OWNER') return;
+    if (!mounted || context.read<AuthProvider>().user?.restaurant == null) return;
     setState(() => _loading = true);
     try {
       final orders = await apiClient.fetchMyRestaurantOrders();

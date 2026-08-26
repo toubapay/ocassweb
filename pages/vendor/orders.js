@@ -14,7 +14,7 @@ export default function VendorOrders() {
   const router = useRouter();
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
-  const isVendor = isAuthenticated && user?.role === "VENDOR";
+  const isVendor = isAuthenticated && Boolean(user?.store);
 
   const { data: orders, isLoading } = useQuery("vendor-orders", fetchMyVendorOrders, {
     enabled: isVendor,

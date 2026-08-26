@@ -117,8 +117,18 @@
   "profile": {
     "notSignedIn": "You're not signed in",
     "defaultName": "Ocass user",
+    "badges": {
+      "client": "Customer",
+      "vendor": "Merchant",
+      "restaurant": "Restaurant owner",
+      "agent": "Delivery agent",
+      "rider": "Driver",
+      "admin": "Admin"
+    },
     "links": {
       "wallet": "Wallet",
+      "myBoutique": "My boutique",
+      "myRestaurant": "My restaurant",
       "myOrders": "My orders",
       "myFoodOrders": "My food orders",
       "myWishlist": "My wishlist",
@@ -138,8 +148,6 @@
     "stopGigWork": "Switch back to customer",
     "agentDashboard": "Delivery agent dashboard",
     "driverDashboard": "Driver dashboard",
-    "vendorDashboard": "Vendor dashboard",
-    "restaurantDashboard": "Restaurant dashboard",
     "roleUpdated": "Role updated",
     "couldNotUpdateRole": "Could not update role"
   },

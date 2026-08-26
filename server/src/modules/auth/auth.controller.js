@@ -14,6 +14,19 @@ const verifyOtpSchema = z.object({
   name: z.string().optional(),
 });
 
+// Included on every user-object response below since store/restaurant
+// ownership is independent of the self-serve `role` toggle (PATCH
+// /auth/role) - profile.js uses these to show "My boutique"/"My
+// restaurant" links and Commerçant/Restaurateur badges regardless of
+// which gig role is currently active. setUser (authSlice.js on the web,
+// AuthProvider on Flutter) replaces the whole user object on every
+// response, so any handler here that omitted this would silently wipe it
+// from client state until the next full /auth/me refetch.
+const USER_INCLUDE = {
+  store: { select: { id: true, name: true, slug: true, isActive: true } },
+  restaurant: { select: { id: true, name: true, slug: true, isActive: true } },
+};
+
 async function requestOtp(req, res, next) {
   try {
     const { phone } = requestOtpSchema.parse(req.body);
@@ -37,9 +50,9 @@ async function verifyOtpAndLogin(req, res, next) {
       return res.status(400).json({ message: "Invalid or expired code" });
     }
 
-    let user = await prisma.user.findUnique({ where: { phone } });
+    let user = await prisma.user.findUnique({ where: { phone }, include: USER_INCLUDE });
     if (!user) {
-      user = await prisma.user.create({ data: { phone, name } });
+      user = await prisma.user.create({ data: { phone, name }, include: USER_INCLUDE });
     }
 
     const token = signToken(user);
@@ -50,7 +63,8 @@ async function verifyOtpAndLogin(req, res, next) {
 }
 
 async function me(req, res) {
-  res.json({ user: req.user });
+  const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: USER_INCLUDE });
+  res.json({ user });
 }
 
 const adminLoginSchema = z.object({
@@ -68,7 +82,7 @@ const adminLoginSchema = z.object({
 async function adminLogin(req, res, next) {
   try {
     const { email, password } = adminLoginSchema.parse(req.body);
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email }, include: USER_INCLUDE });
     if (!user || !user.passwordHash || user.role !== "ADMIN") {
       return res.status(401).json({ message: "Invalid email or password" });
     }
@@ -101,7 +115,7 @@ const updateRoleSchema = z.object({
 async function updateRole(req, res, next) {
   try {
     const { role } = updateRoleSchema.parse(req.body);
-    const user = await prisma.user.update({ where: { id: req.user.id }, data: { role } });
+    const user = await prisma.user.update({ where: { id: req.user.id }, data: { role }, include: USER_INCLUDE });
     res.json({ user });
   } catch (err) {
     next(err);

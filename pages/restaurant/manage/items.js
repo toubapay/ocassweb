@@ -33,7 +33,7 @@ export default function RestaurantMenuItems() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
-  const isOwner = isAuthenticated && user?.role === "RESTAURANT_OWNER";
+  const isOwner = isAuthenticated && Boolean(user?.restaurant);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);

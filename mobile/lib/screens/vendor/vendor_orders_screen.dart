@@ -30,7 +30,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
   }
 
   Future<void> _load() async {
-    if (!mounted || context.read<AuthProvider>().user?.role != 'VENDOR') return;
+    if (!mounted || context.read<AuthProvider>().user?.store == null) return;
     setState(() => _loading = true);
     try {
       final orders = await apiClient.fetchMyVendorOrders();

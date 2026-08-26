@@ -19,7 +19,7 @@ export default function VendorLogin() {
   const router = useRouter();
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
-  const isVendor = isAuthenticated && user?.role === "VENDOR";
+  const isVendor = isAuthenticated && Boolean(user?.store);
 
   useEffect(() => {
     if (isVendor) {

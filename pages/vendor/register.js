@@ -65,7 +65,7 @@ export default function VendorRegister() {
     enabled: isAuthenticated,
   });
 
-  const alreadyOnboarded = isAuthenticated && user?.role === "VENDOR" && !!store;
+  const alreadyOnboarded = isAuthenticated && !!store;
 
   useEffect(() => {
     if (alreadyOnboarded) {

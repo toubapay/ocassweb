@@ -32,7 +32,7 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
   }
 
   Future<void> _load() async {
-    if (!mounted || context.read<AuthProvider>().user?.role != 'RESTAURANT_OWNER') return;
+    if (!mounted || context.read<AuthProvider>().user?.restaurant == null) return;
     setState(() => _loading = true);
     try {
       final items = await apiClient.fetchMyMenuItems();

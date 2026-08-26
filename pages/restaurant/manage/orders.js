@@ -25,7 +25,7 @@ export default function RestaurantManageOrders() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
-  const isOwner = isAuthenticated && user?.role === "RESTAURANT_OWNER";
+  const isOwner = isAuthenticated && Boolean(user?.restaurant);
 
   const { data: orders, isLoading } = useQuery("restaurant-owner-orders", fetchMyRestaurantOrders, {
     enabled: isOwner,

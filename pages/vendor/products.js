@@ -52,7 +52,7 @@ export default function VendorProducts() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
-  const isVendor = isAuthenticated && user?.role === "VENDOR";
+  const isVendor = isAuthenticated && Boolean(user?.store);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);

@@ -67,7 +67,7 @@ export default function RestaurantRegister() {
     { enabled: isAuthenticated }
   );
 
-  const alreadyOnboarded = isAuthenticated && user?.role === "RESTAURANT_OWNER" && !!restaurant;
+  const alreadyOnboarded = isAuthenticated && !!restaurant;
 
   useEffect(() => {
     if (alreadyOnboarded) {
