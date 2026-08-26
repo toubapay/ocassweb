@@ -32,7 +32,10 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+// Default 100kb is too small for the carte grise photo scan endpoint
+// (base64-encoded phone photos), so every route gets the same raised
+// limit rather than special-casing one.
+app.use(express.json({ limit: "10mb" }));
 // PayDunya's IPN callback is form-encoded, not JSON.
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

@@ -354,6 +354,20 @@ class ApiClient {
     return AasMetadata.fromJson(_data(res));
   }
 
+  /// Reads a carte grise photo via Claude's vision API to prefill the
+  /// vehicle-info step - mirrors scanCarteGrise in src/api/aasInsurance.js.
+  /// Throws a [DioException] with status 503 (OCR_NOT_CONFIGURED) if no
+  /// ANTHROPIC_API_KEY is set server-side, or 422 (OCR_UNREADABLE) if the
+  /// photo isn't a legible carte grise - both are expected outcomes the
+  /// caller handles by falling back to manual entry, not just an error toast.
+  Future<CarteGriseExtraction> scanCarteGrise({required String imageBase64, required String mediaType}) async {
+    final res = await _dio.post('/insurance/auto/carte-grise/scan', data: {
+      'imageBase64': imageBase64,
+      'mediaType': mediaType,
+    });
+    return CarteGriseExtraction.fromJson(_data(res)['extracted'] as Map<String, dynamic>);
+  }
+
   /// [payload] matches the backend's quoteInputSchema (aas.controller.js):
   /// genre, energie, periodicite, duree always; puissanceFiscale for
   /// four-wheel genres OR cylindre+usage+nombrePlace for moto genres.

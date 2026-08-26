@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const { requireAuth } = require("../../middleware/auth");
 const {
+  scanCarteGrise,
   getMetadata,
   compareAutoQuotes,
   purchaseAutoPolicy,
@@ -11,6 +12,10 @@ const {
 } = require("./aas.controller");
 
 const router = Router();
+
+// A base64-encoded phone photo needs more than the default JSON body
+// limit - see the raised global express.json() limit in app.js.
+router.post("/carte-grise/scan", requireAuth, scanCarteGrise);
 
 router.get("/metadata", getMetadata);
 router.post("/compare", requireAuth, compareAutoQuotes);

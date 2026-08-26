@@ -160,6 +160,41 @@ class AasParty {
       };
 }
 
+/// Prefillable fields from POST /insurance/auto/carte-grise/scan - only the
+/// identity fields that never feed AAS pricing (see aas.controller.js's
+/// CarteGriseSchema). Fields that affect the quote (puissanceFiscale,
+/// nombrePlace, energie, genre) are deliberately not modeled here since the
+/// screen must never let a scan silently overwrite an already-quoted price.
+class CarteGriseExtraction {
+  final String? immatriculation;
+  final String? chassis;
+  final String? marque;
+  final String? modele;
+  final String? dateMiseCirculation;
+  final String? titulaireNom;
+  final String? titulairePrenom;
+
+  CarteGriseExtraction({
+    this.immatriculation,
+    this.chassis,
+    this.marque,
+    this.modele,
+    this.dateMiseCirculation,
+    this.titulaireNom,
+    this.titulairePrenom,
+  });
+
+  factory CarteGriseExtraction.fromJson(Map<String, dynamic> json) => CarteGriseExtraction(
+        immatriculation: json['immatriculation'] as String?,
+        chassis: json['chassis'] as String?,
+        marque: json['marque'] as String?,
+        modele: json['modele'] as String?,
+        dateMiseCirculation: json['dateMiseCirculation'] as String?,
+        titulaireNom: json['titulaireNom'] as String?,
+        titulairePrenom: json['titulairePrenom'] as String?,
+      );
+}
+
 /// InsuranceAutoPolicy - see server/prisma/schema.prisma for the full
 /// field-by-field rationale (souscripteur/assure kept as JSON, garanties
 /// as raw guarantee codes, premiumEstimate vs premiumCharged tracked

@@ -45,6 +45,11 @@ fixing whatever it finds** - most likely spots, in rough order of risk:
    in each call site - a mechanical, low-risk change.
 7. Minor Flutter-version drift (a Material 3 API renamed between the
    version this assumes and whatever you have installed).
+8. `screens/insurance/insurance_auto_screen.dart` - `ImagePicker().pickImage(source: ImageSource.camera, ...)`
+   (`image_picker: ^1.1.2`, added for the carte grise photo scan). Written
+   from pub.dev docs, not verified against a real build; the API has been
+   stable for a long time so this is low-risk, but check it first if
+   `flutter analyze` flags anything in that file.
 
 ## First-time setup
 
@@ -120,6 +125,19 @@ below). Use a real key only in a local, gitignored file - never commit one:
   ```
   (Adds a `pod 'GoogleMaps'` dependency automatically via
   `google_maps_flutter_ios` - no manual Podfile edit needed.)
+
+For the carte grise photo scan in Auto Insurance (`image_picker`,
+`screens/insurance/insurance_auto_screen.dart`), add:
+
+- **Android** (`android/app/src/main/AndroidManifest.xml`), inside `<manifest>`:
+  ```xml
+  <uses-permission android:name="android.permission.CAMERA"/>
+  ```
+- **iOS** (`ios/Runner/Info.plist`), inside the top-level `<dict>`:
+  ```xml
+  <key>NSCameraUsageDescription</key>
+  <string>Ocass uses your camera to scan your vehicle's registration card (carte grise) and prefill your insurance application.</string>
+  ```
 
 ## Running against the backend
 

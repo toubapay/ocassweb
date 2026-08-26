@@ -1,5 +1,7 @@
 const crypto = require("crypto");
 const { z } = require("zod");
+const Anthropic = require("@anthropic-ai/sdk");
+const { zodOutputFormat } = require("@anthropic-ai/sdk/helpers/zod");
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const aasClient = require("./aasClient");
@@ -81,6 +83,109 @@ function resolveVehicle(input) {
     return { error: { status: 400, message: "puissanceFiscale is required for this vehicle." } };
   }
   return { genreEntry, isMoto, tierTable: isMoto ? MOTO_TIER_GARANTIES : TIER_GARANTIES };
+}
+
+// ---------------- Carte grise photo scan (Claude vision) ----------------
+// Reads whatever's legible off a photo of a Senegalese carte grise
+// (vehicle registration card) to prefill the vehicle-info step below -
+// the user still reviews/edits every field before continuing, so a
+// missed or misread field never silently reaches the AAS purchase call.
+// No image storage: the photo is sent to Claude and discarded, never
+// written to disk/DB - nothing here needed a file-upload pipeline.
+
+const scanRequestSchema = z.object({
+  imageBase64: z.string().min(1),
+  mediaType: z.enum(["image/jpeg", "image/png", "image/webp"]).default("image/jpeg"),
+});
+
+const CarteGriseSchema = z.object({
+  immatriculation: z.string().nullable().describe("Plate/registration number as printed"),
+  chassis: z.string().nullable().describe("Châssis / VIN number"),
+  marque: z.string().nullable().describe("Vehicle make/brand, e.g. Toyota"),
+  modele: z.string().nullable().describe("Vehicle model, e.g. Corolla"),
+  dateMiseCirculation: z
+    .string()
+    .nullable()
+    .describe("Date of first registration (mise en circulation), as ISO 8601 YYYY-MM-DD"),
+  puissanceFiscale: z.string().nullable().describe("Fiscal power in CV (chevaux fiscaux), digits only"),
+  nombrePlace: z.number().int().positive().nullable().describe("Number of seats"),
+  energie: z.enum(["ESSENCE", "DIESEL"]).nullable().describe("Fuel type, only if unambiguous"),
+  titulaireNom: z.string().nullable().describe("Cardholder's last name (nom)"),
+  titulairePrenom: z.string().nullable().describe("Cardholder's first name (prénom)"),
+  isLegibleCarteGrise: z
+    .boolean()
+    .describe("false if this photo doesn't look like a legible Senegalese carte grise at all"),
+});
+
+let anthropicClient;
+function getAnthropicClient() {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  if (!anthropicClient) anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return anthropicClient;
+}
+
+/**
+ * POST /api/insurance/auto/carte-grise/scan - extracts vehicle-info
+ * fields from a carte grise photo via Claude's vision + structured
+ * outputs, for the "take a photo" step to prefill the next step with.
+ * Every extracted field is nullable - the model is told to return null
+ * rather than guess, and the frontend must let the user edit whatever
+ * comes back (including everything, if scanning is unconfigured).
+ */
+async function scanCarteGrise(req, res, next) {
+  try {
+    const { imageBase64, mediaType } = scanRequestSchema.parse(req.body);
+    const client = getAnthropicClient();
+    if (!client) {
+      return res.status(503).json({
+        message: "Carte grise scanning isn't configured. Enter the vehicle details manually.",
+        code: "OCR_NOT_CONFIGURED",
+      });
+    }
+
+    // Callers may hand over a data: URL (canvas.toDataURL / <input
+    // type=file> readers commonly produce one) - strip the prefix rather
+    // than rejecting it, same tolerance AddressAutocompleteField extends
+    // to free-typed text with no coordinates.
+    const data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+
+    let response;
+    try {
+      response = await client.messages.parse({
+        model: "claude-opus-5",
+        max_tokens: 2048,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: mediaType, data } },
+              {
+                type: "text",
+                text: "This is a photo of a Senegalese vehicle registration card (carte grise). Extract the fields defined by the schema. If a field is not legible or not present on the card, return null for it rather than guessing.",
+              },
+            ],
+          },
+        ],
+        output_config: { format: zodOutputFormat(CarteGriseSchema) },
+      });
+    } catch (err) {
+      if (err instanceof Anthropic.APIError) {
+        return res.status(502).json({ message: "Could not analyze this photo right now. Please try again.", code: "OCR_PROVIDER_ERROR" });
+      }
+      throw err;
+    }
+
+    if (!response.parsed_output || !response.parsed_output.isLegibleCarteGrise) {
+      return res.status(422).json({
+        message: "Could not read this photo clearly. Try a clearer photo or enter the details manually.",
+        code: "OCR_UNREADABLE",
+      });
+    }
+
+    res.json({ extracted: response.parsed_output });
+  } catch (err) {
+    next(err);
+  }
 }
 
 /** GET /api/insurance/auto/metadata - drives the frontend's vehicle form + tier picker. */
@@ -500,6 +605,7 @@ async function getAutoPolicy(req, res, next) {
 }
 
 module.exports = {
+  scanCarteGrise,
   getMetadata,
   compareAutoQuotes,
   purchaseAutoPolicy,
