@@ -13,6 +13,7 @@ const {
 } = require("./restaurant.controller");
 const {
   listMyOrders,
+  getMyOrder,
   createOrder,
   cancelOrder,
   listMyRestaurantOrders,
@@ -24,6 +25,7 @@ const router = Router();
 // Static routes must be registered before the "/:slug" catch-all below, or
 // Express would match them as slug="orders" / slug="owner".
 router.get("/orders", requireAuth, listMyOrders);
+router.get("/orders/:id", requireAuth, getMyOrder);
 router.patch("/orders/:id/cancel", requireAuth, cancelOrder);
 
 // Creating a restaurant is the "become an owner" step itself, so it can't

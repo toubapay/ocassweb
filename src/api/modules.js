@@ -51,6 +51,8 @@ export const createRestaurantOrder = (slug, payload) =>
   apiClient.post(`/restaurants/${slug}/orders`, payload).then((res) => res.data.order);
 export const fetchRestaurantOrders = () =>
   apiClient.get("/restaurants/orders").then((res) => res.data.orders);
+export const fetchRestaurantOrder = (id) =>
+  apiClient.get(`/restaurants/orders/${id}`).then((res) => res.data.order);
 export const cancelRestaurantOrder = (id) =>
   apiClient.patch(`/restaurants/orders/${id}/cancel`).then((res) => res.data.order);
 

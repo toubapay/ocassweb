@@ -242,10 +242,13 @@
     },
     "orders": {
       "title": "Vos commandes",
+      "detailTitle": "Détails de la commande",
+      "notFound": "Commande introuvable",
       "loginToView": "Connectez-vous pour voir vos commandes.",
       "loading": "Chargement des commandes...",
       "empty": "Aucune commande pour l'instant.",
       "orderNumber": "Commande n°{{id}}",
+      "items": "Articles",
       "paid": "Payée",
       "unpaid": "Non payée",
       "total": "Total : {{amount}}",
@@ -503,6 +506,8 @@
     },
     "orders": {
       "title": "Vos commandes de repas",
+      "detailTitle": "Détails de la commande",
+      "notFound": "Commande introuvable",
       "loginToView": "Connectez-vous pour voir vos commandes de repas.",
       "loading": "Chargement des commandes...",
       "empty": "Aucune commande de repas pour l'instant.",

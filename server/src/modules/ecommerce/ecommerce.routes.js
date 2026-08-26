@@ -3,7 +3,7 @@ const { requireAuth } = require("../../middleware/auth");
 const { listCategories } = require("./categories.controller");
 const { listProducts, getProduct } = require("./products.controller");
 const { getCart, addItem, updateItem, removeItem } = require("./cart.controller");
-const { listOrders, createOrder } = require("./orders.controller");
+const { listOrders, getOrder, createOrder } = require("./orders.controller");
 const { listWishlist, toggleWishlist } = require("./wishlist.controller");
 
 const router = Router();
@@ -18,6 +18,7 @@ router.patch("/cart/:id", requireAuth, updateItem);
 router.delete("/cart/:id", requireAuth, removeItem);
 
 router.get("/orders", requireAuth, listOrders);
+router.get("/orders/:id", requireAuth, getOrder);
 router.post("/orders", requireAuth, createOrder);
 
 router.get("/wishlist", requireAuth, listWishlist);

@@ -145,6 +145,11 @@ class ApiClient {
         .toList();
   }
 
+  Future<Order> fetchOrder(String id) async {
+    final res = await _dio.get('/ecommerce/orders/$id');
+    return Order.fromJson(_data(res)['order'] as Map<String, dynamic>);
+  }
+
   /// Returns the created order and, for `paymentMethod: 'paydunya'`, the
   /// PayDunya checkout URL to redirect the customer to (null for
   /// `'wallet'`, which settles synchronously - no redirect needed).
@@ -438,6 +443,16 @@ class ApiClient {
     return (_data(res)['orders'] as List<dynamic>)
         .map((o) => RestaurantOrder.fromJson(o as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<RestaurantOrder> fetchRestaurantOrder(String id) async {
+    final res = await _dio.get('/restaurants/orders/$id');
+    return RestaurantOrder.fromJson(_data(res)['order'] as Map<String, dynamic>);
+  }
+
+  Future<RestaurantOrder> cancelRestaurantOrder(String id) async {
+    final res = await _dio.patch('/restaurants/orders/$id/cancel');
+    return RestaurantOrder.fromJson(_data(res)['order'] as Map<String, dynamic>);
   }
 
   /// [items] is a list of {menuItemId, quantity} maps, matching the

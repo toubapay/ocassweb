@@ -23,6 +23,9 @@ export const removeCartItem = (id) => apiClient.delete(`/ecommerce/cart/${id}`);
 export const fetchOrders = () =>
   apiClient.get("/ecommerce/orders").then((res) => res.data.orders);
 
+export const fetchOrder = (id) =>
+  apiClient.get(`/ecommerce/orders/${id}`).then((res) => res.data.order);
+
 export const createOrder = (deliveryAddressId, paymentMethod = "cash") =>
   apiClient.post("/ecommerce/orders", { deliveryAddressId, paymentMethod }).then((res) => res.data);
 

@@ -101,6 +101,12 @@ class RestaurantOrder {
   final DateTime createdAt;
   final Restaurant restaurant;
   final List<RestaurantOrderItem> items;
+  final String? deliveryAddress;
+  // Set once the restaurant marks the order ready and a DeliveryRequest is
+  // auto-created for it (see dispatchForDelivery, orders.controller.js) -
+  // stays set for the life of the order, including once DELIVERED, so the
+  // tracking link keeps working after the fact too.
+  final String? deliveryRequestId;
 
   RestaurantOrder({
     required this.id,
@@ -113,6 +119,8 @@ class RestaurantOrder {
     required this.createdAt,
     required this.restaurant,
     this.items = const [],
+    this.deliveryAddress,
+    this.deliveryRequestId,
   });
 
   factory RestaurantOrder.fromJson(Map<String, dynamic> json) => RestaurantOrder(
@@ -125,6 +133,8 @@ class RestaurantOrder {
         note: json['note'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
         restaurant: Restaurant.fromJson(json['restaurant'] as Map<String, dynamic>),
+        deliveryAddress: json['deliveryAddress'] as String?,
+        deliveryRequestId: json['deliveryRequestId'] as String?,
         items: (json['items'] as List<dynamic>? ?? [])
             .map((i) => RestaurantOrderItem.fromJson(i as Map<String, dynamic>))
             .toList(),

@@ -72,7 +72,11 @@ export default function RestaurantOrders() {
       )}
       <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
         {(orders || []).map((order) => (
-          <Box key={order.id} sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 2 }}>
+          <Box
+            key={order.id}
+            onClick={() => router.push(`/restaurant/orders/${order.id}`)}
+            sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 2, cursor: "pointer" }}
+          >
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 {order.restaurant.name}
@@ -114,11 +118,17 @@ export default function RestaurantOrders() {
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 1.5 }}>
-                {order.status === "OUT_FOR_DELIVERY" && order.deliveryRequestId && (
+                {/* Kept reachable for the life of the order, not just while
+                    OUT_FOR_DELIVERY - a DELIVERED order still benefits from
+                    seeing its route/agent info via the same tracking page. */}
+                {order.deliveryRequestId && (
                   <Button
                     size="small"
                     variant="contained"
-                    onClick={() => router.push(`/delivery/track/${order.deliveryRequestId}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/delivery/track/${order.deliveryRequestId}`);
+                    }}
                     sx={{ fontWeight: 700, minWidth: 0, py: 0.25 }}
                   >
                     {t("restaurant.orders.track")}
@@ -129,7 +139,10 @@ export default function RestaurantOrders() {
                     size="small"
                     color="error"
                     disabled={cancelMutation.isLoading}
-                    onClick={() => cancelMutation.mutate(order.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cancelMutation.mutate(order.id);
+                    }}
                     sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
                   >
                     {t("restaurant.orders.cancel")}

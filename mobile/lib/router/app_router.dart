@@ -11,6 +11,7 @@ import '../screens/ecommerce/product_detail_screen.dart';
 import '../screens/ecommerce/cart_screen.dart';
 import '../screens/ecommerce/checkout_screen.dart';
 import '../screens/ecommerce/orders_screen.dart';
+import '../screens/ecommerce/order_detail_screen.dart';
 import '../screens/ecommerce/wishlist_screen.dart';
 import '../screens/delivery/delivery_screen.dart';
 import '../screens/delivery/delivery_agent_screen.dart';
@@ -21,6 +22,7 @@ import '../screens/insurance/insurance_auto_policies_screen.dart';
 import '../screens/restaurant/restaurant_list_screen.dart';
 import '../screens/restaurant/restaurant_detail_screen.dart';
 import '../screens/restaurant/restaurant_orders_screen.dart';
+import '../screens/restaurant/restaurant_order_detail_screen.dart';
 import '../screens/restaurant/restaurant_manage_screen.dart';
 import '../screens/restaurant/restaurant_manage_items_screen.dart';
 import '../screens/restaurant/restaurant_manage_orders_screen.dart';
@@ -120,6 +122,10 @@ final GoRouter appRouter = GoRouter(
         // shadow them (go_router matches routes in declaration order).
         GoRoute(path: '/ecommerce', builder: (context, state) => const DiscoverScreen()),
         GoRoute(path: '/ecommerce/orders', builder: (context, state) => const OrdersScreen()),
+        GoRoute(
+          path: '/ecommerce/orders/:id',
+          builder: (context, state) => OrderDetailScreen(orderId: state.pathParameters['id']!),
+        ),
         GoRoute(path: '/ecommerce/wishlist', builder: (context, state) => const WishlistScreen()),
         GoRoute(
           path: '/ecommerce/:categorySlug',
@@ -130,6 +136,10 @@ final GoRouter appRouter = GoRouter(
         // Same ordering rule for /restaurant/*.
         GoRoute(path: '/restaurant', builder: (context, state) => const RestaurantListScreen()),
         GoRoute(path: '/restaurant/orders', builder: (context, state) => const RestaurantOrdersScreen()),
+        GoRoute(
+          path: '/restaurant/orders/:id',
+          builder: (context, state) => RestaurantOrderDetailScreen(orderId: state.pathParameters['id']!),
+        ),
         GoRoute(path: '/restaurant/manage', builder: (context, state) => const RestaurantManageScreen()),
         GoRoute(
           path: '/restaurant/manage/items',

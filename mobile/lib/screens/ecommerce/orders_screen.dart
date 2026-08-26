@@ -96,7 +96,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final order = orders[index];
-              return Container(
+              return InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => context.push('/ecommerce/orders/${order.id}'),
+                child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border.all(color: AppColors.divider),
@@ -140,6 +143,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     Text(context.t('ecommerce.orders.total', {'amount': formatCfa(order.total)}),
                         style: const TextStyle(fontWeight: FontWeight.w800)),
                   ],
+                ),
                 ),
               );
             },
