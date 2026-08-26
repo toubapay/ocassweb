@@ -23,7 +23,12 @@ const _locationPingInterval = Duration(seconds: 10);
 /// currently has ACCEPTED or PICKED_UP - silently skipped if location is
 /// unavailable/denied, same as the web hook swallowing geolocation errors.
 class DeliveryAgentScreen extends StatefulWidget {
-  const DeliveryAgentScreen({super.key});
+  const DeliveryAgentScreen({super.key, this.initialTab});
+
+  /// 'mine' jumps straight to the My Jobs tab (see profile_screen.dart's
+  /// job-history link) instead of always landing on Available - same
+  /// ?tab= convention as TopupScreen.
+  final String? initialTab;
 
   @override
   State<DeliveryAgentScreen> createState() => _DeliveryAgentScreenState();
@@ -43,7 +48,11 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab == 'mine' ? 1 : 0,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadAll());
   }
 

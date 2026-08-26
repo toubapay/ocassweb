@@ -407,6 +407,8 @@ const Map<String, String> enStrings = {
   'profile.languageSectionTitle': 'Language',
   'profile.links.deliveryRequests': 'Delivery requests',
   'profile.links.myBoutique': 'My boutique',
+  'profile.links.myDeliveryJobs': 'My delivery jobs',
+  'profile.links.myDriverTrips': 'My driving trips',
   'profile.links.myFoodOrders': 'My food orders',
   'profile.links.myInsurancePolicies': 'My insurance policies',
   'profile.links.myOrders': 'My orders',

@@ -20,6 +20,7 @@ import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
 import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
 import HealthAndSafetyRoundedIcon from "@mui/icons-material/HealthAndSafetyRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import SimCardRoundedIcon from "@mui/icons-material/SimCardRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
@@ -83,10 +84,24 @@ export default function Profile() {
       ? [{ label: t("profile.links.myRestaurant"), icon: RestaurantMenuRoundedIcon, href: "/restaurant/manage" }]
       : []),
     ...(isAgent
-      ? [{ label: t("profile.agentDashboard"), icon: LocalShippingRoundedIcon, href: "/delivery/agent" }]
+      ? [
+          { label: t("profile.agentDashboard"), icon: LocalShippingRoundedIcon, href: "/delivery/agent" },
+          {
+            label: t("profile.links.myDeliveryJobs"),
+            icon: HistoryRoundedIcon,
+            href: "/delivery/agent?tab=mine",
+          },
+        ]
       : []),
     ...(isRider
-      ? [{ label: t("profile.driverDashboard"), icon: DirectionsCarFilledRoundedIcon, href: "/ride-sharing/driver" }]
+      ? [
+          { label: t("profile.driverDashboard"), icon: DirectionsCarFilledRoundedIcon, href: "/ride-sharing/driver" },
+          {
+            label: t("profile.links.myDriverTrips"),
+            icon: HistoryRoundedIcon,
+            href: "/ride-sharing/driver?tab=mine",
+          },
+        ]
       : []),
     { label: t("profile.links.myOrders"), icon: ReceiptLongRoundedIcon, href: "/ecommerce/orders" },
     { label: t("profile.links.myFoodOrders"), icon: RestaurantRoundedIcon, href: "/restaurant/orders" },

@@ -115,11 +115,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (hasRestaurant)
         _ProfileLink(
             label: context.t('profile.links.myRestaurant'), icon: Icons.restaurant_menu_rounded, href: '/restaurant/manage'),
-      if (isAgent)
+      if (isAgent) ...[
         _ProfileLink(label: context.t('profile.agentDashboard'), icon: Icons.local_shipping_rounded, href: '/delivery/agent'),
-      if (isRider)
+        _ProfileLink(
+            label: context.t('profile.links.myDeliveryJobs'),
+            icon: Icons.history_rounded,
+            href: '/delivery/agent?tab=mine'),
+      ],
+      if (isRider) ...[
         _ProfileLink(
             label: context.t('profile.driverDashboard'), icon: Icons.directions_car_filled_rounded, href: '/ride-sharing/driver'),
+        _ProfileLink(
+            label: context.t('profile.links.myDriverTrips'),
+            icon: Icons.history_rounded,
+            href: '/ride-sharing/driver?tab=mine'),
+      ],
       _ProfileLink(label: context.t('profile.links.myOrders'), icon: Icons.receipt_long_rounded, href: '/ecommerce/orders'),
       _ProfileLink(label: context.t('profile.links.myFoodOrders'), icon: Icons.restaurant_rounded, href: '/restaurant/orders'),
       _ProfileLink(label: context.t('profile.links.myWishlist'), icon: Icons.favorite_rounded, href: '/ecommerce/wishlist'),

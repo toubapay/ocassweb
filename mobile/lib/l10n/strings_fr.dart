@@ -407,6 +407,8 @@ const Map<String, String> frStrings = {
   'profile.languageSectionTitle': 'Langue',
   'profile.links.deliveryRequests': 'Demandes de livraison',
   'profile.links.myBoutique': 'Ma boutique',
+  'profile.links.myDeliveryJobs': 'Mes livraisons effectuées',
+  'profile.links.myDriverTrips': 'Mes courses effectuées',
   'profile.links.myFoodOrders': 'Mes commandes de repas',
   'profile.links.myInsurancePolicies': 'Mes polices d\'assurance',
   'profile.links.myOrders': 'Mes commandes',

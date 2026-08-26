@@ -88,7 +88,10 @@ final GoRouter appRouter = GoRouter(
         GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
         GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
         GoRoute(path: '/delivery', builder: (context, state) => const DeliveryScreen()),
-        GoRoute(path: '/delivery/agent', builder: (context, state) => const DeliveryAgentScreen()),
+        GoRoute(
+            path: '/delivery/agent',
+            builder: (context, state) =>
+                DeliveryAgentScreen(initialTab: state.uri.queryParameters['tab'])),
         GoRoute(path: '/insurance', builder: (context, state) => const InsuranceScreen()),
         GoRoute(path: '/insurance/auto', builder: (context, state) => const InsuranceAutoScreen()),
         GoRoute(
@@ -98,7 +101,8 @@ final GoRouter appRouter = GoRouter(
         GoRoute(path: '/ride-sharing', builder: (context, state) => const RideSharingScreen()),
         GoRoute(
             path: '/ride-sharing/driver',
-            builder: (context, state) => const RideSharingDriverScreen()),
+            builder: (context, state) =>
+                RideSharingDriverScreen(initialTab: state.uri.queryParameters['tab'])),
         GoRoute(
           path: '/topup',
           builder: (context, state) =>

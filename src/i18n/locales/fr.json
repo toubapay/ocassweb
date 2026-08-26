@@ -133,7 +133,9 @@
       "myFoodOrders": "Mes commandes de repas",
       "myWishlist": "Ma liste de souhaits",
       "deliveryRequests": "Demandes de livraison",
+      "myDeliveryJobs": "Mes livraisons effectuées",
       "myRides": "Mes courses",
+      "myDriverTrips": "Mes courses effectuées",
       "myInsurancePolicies": "Mes polices d'assurance",
       "topupsAndBills": "Recharges et factures",
       "admin": "Panneau d'administration"
