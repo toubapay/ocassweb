@@ -6,6 +6,15 @@ import apiClient from "./client";
 // not a static catalog.
 export const fetchAasMetadata = () => apiClient.get("/insurance/auto/metadata").then((res) => res.data);
 
+// Reads a carte grise photo via Claude's vision API to prefill the
+// vehicle-info step - {imageBase64, mediaType} in, {extracted: {...}} out.
+// Returns a 503 (OCR_NOT_CONFIGURED) if no ANTHROPIC_API_KEY is set
+// server-side, or a 422 (OCR_UNREADABLE) if the photo isn't a legible
+// carte grise - both are expected, non-exceptional outcomes the caller
+// handles by falling back to manual entry, not just an error toast.
+export const scanCarteGrise = (payload) =>
+  apiClient.post("/insurance/auto/carte-grise/scan", payload).then((res) => res.data);
+
 export const compareAasQuotes = (payload) =>
   apiClient.post("/insurance/auto/compare", payload).then((res) => res.data);
 
