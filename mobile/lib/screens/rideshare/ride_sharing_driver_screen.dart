@@ -13,7 +13,12 @@ import '../../widgets/top_bar.dart';
 /// Mirrors pages/ride-sharing/driver.js: Available/My-rides tabs, race-safe
 /// accept, then walking an accepted ride through start -> complete.
 class RideSharingDriverScreen extends StatefulWidget {
-  const RideSharingDriverScreen({super.key});
+  const RideSharingDriverScreen({super.key, this.initialTab});
+
+  /// 'mine' jumps straight to the My Rides tab (see profile_screen.dart's
+  /// job-history link) instead of always landing on Available - same
+  /// ?tab= convention as TopupScreen.
+  final String? initialTab;
 
   @override
   State<RideSharingDriverScreen> createState() => _RideSharingDriverScreenState();
@@ -31,7 +36,11 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab == 'mine' ? 1 : 0,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadAll());
   }
 

@@ -57,7 +57,11 @@ export default function Orders() {
       )}
       <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
         {(orders || []).map((order) => (
-          <Box key={order.id} sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 2 }}>
+          <Box
+            key={order.id}
+            onClick={() => router.push(`/ecommerce/orders/${order.id}`)}
+            sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 2, cursor: "pointer" }}
+          >
             <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 {t("ecommerce.orders.orderNumber", { id: order.id.slice(0, 8) })}

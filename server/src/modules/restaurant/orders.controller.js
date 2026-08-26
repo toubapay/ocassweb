@@ -43,6 +43,22 @@ async function listMyOrders(req, res, next) {
   }
 }
 
+/** Scoped by userId in the where clause (not a separate ownership check
+ * after fetching) so a request for someone else's order id 404s exactly
+ * like a nonexistent one, rather than leaking that the id exists. */
+async function getMyOrder(req, res, next) {
+  try {
+    const order = await prisma.restaurantOrder.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+      include: ORDER_INCLUDE,
+    });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json({ order });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /**
  * Places and immediately pays for an order via wallet - the only payment
  * method wired up for this module today (unlike ecommerce, which also
@@ -344,6 +360,7 @@ async function updateOrderStatus(req, res, next) {
 
 module.exports = {
   listMyOrders,
+  getMyOrder,
   createOrder,
   cancelOrder,
   listMyRestaurantOrders,

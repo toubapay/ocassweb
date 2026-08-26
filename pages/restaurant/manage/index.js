@@ -11,6 +11,7 @@ import Avatar from "@mui/material/Avatar";
 import RestaurantRoundedIcon from "@mui/icons-material/RestaurantRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import TopBar from "../../../src/components/layout/TopBar";
 import AddressAutocompleteField from "../../../src/components/maps/AddressAutocompleteField";
 import useAuth from "../../../src/hooks/useAuth";
@@ -152,9 +153,6 @@ export default function RestaurantManageDashboard() {
                 </Typography>
               )}
             </Box>
-            <Button size="small" onClick={() => setEditing(true)} sx={{ fontWeight: 700 }}>
-              {t("restaurant.manage.editRestaurant")}
-            </Button>
           </Box>
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -175,6 +173,15 @@ export default function RestaurantManageDashboard() {
               sx={{ fontWeight: 700, justifyContent: "flex-start", py: 1.5 }}
             >
               {t("restaurant.manage.viewOrders")}
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={<SettingsRoundedIcon />}
+              onClick={() => setEditing(true)}
+              sx={{ fontWeight: 700, justifyContent: "flex-start", py: 1.5 }}
+            >
+              {t("restaurant.manage.editRestaurant")}
             </Button>
           </Box>
         </Box>

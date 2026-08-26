@@ -72,6 +72,14 @@ export default function DeliveryAgentDashboard() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState(0);
 
+  // Lets profile.js link straight to the job history tab (?tab=mine)
+  // instead of always landing on "available jobs" - router.query isn't
+  // populated until router.isReady, so this can't just be the useState
+  // initializer above.
+  useEffect(() => {
+    if (router.isReady && router.query.tab === "mine") setTab(1);
+  }, [router.isReady, router.query.tab]);
+
   const isAgent = isAuthenticated && user?.role === "DELIVERY_AGENT";
 
   const { data: available, isLoading: loadingAvailable } = useQuery(

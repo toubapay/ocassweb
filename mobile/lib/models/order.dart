@@ -42,6 +42,13 @@ class Order {
   // `user: {select: {id, name, phone}}`), null on the buyer's own /orders.
   final String? buyerName;
   final String? buyerPhone;
+  final bool paid;
+  // Only present when the order was placed against a saved Address (see
+  // Order.deliveryAddress in schema.prisma) - orders paid in cash/at
+  // pickup or predating this field have none of these set.
+  final String? deliveryAddressLabel;
+  final String? deliveryAddressLine1;
+  final String? deliveryAddressCity;
 
   Order({
     required this.id,
@@ -54,20 +61,31 @@ class Order {
     this.items = const [],
     this.buyerName,
     this.buyerPhone,
+    this.paid = false,
+    this.deliveryAddressLabel,
+    this.deliveryAddressLine1,
+    this.deliveryAddressCity,
   });
 
-  factory Order.fromJson(Map<String, dynamic> json) => Order(
-        id: json['id'] as String,
-        status: json['status'] as String,
-        subtotal: _parseDecimal(json['subtotal'] ?? json['total']),
-        feeAmount: _parseDecimal(json['feeAmount'] ?? 0),
-        taxAmount: _parseDecimal(json['taxAmount'] ?? 0),
-        total: _parseDecimal(json['total']),
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        items: (json['items'] as List<dynamic>? ?? [])
-            .map((i) => OrderItem.fromJson(i as Map<String, dynamic>))
-            .toList(),
-        buyerName: (json['user'] as Map<String, dynamic>?)?['name'] as String?,
-        buyerPhone: (json['user'] as Map<String, dynamic>?)?['phone'] as String?,
-      );
+  factory Order.fromJson(Map<String, dynamic> json) {
+    final deliveryAddress = json['deliveryAddress'] as Map<String, dynamic>?;
+    return Order(
+      id: json['id'] as String,
+      status: json['status'] as String,
+      subtotal: _parseDecimal(json['subtotal'] ?? json['total']),
+      feeAmount: _parseDecimal(json['feeAmount'] ?? 0),
+      taxAmount: _parseDecimal(json['taxAmount'] ?? 0),
+      total: _parseDecimal(json['total']),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      items: (json['items'] as List<dynamic>? ?? [])
+          .map((i) => OrderItem.fromJson(i as Map<String, dynamic>))
+          .toList(),
+      buyerName: (json['user'] as Map<String, dynamic>?)?['name'] as String?,
+      buyerPhone: (json['user'] as Map<String, dynamic>?)?['phone'] as String?,
+      paid: json['paid'] as bool? ?? false,
+      deliveryAddressLabel: deliveryAddress?['label'] as String?,
+      deliveryAddressLine1: deliveryAddress?['line1'] as String?,
+      deliveryAddressCity: deliveryAddress?['city'] as String?,
+    );
+  }
 }

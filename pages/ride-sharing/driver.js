@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
@@ -26,6 +26,14 @@ export default function RideDriverDashboard() {
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState(0);
+
+  // Lets profile.js link straight to the job history tab (?tab=mine)
+  // instead of always landing on "available jobs" - router.query isn't
+  // populated until router.isReady, so this can't just be the useState
+  // initializer above.
+  useEffect(() => {
+    if (router.isReady && router.query.tab === "mine") setTab(1);
+  }, [router.isReady, router.query.tab]);
 
   const isRider = isAuthenticated && user?.role === "RIDER";
 

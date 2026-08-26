@@ -11,6 +11,7 @@ import Avatar from "@mui/material/Avatar";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
 import useAuth from "../../src/hooks/useAuth";
@@ -143,9 +144,6 @@ export default function VendorDashboard() {
                 </Typography>
               )}
             </Box>
-            <Button size="small" onClick={() => setEditing(true)} sx={{ fontWeight: 700 }}>
-              {t("vendor.editStore")}
-            </Button>
           </Box>
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -166,6 +164,15 @@ export default function VendorDashboard() {
               sx={{ fontWeight: 700, justifyContent: "flex-start", py: 1.5 }}
             >
               {t("vendor.viewOrders")}
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={<SettingsRoundedIcon />}
+              onClick={() => setEditing(true)}
+              sx={{ fontWeight: 700, justifyContent: "flex-start", py: 1.5 }}
+            >
+              {t("vendor.editStore")}
             </Button>
           </Box>
         </Box>

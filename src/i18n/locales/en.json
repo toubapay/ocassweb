@@ -133,7 +133,9 @@
       "myFoodOrders": "My food orders",
       "myWishlist": "My wishlist",
       "deliveryRequests": "Delivery requests",
+      "myDeliveryJobs": "My delivery jobs",
       "myRides": "My rides",
+      "myDriverTrips": "My driving trips",
       "myInsurancePolicies": "My insurance policies",
       "topupsAndBills": "Top-ups & bills",
       "admin": "Admin panel"
@@ -240,10 +242,13 @@
     },
     "orders": {
       "title": "Your orders",
+      "detailTitle": "Order details",
+      "notFound": "Order not found",
       "loginToView": "Log in to see your orders.",
       "loading": "Loading orders...",
       "empty": "No orders yet.",
       "orderNumber": "Order #{{id}}",
+      "items": "Items",
       "paid": "Paid",
       "unpaid": "Unpaid",
       "total": "Total: {{amount}}",
@@ -501,6 +506,8 @@
     },
     "orders": {
       "title": "Your food orders",
+      "detailTitle": "Order details",
+      "notFound": "Order not found",
       "loginToView": "Log in to see your food orders.",
       "loading": "Loading orders...",
       "empty": "No food orders yet.",

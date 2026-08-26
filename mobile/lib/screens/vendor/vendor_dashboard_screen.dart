@@ -175,10 +175,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     ],
                   ),
                 ),
-                TextButton(
-                  onPressed: () => setState(() => _editing = true),
-                  child: Text(context.t('vendor.editStore')),
-                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -197,6 +193,15 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               icon: const Icon(Icons.receipt_long_rounded),
               label:
                   Align(alignment: Alignment.centerLeft, child: Text(context.t('vendor.viewOrders'))),
+              style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  alignment: Alignment.centerLeft),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => setState(() => _editing = true),
+              icon: const Icon(Icons.settings_rounded),
+              label: Align(alignment: Alignment.centerLeft, child: Text(context.t('vendor.editStore'))),
               style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                   alignment: Alignment.centerLeft),

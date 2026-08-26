@@ -42,14 +42,32 @@ const createOrderSchema = z.object({
   paymentMethod: z.enum(["paydunya", "wallet", "cash"]).default("cash"),
 });
 
+const ORDER_INCLUDE = { items: { include: { product: true } }, deliveryAddress: true };
+
 async function listOrders(req, res, next) {
   try {
     const orders = await prisma.order.findMany({
       where: { userId: req.user.id },
-      include: { items: { include: { product: true } }, deliveryAddress: true },
+      include: ORDER_INCLUDE,
       orderBy: { createdAt: "desc" },
     });
     res.json({ orders });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Scoped by userId in the where clause (not a separate ownership check
+ * after fetching) so a request for someone else's order id 404s exactly
+ * like a nonexistent one, rather than leaking that the id exists. */
+async function getOrder(req, res, next) {
+  try {
+    const order = await prisma.order.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+      include: ORDER_INCLUDE,
+    });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json({ order });
   } catch (err) {
     next(err);
   }
@@ -183,4 +201,4 @@ async function createOrder(req, res, next) {
   }
 }
 
-module.exports = { listOrders, createOrder };
+module.exports = { listOrders, getOrder, createOrder };
