@@ -164,6 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: conf.$1,
                       color: conf.$2,
                       bg: conf.$3,
+                      imageUrl: cat.imageUrl,
                       label: context.tOr('categories.${cat.slug}', cat.name),
                       route: '/ecommerce/${cat.slug}',
                     );

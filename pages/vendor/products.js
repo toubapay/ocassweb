@@ -309,6 +309,19 @@ export default function VendorProducts() {
             value={form.images}
             onChange={(e) => setForm({ ...form, images: e.target.value })}
           />
+          {form.images.trim() && (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }}>
+              {form.images
+                .split(",")
+                .map((url) => url.trim())
+                .filter(Boolean)
+                .map((url) => (
+                  <Avatar key={url} src={url} variant="rounded" sx={{ width: 64, height: 64 }}>
+                    <CategoryRoundedIcon />
+                  </Avatar>
+                ))}
+            </Box>
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={closeDialog}>{t("vendor.cancel")}</Button>

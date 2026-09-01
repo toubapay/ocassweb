@@ -160,11 +160,39 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                 TextField(
                   controller: imagesController,
                   maxLines: 2,
+                  onChanged: (_) => setSheetState(() {}),
                   decoration: InputDecoration(
                     labelText: sheetContext.t('vendor.images'),
                     helperText: sheetContext.t('vendor.imagesHelp'),
                   ),
                 ),
+                if (imagesController.text.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: imagesController.text
+                        .split(',')
+                        .map((url) => url.trim())
+                        .where((url) => url.isNotEmpty)
+                        .map((url) => ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                url,
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  width: 64,
+                                  height: 64,
+                                  color: AppColors.greenSoft,
+                                  child: const Icon(Icons.category_rounded, color: AppColors.textSecondary),
+                                ),
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,

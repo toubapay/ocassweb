@@ -442,6 +442,7 @@ const categorySchema = z.object({
   name: z.string().min(2),
   parentId: z.string().uuid().optional().nullable(),
   icon: z.string().optional(),
+  imageUrl: z.string().url().optional().or(z.literal("")),
   isActive: z.boolean().optional(),
 });
 
@@ -469,7 +470,13 @@ async function createCategoryAdmin(req, res, next) {
       (s) => prisma.category.findUnique({ where: { slug: s } }).then(Boolean)
     );
     const category = await prisma.category.create({
-      data: { name: data.name, slug, parentId: data.parentId || null, icon: data.icon || null },
+      data: {
+        name: data.name,
+        slug,
+        parentId: data.parentId || null,
+        icon: data.icon || null,
+        imageUrl: data.imageUrl || null,
+      },
     });
     res.status(201).json({ category });
   } catch (err) {
@@ -493,6 +500,7 @@ async function updateCategoryAdmin(req, res, next) {
         ...data,
         ...(data.parentId !== undefined ? { parentId: data.parentId || null } : {}),
         ...(data.icon !== undefined ? { icon: data.icon || null } : {}),
+        ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl || null } : {}),
       },
     });
     res.json({ category });

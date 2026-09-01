@@ -3,6 +3,7 @@ class Category {
   final String name;
   final String slug;
   final String? icon;
+  final String? imageUrl;
   final String? parentId;
   final List<Category> children;
 
@@ -11,6 +12,7 @@ class Category {
     required this.name,
     required this.slug,
     this.icon,
+    this.imageUrl,
     this.parentId,
     this.children = const [],
   });
@@ -20,6 +22,7 @@ class Category {
         name: json['name'] as String,
         slug: json['slug'] as String,
         icon: json['icon'] as String?,
+        imageUrl: json['imageUrl'] as String?,
         parentId: json['parentId'] as String?,
         children: (json['children'] as List<dynamic>? ?? [])
             .map((c) => Category.fromJson(c as Map<String, dynamic>))

@@ -137,6 +137,7 @@ export default function EcommerceDiscover() {
             }}
           >
             <Avatar
+              src={cat.imageUrl || undefined}
               sx={{
                 width: 56,
                 height: 56,

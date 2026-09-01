@@ -62,19 +62,39 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     color: _bgColors[index % _bgColors.length],
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  child: Stack(
                     children: [
-                      Text(context.tOr('categories.${cat.slug}', cat.name),
-                          style: const TextStyle(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 4),
-                      Text(
-                        cat.children.isNotEmpty
-                            ? context.tPlural(
-                                'ecommerce.discover.subcategoriesCount', cat.children.length)
-                            : context.t('ecommerce.discover.shopNow'),
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      if (cat.imageUrl != null && cat.imageUrl!.isNotEmpty)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              cat.imageUrl!,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          ),
+                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(context.tOr('categories.${cat.slug}', cat.name),
+                              style: const TextStyle(fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 4),
+                          Text(
+                            cat.children.isNotEmpty
+                                ? context.tPlural(
+                                    'ecommerce.discover.subcategoriesCount', cat.children.length)
+                                : context.t('ecommerce.discover.shopNow'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          ),
+                        ],
                       ),
                     ],
                   ),
