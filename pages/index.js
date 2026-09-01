@@ -158,6 +158,7 @@ export default function Home() {
             <ShortcutCard
               key={cat.id}
               icon={conf.icon}
+              imageUrl={cat.imageUrl}
               color={conf.color}
               bg={conf.bg}
               label={t(`categories.${cat.slug}`, { defaultValue: cat.name })}

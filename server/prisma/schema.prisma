@@ -115,6 +115,12 @@ model Category {
   name     String
   slug     String     @unique
   icon     String?
+  // Real photo shown on the discover page / home-screen category shortcuts
+  // (e.g. pages/ecommerce/index.js's quick-nav row) - `icon` above stays a
+  // separate symbolic name for the icon-registry fallback used when no
+  // photo is set, same "photo overrides a symbolic fallback" split as
+  // DeliveryPackageType's icon+colorKey vs any future photo field.
+  imageUrl String?
   parentId String?
   // Admin takedown switch (see AdminCategoriesTab.js) - hides the category
   // from public browsing/the vendor product-form dropdown without deleting

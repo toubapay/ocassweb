@@ -887,6 +887,7 @@
       "subtitle": "Partagées entre tous les vendeurs - n'importe qui peut aussi en ajouter une depuis sa page produits. Désactiver une catégorie la masque de la navigation et du menu déroulant du formulaire produit sans la supprimer.",
       "name": "Nom",
       "icon": "Icône",
+      "imageUrl": "URL de l'image",
       "noParent": "Aucune (catégorie principale)",
       "add": "Ajouter",
       "editCategory": "Modifier la catégorie",

@@ -109,8 +109,27 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
                 const SizedBox(height: 12),
                 TextField(
                     controller: imageUrlController,
+                    onChanged: (_) => setSheetState(() {}),
                     decoration:
                         InputDecoration(labelText: sheetContext.t('restaurant.manage.itemImageUrl'))),
+                if (imageUrlController.text.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      imageUrlController.text.trim(),
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 64,
+                        height: 64,
+                        color: AppColors.greenSoft,
+                        child: const Icon(Icons.restaurant_menu_rounded, color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,

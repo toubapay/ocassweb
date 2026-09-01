@@ -887,6 +887,7 @@
       "subtitle": "Shared across all vendors - anyone can add one from their product page too. Deactivating hides it from browsing and the product-form dropdown without deleting it.",
       "name": "Name",
       "icon": "Icon",
+      "imageUrl": "Image URL",
       "noParent": "None (top-level category)",
       "add": "Add",
       "editCategory": "Edit category",

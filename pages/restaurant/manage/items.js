@@ -16,6 +16,8 @@ import DialogActions from "@mui/material/DialogActions";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import RestaurantMenuRoundedIcon from "@mui/icons-material/RestaurantMenuRounded";
+import Avatar from "@mui/material/Avatar";
 import TopBar from "../../../src/components/layout/TopBar";
 import useAuth from "../../../src/hooks/useAuth";
 import {
@@ -236,6 +238,11 @@ export default function RestaurantMenuItems() {
             value={form.imageUrl}
             onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
           />
+          {form.imageUrl.trim() && (
+            <Avatar src={form.imageUrl.trim()} variant="rounded" sx={{ width: 64, height: 64, mt: 1 }}>
+              <RestaurantMenuRoundedIcon />
+            </Avatar>
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={closeDialog}>{t("vendor.cancel")}</Button>
