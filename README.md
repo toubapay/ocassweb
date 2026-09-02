@@ -871,8 +871,8 @@ deliveries, active rides, vendor stores, open Anando postings. Read-only.
 button here. Database backups are handled at the hosting/infra layer, not
 as an app feature - Render's managed Postgres (see `DEPLOY_RENDER.md`)
 takes automatic daily backups with point-in-time recovery on paid plans,
-and the equivalents on Cloud SQL / Railway are documented in the other
-`DEPLOY_*.md` guides. Building a custom in-app backup feature would mean
+and the Railway equivalent is documented in `DEPLOY_RAILWAY.md`. Building
+a custom in-app backup feature would mean
 either re-implementing what the managed Postgres already does, or shipping
 something worse (an app-level export with no point-in-time recovery,
 running on the same box it's meant to protect). If a scheduled *export*
@@ -882,13 +882,12 @@ feature to design on its own.
 
 ## Deploying
 
-- [DEPLOY_GCP.md](./DEPLOY_GCP.md) — Cloud Run + Cloud SQL
-- [DEPLOY_RAILWAY.md](./DEPLOY_RAILWAY.md) — Railway + Railway Postgres
 - [DEPLOY_RENDER.md](./DEPLOY_RENDER.md) — Render Web Services + Render
   Postgres, with a [`render.yaml`](./render.yaml) Blueprint for one-shot
-  infra-as-code setup
+  infra-as-code setup (the platform actually in use for this project)
+- [DEPLOY_RAILWAY.md](./DEPLOY_RAILWAY.md) — Railway + Railway Postgres
 - [DEPLOY_SCALE.md](./DEPLOY_SCALE.md) — infrastructure and monthly cost
-  estimates for scaling from 100K to 1M users on either platform
+  estimates for scaling from 100K to 1M users
 
 None of these were run from this environment — all were prepared and
 documented but not executed, since this sandbox has no credentials for
