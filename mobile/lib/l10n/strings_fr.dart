@@ -187,6 +187,7 @@ const Map<String, String> frStrings = {
   'ecommerce.discover.subcategoriesCount_one': '{{count}} sous-catégorie',
   'ecommerce.discover.subcategoriesCount_other': '{{count}} sous-catégories',
   'ecommerce.discover.title': 'Boutique',
+  'ecommerce.home.endsIn': 'Termine dans',
   'ecommerce.orders.detailTitle': 'Détails de la commande',
   'ecommerce.orders.empty': 'Aucune commande pour l\'instant.',
   'ecommerce.orders.items': 'Articles',

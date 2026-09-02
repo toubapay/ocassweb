@@ -9,6 +9,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import CardGiftcardRoundedIcon from "@mui/icons-material/CardGiftcardRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import CheckroomRoundedIcon from "@mui/icons-material/CheckroomRounded";
 import DevicesOtherRoundedIcon from "@mui/icons-material/DevicesOtherRounded";
 import LocalGroceryStoreRoundedIcon from "@mui/icons-material/LocalGroceryStoreRounded";
@@ -34,8 +35,9 @@ import SortableModuleTile from "../src/components/home/SortableModuleTile";
 import HeaderWave from "../src/components/home/HeaderWave";
 import ShortcutCard from "../src/components/home/ShortcutCard";
 import ProductCard from "../src/components/ecommerce/ProductCard";
+import FlashSaleCountdown from "../src/components/ecommerce/FlashSaleCountdown";
 import useAuth from "../src/hooks/useAuth";
-import { fetchProducts, fetchCategories } from "../src/api/ecommerce";
+import { fetchProducts, fetchCategories, fetchActiveFlashSale } from "../src/api/ecommerce";
 import { fetchUnreadCount } from "../src/api/notifications";
 
 const CATEGORY_ICONS = {
@@ -56,6 +58,11 @@ export default function Home() {
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const { data } = useQuery("home-products", () => fetchProducts({ pageSize: 6 }));
   const { data: categories } = useQuery("categories", fetchCategories);
+  const { data: flashSale } = useQuery(
+    ["flash-sale", "home"],
+    () => fetchActiveFlashSale("home"),
+    { refetchInterval: 60000 }
+  );
   const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
     enabled: isAuthenticated,
     refetchInterval: 30000,
@@ -180,6 +187,49 @@ export default function Home() {
           ))}
         </Box>
       </Box>
+
+      {/* Flash sale - only rendered while an admin-configured FlashSale
+          campaign (see AdminFlashSalesTab) targeting the main Home Screen
+          is inside its recurring schedule window. Same campaigns/API as
+          the ecommerce discover page's own flash section (placement
+          differs), so a campaign can appear on either, both, or neither. */}
+      {flashSale && (
+        <Box sx={{ px: 2.5, pb: 3 }}>
+          <Box sx={{ borderRadius: 3, overflow: "hidden" }}>
+            <Box
+              sx={{
+                bgcolor: "#1A1A1A",
+                color: "#fff",
+                px: 2,
+                py: 1.25,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <BoltRoundedIcon sx={{ color: "#FACC15" }} fontSize="small" />
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                  {flashSale.title}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  {t("ecommerce.home.endsIn")}
+                </Typography>
+                <FlashSaleCountdown endsAt={flashSale.endsAt} />
+              </Box>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1.5, overflowX: "auto", pt: 1.5, pb: 1 }}>
+              {flashSale.products.map((product) => (
+                <Box key={product.id} sx={{ minWidth: 150, maxWidth: 150 }}>
+                  <ProductCard product={product} />
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      )}
 
       <Box sx={{ px: 2.5, pb: 3 }}>
         <Box

@@ -879,6 +879,111 @@ async function listAutoInsurancePolicies(req, res, next) {
   }
 }
 
+// ---------------- Flash sales (ecommerce module only) ----------------
+// See FlashSale in schema.prisma and flashSaleSchedule.js for how the
+// recurring schedule is evaluated. `productIds` here is only meaningful
+// for selectionMode "MANUAL" - AUTO campaigns ignore it and the public
+// endpoint (flashSales.controller.js) queries top-discounted products
+// live instead.
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const flashSaleSchema = z.object({
+  title: z.string().min(2),
+  selectionMode: z.enum(["AUTO", "MANUAL"]).optional(),
+  recurrenceType: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).optional(),
+  startTime: z.string().regex(TIME_RE, "Expected HH:mm"),
+  endTime: z.string().regex(TIME_RE, "Expected HH:mm"),
+  dayOfWeek: z.number().int().min(0).max(6).optional().nullable(),
+  dayOfMonth: z.number().int().min(1).max(31).optional().nullable(),
+  onHomeScreen: z.boolean().optional(),
+  onEcommerceHome: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  productIds: z.array(z.string()).optional(),
+});
+
+const FLASH_SALE_INCLUDE = {
+  products: { select: { id: true, name: true, images: true, discountPercent: true, price: true } },
+};
+
+async function listFlashSalesAdmin(req, res, next) {
+  try {
+    const flashSales = await prisma.flashSale.findMany({
+      orderBy: { createdAt: "desc" },
+      include: FLASH_SALE_INCLUDE,
+    });
+    res.json({ flashSales });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createFlashSaleAdmin(req, res, next) {
+  try {
+    const data = flashSaleSchema.parse(req.body);
+    if (data.endTime <= data.startTime) {
+      return res.status(400).json({ message: "endTime must be after startTime" });
+    }
+    const recurrenceType = data.recurrenceType || "DAILY";
+    if (recurrenceType === "WEEKLY" && data.dayOfWeek == null) {
+      return res.status(400).json({ message: "dayOfWeek is required for weekly recurrence" });
+    }
+    if (recurrenceType === "MONTHLY" && data.dayOfMonth == null) {
+      return res.status(400).json({ message: "dayOfMonth is required for monthly recurrence" });
+    }
+    const { productIds, ...rest } = data;
+    const flashSale = await prisma.flashSale.create({
+      data: {
+        ...rest,
+        recurrenceType,
+        selectionMode: data.selectionMode || "AUTO",
+        ...(productIds?.length ? { products: { connect: productIds.map((id) => ({ id })) } } : {}),
+      },
+      include: FLASH_SALE_INCLUDE,
+    });
+    res.status(201).json({ flashSale });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateFlashSaleAdmin(req, res, next) {
+  try {
+    const data = flashSaleSchema.partial().parse(req.body);
+    if (data.startTime && data.endTime && data.endTime <= data.startTime) {
+      return res.status(400).json({ message: "endTime must be after startTime" });
+    }
+    const recurrenceType = data.recurrenceType;
+    if (recurrenceType === "WEEKLY" && data.dayOfWeek == null) {
+      return res.status(400).json({ message: "dayOfWeek is required for weekly recurrence" });
+    }
+    if (recurrenceType === "MONTHLY" && data.dayOfMonth == null) {
+      return res.status(400).json({ message: "dayOfMonth is required for monthly recurrence" });
+    }
+    const { productIds, ...rest } = data;
+    const flashSale = await prisma.flashSale.update({
+      where: { id: req.params.id },
+      data: {
+        ...rest,
+        ...(productIds !== undefined ? { products: { set: productIds.map((id) => ({ id })) } } : {}),
+      },
+      include: FLASH_SALE_INCLUDE,
+    });
+    res.json({ flashSale });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteFlashSaleAdmin(req, res, next) {
+  try {
+    await prisma.flashSale.delete({ where: { id: req.params.id } });
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Dashboard stats ----------------
 
 async function getStats(req, res, next) {
@@ -951,5 +1056,9 @@ module.exports = {
   createInsurancePlan,
   updateInsurancePlan,
   listAutoInsurancePolicies,
+  listFlashSalesAdmin,
+  createFlashSaleAdmin,
+  updateFlashSaleAdmin,
+  deleteFlashSaleAdmin,
   getStats,
 };

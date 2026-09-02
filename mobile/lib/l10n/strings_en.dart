@@ -187,6 +187,7 @@ const Map<String, String> enStrings = {
   'ecommerce.discover.subcategoriesCount_one': '{{count}} subcategory',
   'ecommerce.discover.subcategoriesCount_other': '{{count}} subcategories',
   'ecommerce.discover.title': 'Shop',
+  'ecommerce.home.endsIn': 'Ends in',
   'ecommerce.orders.detailTitle': 'Order details',
   'ecommerce.orders.empty': 'No orders yet.',
   'ecommerce.orders.items': 'Items',
