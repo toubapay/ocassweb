@@ -17,11 +17,40 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import UploadRoundedIcon from "@mui/icons-material/UploadRounded";
 import {
   fetchAdminCategories,
   createAdminCategory,
   updateAdminCategory,
 } from "../../api/admin";
+import { compressImageFile } from "../../utils/imageFile";
+
+/** Shared by the inline create row and the edit dialog below. */
+function UploadImageButton({ onUploaded }) {
+  const { t } = useTranslation();
+  const [uploading, setUploading] = useState(false);
+
+  const handleChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      onUploaded(await compressImageFile(file));
+    } catch (err) {
+      toast.error(err.message === "too-large" ? t("vendor.imageTooLarge") : t("vendor.notAnImage"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Button component="label" size="small" startIcon={<UploadRoundedIcon />} disabled={uploading}>
+      {uploading ? t("common.loading") : t("vendor.uploadImage")}
+      <input type="file" accept="image/*" hidden onChange={handleChange} />
+    </Button>
+  );
+}
 
 function EditCategoryDialog({ category, topLevelCategories, onClose }) {
   const { t } = useTranslation();
@@ -73,11 +102,14 @@ function EditCategoryDialog({ category, topLevelCategories, onClose }) {
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
         />
-        {imageUrl.trim() && (
-          <Avatar src={imageUrl.trim()} variant="rounded" sx={{ width: 64, height: 64 }}>
-            <CategoryRoundedIcon />
-          </Avatar>
-        )}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <UploadImageButton onUploaded={setImageUrl} />
+          {imageUrl.trim() && (
+            <Avatar src={imageUrl.trim()} variant="rounded" sx={{ width: 64, height: 64 }}>
+              <CategoryRoundedIcon />
+            </Avatar>
+          )}
+        </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose}>{t("common.cancel")}</Button>
@@ -178,6 +210,12 @@ export default function AdminCategoriesTab() {
           onChange={(e) => setImageUrl(e.target.value)}
           sx={{ minWidth: 180 }}
         />
+        <UploadImageButton onUploaded={setImageUrl} />
+        {imageUrl.trim() && (
+          <Avatar src={imageUrl.trim()} variant="rounded" sx={{ width: 40, height: 40 }}>
+            <CategoryRoundedIcon fontSize="small" />
+          </Avatar>
+        )}
         <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
           {t("admin.categories.add")}
         </Button>

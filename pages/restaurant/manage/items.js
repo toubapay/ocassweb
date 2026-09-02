@@ -17,6 +17,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import RestaurantMenuRoundedIcon from "@mui/icons-material/RestaurantMenuRounded";
+import UploadRoundedIcon from "@mui/icons-material/UploadRounded";
 import Avatar from "@mui/material/Avatar";
 import TopBar from "../../../src/components/layout/TopBar";
 import useAuth from "../../../src/hooks/useAuth";
@@ -27,6 +28,7 @@ import {
   deactivateMenuItem,
 } from "../../../src/api/restaurantOwner";
 import { formatCfa } from "../../../src/utils/currency";
+import { compressImageFile } from "../../../src/utils/imageFile";
 
 const emptyForm = { name: "", description: "", price: "", imageUrl: "", category: "" };
 
@@ -40,6 +42,7 @@ export default function RestaurantMenuItems() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const { data: menuItems, isLoading } = useQuery("restaurant-menu-items", fetchMyMenuItems, {
     enabled: isOwner,
@@ -113,6 +116,25 @@ export default function RestaurantMenuItems() {
       updateMutation.mutate({ id: editingId, payload });
     } else {
       createMutation.mutate(payload);
+    }
+  };
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const dataUrl = await compressImageFile(file);
+      setForm((f) => ({ ...f, imageUrl: dataUrl }));
+    } catch (err) {
+      toast.error(
+        err.message === "too-large"
+          ? t("vendor.imageTooLarge")
+          : t("vendor.notAnImage")
+      );
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -238,11 +260,22 @@ export default function RestaurantMenuItems() {
             value={form.imageUrl}
             onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
           />
-          {form.imageUrl.trim() && (
-            <Avatar src={form.imageUrl.trim()} variant="rounded" sx={{ width: 64, height: 64, mt: 1 }}>
-              <RestaurantMenuRoundedIcon />
-            </Avatar>
-          )}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Button
+              component="label"
+              size="small"
+              startIcon={<UploadRoundedIcon />}
+              disabled={uploadingImage}
+            >
+              {uploadingImage ? t("common.loading") : t("vendor.uploadImage")}
+              <input type="file" accept="image/*" hidden onChange={handleUpload} />
+            </Button>
+            {form.imageUrl.trim() && (
+              <Avatar src={form.imageUrl.trim()} variant="rounded" sx={{ width: 64, height: 64 }}>
+                <RestaurantMenuRoundedIcon />
+              </Avatar>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={closeDialog}>{t("vendor.cancel")}</Button>
