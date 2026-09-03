@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'constants.dart';
 import 'secure_storage.dart';
@@ -46,8 +47,18 @@ class ApiClient {
         handler.next(options);
       },
       onError: (DioException error, handler) async {
-        if (error.response?.statusCode == 401) {
+        // A 401 with no stored token just means an unauthenticated call
+        // hit a protected endpoint on purpose - nothing to correct. A 401
+        // WITH a token means the token itself was rejected (expired/
+        // invalid); clearing storage alone used to leave AuthProvider's
+        // in-memory `user`/`isAuthenticated` untouched, so the UI kept
+        // rendering as logged-in for the rest of the session - every
+        // subsequent write would silently 401 again with no indication
+        // the user needed to log back in. Mirrors the redux dispatch used
+        // for the same purpose on web (see src/api/client.js).
+        if (error.response?.statusCode == 401 && await TokenStorage.read() != null) {
           await TokenStorage.clear();
+          onUnauthorized?.call();
         }
         handler.next(error);
       },
@@ -56,6 +67,11 @@ class ApiClient {
 
   static final ApiClient instance = ApiClient._internal();
   late final Dio _dio;
+
+  /// Set once during app startup (see app.dart) to the active
+  /// AuthProvider's logout method - lets this context-free singleton
+  /// correct in-memory auth state on a 401 without needing a BuildContext.
+  static VoidCallback? onUnauthorized;
 
   Map<String, dynamic> _data(Response res) => res.data as Map<String, dynamic>;
 

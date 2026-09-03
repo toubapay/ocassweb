@@ -6,6 +6,7 @@
     "save": "Save",
     "logIn": "Log in",
     "logInToContinue": "Log in to continue",
+    "sessionExpired": "Your session expired - please log in again",
     "backToCart": "Back to cart",
     "startShopping": "Start shopping",
     "note": "Note",

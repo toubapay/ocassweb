@@ -6,6 +6,7 @@
     "save": "Enregistrer",
     "logIn": "Se connecter",
     "logInToContinue": "Connectez-vous pour continuer",
+    "sessionExpired": "Votre session a expiré - reconnectez-vous",
     "backToCart": "Retour au panier",
     "startShopping": "Commencer les achats",
     "note": "Remarque",
