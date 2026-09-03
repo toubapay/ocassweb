@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'core/api_client.dart';
 import 'theme/app_theme.dart';
 import 'router/app_router.dart';
 import 'providers/auth_provider.dart';
@@ -28,6 +29,10 @@ class _OcassAppState extends State<OcassApp> {
   @override
   void initState() {
     super.initState();
+    // Lets ApiClient (a plain, context-free singleton) correct
+    // AuthProvider's in-memory state when a 401 reveals the stored token
+    // was actually invalid/expired - see api_client.dart's onError.
+    apiClient.onUnauthorized = _authProvider.logout;
     _moduleOrderProvider.load();
     _localeProvider.load();
     _authProvider.bootstrap().then((_) {
