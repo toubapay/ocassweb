@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/image_upload.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/restaurant.dart';
 import '../../providers/auth_provider.dart';
@@ -24,6 +26,7 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
   List<MenuItem> _items = [];
   bool _loading = true;
   final Set<String> _busyIds = {};
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -61,6 +64,7 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
     final categoryController = TextEditingController(text: item?.category ?? '');
     final imageUrlController = TextEditingController(text: item?.imageUrl ?? '');
     bool saving = false;
+    bool uploadingImage = false;
 
     showModalBottomSheet(
       context: context,
@@ -112,24 +116,46 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
                     onChanged: (_) => setSheetState(() {}),
                     decoration:
                         InputDecoration(labelText: sheetContext.t('restaurant.manage.itemImageUrl'))),
-                if (imageUrlController.text.trim().isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      imageUrlController.text.trim(),
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 64,
-                        height: 64,
-                        color: AppColors.greenSoft,
-                        child: const Icon(Icons.restaurant_menu_rounded, color: AppColors.textSecondary),
-                      ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: uploadingImage
+                          ? null
+                          : () async {
+                              setSheetState(() => uploadingImage = true);
+                              final dataUri = await pickAndEncodeImage(_picker);
+                              setSheetState(() {
+                                uploadingImage = false;
+                                if (dataUri != null) imageUrlController.text = dataUri;
+                              });
+                            },
+                      icon: const Icon(Icons.upload_rounded, size: 18),
+                      label: Text(uploadingImage
+                          ? sheetContext.t('common.loading')
+                          : sheetContext.t('vendor.uploadImage')),
                     ),
-                  ),
-                ],
+                    if (imageUrlController.text.trim().isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          imageUrlController.text.trim(),
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: 64,
+                            height: 64,
+                            color: AppColors.greenSoft,
+                            child:
+                                const Icon(Icons.restaurant_menu_rounded, color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,

@@ -182,6 +182,7 @@ model Product {
   orderItems OrderItem[]
   wishlist   Wishlist[]
   reviews    Review[]
+  flashSales FlashSale[] @relation("FlashSaleProducts")
 
   @@index([categoryId])
   @@index([storeId])
@@ -314,7 +315,7 @@ enum DeliveryStatus {
 }
 
 model DeliveryRequest {
-  id              String              @id @default(uuid())
+  id              String         @id @default(uuid())
   userId          String
   // Contact details for whoever's handing off / receiving the package -
   // may differ from the requesting account (e.g. sending a package on
@@ -328,7 +329,7 @@ model DeliveryRequest {
   // admin catalog without a FK ever blocking it (deletion is instead
   // blocked at the application layer while any request still uses the
   // key - see deleteDeliveryPackageTypeAdmin).
-  packageType     String              @default("PACKAGE")
+  packageType     String         @default("PACKAGE")
   // Sender-entered, purely informational (like packageType/packageNote) -
   // no pricing logic reads this yet.
   packageWeightKg Float?
@@ -341,13 +342,13 @@ model DeliveryRequest {
   dropoffLat      Float?
   dropoffLng      Float?
   packageNote     String?
-  priceEstimate   Decimal?            @db.Decimal(10, 2)
+  priceEstimate   Decimal?       @db.Decimal(10, 2)
   // Distance used to compute priceEstimate (road distance via Google's
   // Distance Matrix API when configured, else Haversine - see
   // server/src/utils/distanceMatrix.js). Null when priceEstimate fell back
   // to the no-coordinates flat-ish random estimate.
   distanceKm      Float?
-  status          DeliveryStatus      @default(REQUESTED)
+  status          DeliveryStatus @default(REQUESTED)
   assignedAgentId String?
   // Agent's last-reported GPS position while this job is ACCEPTED/PICKED_UP
   // (see PATCH /delivery/jobs/:id/location) - powers the customer-facing
@@ -356,7 +357,7 @@ model DeliveryRequest {
   agentLat        Float?
   agentLng        Float?
   agentLocationAt DateTime?
-  createdAt       DateTime            @default(now())
+  createdAt       DateTime       @default(now())
 
   user            User             @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
   assignedAgent   User?            @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
@@ -1069,4 +1070,48 @@ model Provider {
   updatedAt DateTime @updatedAt
 
   @@index([category, isActive])
+}
+
+// Admin-configured ecommerce flash sale campaigns (see pages/ecommerce/index.js
+// and pages/index.js's flash sale sections) - drives the countdown and the
+// product set shown, replacing the old hardcoded "always-on, resets at
+// midnight" banner. A campaign is "live" only while the current time falls
+// inside its recurring window (see server/src/utils/flashSaleSchedule.js);
+// outside that window it's simply not shown, rather than displaying a
+// "starts in..." teaser. Scoped to the ecommerce module only - Restaurant
+// menu items have no discount concept to run a flash sale off of.
+enum FlashSaleRecurrence {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum FlashSaleSelectionMode {
+  AUTO
+  MANUAL
+}
+
+model FlashSale {
+  id              String                 @id @default(uuid())
+  title           String
+  selectionMode   FlashSaleSelectionMode @default(AUTO)
+  recurrenceType  FlashSaleRecurrence    @default(DAILY)
+  // "HH:mm" 24h, interpreted on the server's UTC clock - Senegal is UTC+0
+  // year-round (no DST), so this doubles as Africa/Dakar wall-clock time
+  // with no conversion needed.
+  startTime       String
+  endTime         String
+  // WEEKLY only: 0=Sunday..6=Saturday. MONTHLY only: 1-31 (a 31 on a
+  // shorter month simply never occurs that month - no clamping).
+  dayOfWeek       Int?
+  dayOfMonth      Int?
+  onHomeScreen    Boolean                @default(false)
+  onEcommerceHome Boolean                @default(true)
+  isActive        Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  // MANUAL mode only - ignored (may be empty) for AUTO, which instead
+  // queries top-discounted products live at request time.
+  products Product[] @relation("FlashSaleProducts")
 }

@@ -7,11 +7,13 @@ import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
 import '../../models/product.dart';
+import '../../models/flash_sale.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/module_order_provider.dart';
 import '../../providers/notifications_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_bar.dart';
+import '../../widgets/flash_sale_countdown.dart';
 import '../../widgets/header_wave.dart';
 import '../../widgets/module_tile.dart';
 import '../../widgets/product_card.dart';
@@ -40,12 +42,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final Future<List<Category>> _categoriesFuture;
   late final Future<ProductListResult> _productsFuture;
+  late final Future<FlashSale?> _flashSaleFuture;
 
   @override
   void initState() {
     super.initState();
     _categoriesFuture = apiClient.fetchCategories();
     _productsFuture = apiClient.fetchProducts(pageSize: 6);
+    _flashSaleFuture = apiClient.fetchActiveFlashSale('home');
   }
 
   @override
@@ -197,6 +201,64 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
+          ),
+          // Flash sale - only rendered while an admin-configured FlashSale
+          // campaign (see AdminFlashSalesTab on web) targeting the main
+          // Home Screen is inside its recurring schedule window.
+          FutureBuilder<FlashSale?>(
+            future: _flashSaleFuture,
+            builder: (context, snapshot) {
+              final flashSale = snapshot.data;
+              if (flashSale == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        color: const Color(0xFF1A1A1A),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.bolt_rounded, color: Color(0xFFFACC15), size: 18),
+                                const SizedBox(width: 4),
+                                Text(flashSale.title,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w800, color: Colors.white, fontSize: 15)),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Text(context.t('ecommerce.home.endsIn'),
+                                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                const SizedBox(width: 6),
+                                FlashSaleCountdown(endsAt: flashSale.endsAt),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        height: 250,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: flashSale.products.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) =>
+                              SizedBox(width: 150, child: ProductCard(product: flashSale.products[index])),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),

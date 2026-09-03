@@ -17,16 +17,20 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
+import IconButton from "@mui/material/IconButton";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import UploadRoundedIcon from "@mui/icons-material/UploadRounded";
 import Avatar from "@mui/material/Avatar";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
 import { fetchMyProducts, createProduct, updateProduct, deactivateProduct } from "../../src/api/vendor";
 import { fetchCategories } from "../../src/api/ecommerce";
 import { formatCfa } from "../../src/utils/currency";
+import { compressImageFile } from "../../src/utils/imageFile";
 
 const emptyForm = {
   categoryId: "",
@@ -35,7 +39,7 @@ const emptyForm = {
   price: "",
   discountPrice: "",
   stock: "",
-  images: "",
+  images: [],
 };
 
 function flattenCategories(categories) {
@@ -57,6 +61,8 @@ export default function VendorProducts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const { data: products, isLoading } = useQuery("vendor-products", fetchMyProducts, {
     enabled: isVendor,
@@ -98,6 +104,34 @@ export default function VendorProducts() {
     setDialogOpen(false);
     setEditingId(null);
     setForm(emptyForm);
+    setNewImageUrl("");
+  };
+
+  const addImageUrl = () => {
+    if (!newImageUrl.trim()) return;
+    setForm((f) => ({ ...f, images: [...f.images, newImageUrl.trim()] }));
+    setNewImageUrl("");
+  };
+
+  const removeImage = (index) => {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
+  };
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const dataUrl = await compressImageFile(file);
+      setForm((f) => ({ ...f, images: [...f.images, dataUrl] }));
+    } catch (err) {
+      toast.error(
+        err.message === "too-large" ? t("vendor.imageTooLarge") : t("vendor.notAnImage")
+      );
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const openCreate = () => {
@@ -114,7 +148,7 @@ export default function VendorProducts() {
       price: String(product.price),
       discountPrice: product.discountPrice ? String(product.discountPrice) : "",
       stock: String(product.stock),
-      images: (product.images || []).join(", "),
+      images: product.images || [],
     });
     setEditingId(product.id);
     setDialogOpen(true);
@@ -132,9 +166,7 @@ export default function VendorProducts() {
       price: Number(form.price),
       discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
       stock: Number(form.stock) || 0,
-      images: form.images
-        ? form.images.split(",").map((url) => url.trim()).filter(Boolean)
-        : [],
+      images: form.images,
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, payload });
@@ -300,28 +332,60 @@ export default function VendorProducts() {
             value={form.stock}
             onChange={(e) => setForm({ ...form, stock: e.target.value })}
           />
-          <TextField
-            label={t("vendor.images")}
-            helperText={t("vendor.imagesHelp")}
-            fullWidth
-            multiline
-            minRows={2}
-            value={form.images}
-            onChange={(e) => setForm({ ...form, images: e.target.value })}
-          />
-          {form.images.trim() && (
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1 }}>
-              {form.images
-                .split(",")
-                .map((url) => url.trim())
-                .filter(Boolean)
-                .map((url) => (
-                  <Avatar key={url} src={url} variant="rounded" sx={{ width: 64, height: 64 }}>
-                    <CategoryRoundedIcon />
-                  </Avatar>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+              {t("vendor.images")}
+            </Typography>
+            {form.images.length > 0 && (
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
+                {form.images.map((url, index) => (
+                  <Box key={index} sx={{ position: "relative" }}>
+                    <Avatar src={url} variant="rounded" sx={{ width: 64, height: 64 }}>
+                      <CategoryRoundedIcon />
+                    </Avatar>
+                    <IconButton
+                      size="small"
+                      onClick={() => removeImage(index)}
+                      sx={{
+                        position: "absolute",
+                        top: -8,
+                        right: -8,
+                        bgcolor: "#fff",
+                        boxShadow: 1,
+                        width: 22,
+                        height: 22,
+                        "&:hover": { bgcolor: "#fff" },
+                      }}
+                    >
+                      <CloseRoundedIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Box>
                 ))}
+              </Box>
+            )}
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <TextField
+                size="small"
+                fullWidth
+                placeholder={t("vendor.imageUrlPlaceholder")}
+                value={newImageUrl}
+                onChange={(e) => setNewImageUrl(e.target.value)}
+              />
+              <Button variant="outlined" disabled={!newImageUrl.trim()} onClick={addImageUrl}>
+                {t("vendor.addImageUrl")}
+              </Button>
             </Box>
-          )}
+            <Button
+              component="label"
+              size="small"
+              startIcon={<UploadRoundedIcon />}
+              disabled={uploadingImage}
+              sx={{ mt: 1 }}
+            >
+              {uploadingImage ? t("common.loading") : t("vendor.uploadImage")}
+              <input type="file" accept="image/*" hidden onChange={handleUpload} />
+            </Button>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={closeDialog}>{t("vendor.cancel")}</Button>

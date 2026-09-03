@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/image_upload.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
 import '../../models/product.dart';
@@ -11,11 +13,13 @@ import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
 /// Mirrors pages/vendor/products.js: a product list with a FAB that opens
-/// a create-product form, tap-to-edit, and comma-separated image URLs (no
-/// upload backend anywhere in this app - images stay a plain URL list,
-/// same as the store logo field). Category is a read-only picker into the
-/// admin-curated shared category tree (see AdminCategoriesTab.js on web) -
-/// vendors browse it, they don't add to it.
+/// a create-product form, an image list a vendor builds by pasting URLs
+/// and/or uploading photos from their gallery (compressed client-side to
+/// a data URI - see core/image_upload.dart; there's no upload backend or
+/// object storage anywhere in this app, so that data URI is stored
+/// directly in the same images field a pasted URL would use). Category is
+/// a read-only picker into the admin-curated shared category tree (see
+/// AdminCategoriesTab.js on web) - vendors browse it, they don't add to it.
 class VendorProductsScreen extends StatefulWidget {
   const VendorProductsScreen({super.key});
 
@@ -28,6 +32,7 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
   List<Category> _categories = [];
   bool _loading = true;
   final Set<String> _busyIds = {};
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -88,9 +93,11 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
     final discountController =
         TextEditingController(text: product?.discountPrice != null ? '${product!.discountPrice}' : '');
     final stockController = TextEditingController(text: product != null ? '${product.stock}' : '');
-    final imagesController = TextEditingController(text: product?.images.join(', ') ?? '');
+    final newImageUrlController = TextEditingController();
+    List<String> images = List<String>.from(product?.images ?? []);
     String? categoryId = product?.categoryId ?? (_flatCategories.isNotEmpty ? _flatCategories.first.id : null);
     bool saving = false;
+    bool uploadingImage = false;
 
     showModalBottomSheet(
       context: context,
@@ -157,42 +164,96 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                   decoration: InputDecoration(labelText: sheetContext.t('vendor.stock')),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: imagesController,
-                  maxLines: 2,
-                  onChanged: (_) => setSheetState(() {}),
-                  decoration: InputDecoration(
-                    labelText: sheetContext.t('vendor.images'),
-                    helperText: sheetContext.t('vendor.imagesHelp'),
-                  ),
-                ),
-                if (imagesController.text.trim().isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                Text(sheetContext.t('vendor.images'),
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 8),
+                if (images.isNotEmpty)
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: imagesController.text
-                        .split(',')
-                        .map((url) => url.trim())
-                        .where((url) => url.isNotEmpty)
-                        .map((url) => ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                url,
+                    children: List.generate(images.length, (i) {
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              images[i],
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
                                 width: 64,
                                 height: 64,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  width: 64,
-                                  height: 64,
-                                  color: AppColors.greenSoft,
-                                  child: const Icon(Icons.category_rounded, color: AppColors.textSecondary),
-                                ),
+                                color: AppColors.greenSoft,
+                                child: const Icon(Icons.category_rounded, color: AppColors.textSecondary),
                               ),
-                            ))
-                        .toList(),
+                            ),
+                          ),
+                          Positioned(
+                            top: -8,
+                            right: -8,
+                            child: GestureDetector(
+                              onTap: () => setSheetState(() => images.removeAt(i)),
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 2)],
+                                ),
+                                child: const Icon(Icons.close_rounded, size: 14),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
                   ),
-                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: newImageUrlController,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: sheetContext.t('vendor.imageUrlPlaceholder'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () {
+                        final url = newImageUrlController.text.trim();
+                        if (url.isEmpty) return;
+                        setSheetState(() {
+                          images.add(url);
+                          newImageUrlController.clear();
+                        });
+                      },
+                      child: Text(sheetContext.t('vendor.addImageUrl')),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                TextButton.icon(
+                  onPressed: uploadingImage
+                      ? null
+                      : () async {
+                          setSheetState(() => uploadingImage = true);
+                          final dataUri = await pickAndEncodeImage(_picker);
+                          setSheetState(() {
+                            uploadingImage = false;
+                            if (dataUri != null) images.add(dataUri);
+                          });
+                        },
+                  icon: const Icon(Icons.upload_rounded, size: 18),
+                  label: Text(uploadingImage
+                      ? sheetContext.t('common.loading')
+                      : sheetContext.t('vendor.uploadImage')),
+                ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -207,11 +268,6 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                               return;
                             }
                             setSheetState(() => saving = true);
-                            final images = imagesController.text
-                                .split(',')
-                                .map((url) => url.trim())
-                                .where((url) => url.isNotEmpty)
-                                .toList();
                             final discountText = discountController.text.trim();
                             final discountPrice = discountText.isEmpty ? null : double.tryParse(discountText);
                             try {

@@ -36,6 +36,10 @@ const {
   createInsurancePlan,
   updateInsurancePlan,
   listAutoInsurancePolicies,
+  listFlashSalesAdmin,
+  createFlashSaleAdmin,
+  updateFlashSaleAdmin,
+  deleteFlashSaleAdmin,
   getStats,
 } = require("./admin.controller");
 
@@ -93,5 +97,10 @@ router.post("/services/insurance", createInsurancePlan);
 router.patch("/services/insurance/:id", updateInsurancePlan);
 
 router.get("/insurance/auto-policies", listAutoInsurancePolicies);
+
+router.get("/flash-sales", listFlashSalesAdmin);
+router.post("/flash-sales", createFlashSaleAdmin);
+router.patch("/flash-sales/:id", updateFlashSaleAdmin);
+router.delete("/flash-sales/:id", deleteFlashSaleAdmin);
 
 module.exports = router;

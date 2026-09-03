@@ -104,3 +104,12 @@ export const fetchAdminAutoInsurancePolicies = (status) =>
   apiClient
     .get("/admin/insurance/auto-policies", { params: status ? { status } : undefined })
     .then((res) => res.data.policies);
+
+// Flash sales
+export const fetchAdminFlashSales = () =>
+  apiClient.get("/admin/flash-sales").then((res) => res.data.flashSales);
+export const createAdminFlashSale = (payload) =>
+  apiClient.post("/admin/flash-sales", payload).then((res) => res.data.flashSale);
+export const updateAdminFlashSale = (id, payload) =>
+  apiClient.patch(`/admin/flash-sales/${id}`, payload).then((res) => res.data.flashSale);
+export const deleteAdminFlashSale = (id) => apiClient.delete(`/admin/flash-sales/${id}`);

@@ -11,7 +11,7 @@ import TopBar from "../../src/components/layout/TopBar";
 import HeroBanner from "../../src/components/ecommerce/HeroBanner";
 import ProductRow from "../../src/components/ecommerce/ProductRow";
 import FlashSaleCountdown from "../../src/components/ecommerce/FlashSaleCountdown";
-import { fetchCategories, fetchProducts, fetchWishlist } from "../../src/api/ecommerce";
+import { fetchCategories, fetchProducts, fetchWishlist, fetchActiveFlashSale } from "../../src/api/ecommerce";
 import useAuth from "../../src/hooks/useAuth";
 
 const CATEGORY_COLORS = ["#0FAE58", "#3B82F6", "#F97316", "#8B5CF6", "#E5484D", "#0D9488"];
@@ -84,9 +84,13 @@ export default function EcommerceDiscover() {
   const { isAuthenticated } = useAuth();
 
   const { data: categories, isLoading: categoriesLoading } = useQuery("categories", fetchCategories);
-  const { data: flashDeals, isLoading: flashLoading } = useQuery(
-    ["products", "flash-sale"],
-    () => fetchProducts({ sort: "discount", pageSize: 10 })
+  const { data: flashSale, isLoading: flashLoading } = useQuery(
+    ["flash-sale", "ecommerce"],
+    () => fetchActiveFlashSale("ecommerce"),
+    // Re-checks periodically so the section appears/disappears on its own
+    // as the admin-configured schedule window opens/closes, without
+    // needing a page reload.
+    { refetchInterval: 60000 }
   );
   const { data: wishlist } = useQuery("wishlist", fetchWishlist, { enabled: isAuthenticated });
   const wishlistedIds = useMemo(
@@ -95,7 +99,7 @@ export default function EcommerceDiscover() {
   );
 
   const topCategories = categories || [];
-  const flashProducts = flashDeals?.items || [];
+  const flashProducts = flashSale?.products || [];
 
   return (
     <Box sx={{ pb: 3 }}>
@@ -155,10 +159,11 @@ export default function EcommerceDiscover() {
         ))}
       </Box>
 
-      {/* Flash sale - today's steepest discounts across every store,
-          countdown resets daily (see FlashSaleCountdown's own comment -
-          not tied to per-deal expiry, this app has no such concept). */}
-      {(flashLoading || flashProducts.length > 0) && (
+      {/* Flash sale - only rendered while an admin-configured FlashSale
+          campaign (see AdminFlashSalesTab) is actually inside its
+          recurring schedule window; hidden entirely otherwise, rather
+          than showing a "starts in..." teaser. */}
+      {(flashLoading || flashSale) && (
         <Box sx={{ mt: 2.5, mb: 2 }}>
           <Box
             sx={{
@@ -174,15 +179,17 @@ export default function EcommerceDiscover() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
               <BoltRoundedIcon sx={{ color: "#FACC15" }} fontSize="small" />
               <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                {t("ecommerce.home.flashSale")}
+                {flashSale ? flashSale.title : t("ecommerce.home.flashSale")}
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-              <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                {t("ecommerce.home.endsIn")}
-              </Typography>
-              <FlashSaleCountdown />
-            </Box>
+            {flashSale && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  {t("ecommerce.home.endsIn")}
+                </Typography>
+                <FlashSaleCountdown endsAt={flashSale.endsAt} />
+              </Box>
+            )}
           </Box>
           <Box sx={{ pt: 1.5 }}>
             {flashLoading ? (

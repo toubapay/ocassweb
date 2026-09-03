@@ -22,6 +22,7 @@ import '../models/wallet.dart';
 import '../models/ride_posting.dart';
 import '../models/app_notification.dart';
 import '../models/store.dart';
+import '../models/flash_sale.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -114,6 +115,16 @@ class ApiClient {
   Future<Product> fetchProduct(String slug) async {
     final res = await _dio.get('/ecommerce/products/$slug');
     return Product.fromJson(_data(res)['product'] as Map<String, dynamic>);
+  }
+
+  /// The currently-live flash sale campaign for `placement` ("home" or
+  /// "ecommerce"), or null when none is live right now.
+  Future<FlashSale?> fetchActiveFlashSale(String placement) async {
+    final res = await _dio.get('/ecommerce/flash-sales/active', queryParameters: {
+      'placement': placement,
+    });
+    final flashSale = _data(res)['flashSale'];
+    return flashSale == null ? null : FlashSale.fromJson(flashSale as Map<String, dynamic>);
   }
 
   Future<List<CartItem>> fetchCart() async {
