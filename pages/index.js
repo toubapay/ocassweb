@@ -10,6 +10,8 @@ import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import CardGiftcardRoundedIcon from "@mui/icons-material/CardGiftcardRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
+import Avatar from "@mui/material/Avatar";
 import CheckroomRoundedIcon from "@mui/icons-material/CheckroomRounded";
 import DevicesOtherRoundedIcon from "@mui/icons-material/DevicesOtherRounded";
 import LocalGroceryStoreRoundedIcon from "@mui/icons-material/LocalGroceryStoreRounded";
@@ -38,6 +40,7 @@ import ProductCard from "../src/components/ecommerce/ProductCard";
 import FlashSaleCountdown from "../src/components/ecommerce/FlashSaleCountdown";
 import useAuth from "../src/hooks/useAuth";
 import { fetchProducts, fetchCategories, fetchActiveFlashSale } from "../src/api/ecommerce";
+import { fetchStores } from "../src/api/vendor";
 import { fetchUnreadCount } from "../src/api/notifications";
 
 const CATEGORY_ICONS = {
@@ -63,6 +66,7 @@ export default function Home() {
     () => fetchActiveFlashSale("home"),
     { refetchInterval: 60000 }
   );
+  const { data: featuredStores } = useQuery("featured-stores", () => fetchStores({ featured: true }));
   const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
     enabled: isAuthenticated,
     refetchInterval: 30000,
@@ -227,6 +231,55 @@ export default function Home() {
                 </Box>
               ))}
             </Box>
+          </Box>
+        </Box>
+      )}
+
+      {/* Admin-curated stores (see AdminVendorsTab.js's "Featured"
+          toggle) - independent of any module, spotlighting whole
+          storefronts rather than individual products. */}
+      {featuredStores && featuredStores.length > 0 && (
+        <Box sx={{ px: 2.5, pb: 3 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
+            {t("home.featuredShops")}
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1.5, overflowX: "auto", pb: 1 }}>
+            {featuredStores.map((store) => (
+              <Box
+                key={store.id}
+                onClick={() => router.push(`/store/${store.slug}`)}
+                sx={{
+                  minWidth: 108,
+                  maxWidth: 108,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 0.75,
+                  cursor: "pointer",
+                }}
+              >
+                <Avatar
+                  src={store.logoUrl || undefined}
+                  variant="rounded"
+                  sx={{ width: 88, height: 88, borderRadius: 3.5, bgcolor: "#F2EEFE", color: "#8B5CF6" }}
+                >
+                  <StorefrontRoundedIcon sx={{ fontSize: 34 }} />
+                </Avatar>
+                <Typography
+                  variant="caption"
+                  sx={{ fontWeight: 700, textAlign: "center", lineHeight: 1.2 }}
+                  noWrap
+                >
+                  {store.name}
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+                  <StarRoundedIcon sx={{ fontSize: 14, color: "#FFB020" }} />
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {store.rating.toFixed(1)}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
           </Box>
         </Box>
       )}

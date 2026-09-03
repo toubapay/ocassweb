@@ -24,6 +24,7 @@ import '../models/ride_posting.dart';
 import '../models/app_notification.dart';
 import '../models/store.dart';
 import '../models/flash_sale.dart';
+import '../models/showcase_slide.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -115,6 +116,7 @@ class ApiClient {
     String? category,
     String? store,
     String? search,
+    bool? featured,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -122,6 +124,7 @@ class ApiClient {
       if (category != null) 'category': category,
       if (store != null) 'store': store,
       if (search != null) 'search': search,
+      if (featured != null) 'featured': featured.toString(),
       'page': page,
       'pageSize': pageSize,
     });
@@ -147,6 +150,36 @@ class ApiClient {
     final res = await _dio.get('/ecommerce/cart');
     return (_data(res)['items'] as List<dynamic>)
         .map((i) => CartItem.fromJson(i as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Slides for the Boutique home page's rotating banner - see
+  /// AdminShowcaseTab.js on web for how admins manage these.
+  Future<List<ShowcaseSlide>> fetchShowcaseSlides() async {
+    final res = await _dio.get('/ecommerce/showcase-slides');
+    return (_data(res)['slides'] as List<dynamic>)
+        .map((s) => ShowcaseSlide.fromJson(s as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Store?> fetchStoreBySlug(String slug) async {
+    try {
+      final res = await _dio.get('/vendor/stores/$slug');
+      return Store.fromJson(_data(res)['store'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// Active stores, optionally restricted to admin-curated featured ones
+  /// (see the "Featured" toggle in AdminVendorsTab.js on web).
+  Future<List<Store>> fetchStores({bool? featured}) async {
+    final res = await _dio.get('/vendor/stores', queryParameters: {
+      if (featured != null) 'featured': featured.toString(),
+    });
+    return (_data(res)['stores'] as List<dynamic>)
+        .map((s) => Store.fromJson(s as Map<String, dynamic>))
         .toList();
   }
 

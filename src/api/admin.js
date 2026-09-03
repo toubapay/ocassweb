@@ -113,3 +113,16 @@ export const createAdminFlashSale = (payload) =>
 export const updateAdminFlashSale = (id, payload) =>
   apiClient.patch(`/admin/flash-sales/${id}`, payload).then((res) => res.data.flashSale);
 export const deleteAdminFlashSale = (id) => apiClient.delete(`/admin/flash-sales/${id}`);
+
+// Showcase slides
+export const fetchAdminShowcaseSlides = () =>
+  apiClient.get("/admin/showcase-slides").then((res) => res.data.slides);
+export const createAdminShowcaseSlide = (payload) =>
+  apiClient.post("/admin/showcase-slides", payload).then((res) => res.data.slide);
+export const updateAdminShowcaseSlide = (id, payload) =>
+  apiClient.patch(`/admin/showcase-slides/${id}`, payload).then((res) => res.data.slide);
+export const deleteAdminShowcaseSlide = (id) => apiClient.delete(`/admin/showcase-slides/${id}`);
+
+// Featured products
+export const updateAdminProductFeatured = (id, isFeatured) =>
+  apiClient.patch(`/admin/products/${id}/featured`, { isFeatured }).then((res) => res.data.product);

@@ -9,9 +9,16 @@ import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import HeroBanner from "../../src/components/ecommerce/HeroBanner";
+import ProductShowcaseCarousel from "../../src/components/ecommerce/ProductShowcaseCarousel";
 import ProductRow from "../../src/components/ecommerce/ProductRow";
 import FlashSaleCountdown from "../../src/components/ecommerce/FlashSaleCountdown";
-import { fetchCategories, fetchProducts, fetchWishlist, fetchActiveFlashSale } from "../../src/api/ecommerce";
+import {
+  fetchCategories,
+  fetchProducts,
+  fetchWishlist,
+  fetchActiveFlashSale,
+  fetchShowcaseSlides,
+} from "../../src/api/ecommerce";
 import useAuth from "../../src/hooks/useAuth";
 
 const CATEGORY_COLORS = ["#0FAE58", "#3B82F6", "#F97316", "#8B5CF6", "#E5484D", "#0D9488"];
@@ -78,12 +85,36 @@ function CategorySection({ category, color, wishlistedIds }) {
   );
 }
 
+/** Shared by the "Featured products" and "Latest products" sections below
+ * - a plain titled row, unlike CategorySection's colored band or the
+ * flash sale section's dark banner + countdown. */
+function SimpleProductSection({ title, products, isLoading, wishlistedIds }) {
+  const { t } = useTranslation();
+  if (!isLoading && products.length === 0) return null;
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 800, px: 2, mb: 1 }}>
+        {title}
+      </Typography>
+      {isLoading ? (
+        <Typography variant="body2" sx={{ color: "text.secondary", px: 2 }}>
+          {t("common.loading")}
+        </Typography>
+      ) : (
+        <ProductRow products={products} wishlistedIds={wishlistedIds} />
+      )}
+    </Box>
+  );
+}
+
 export default function EcommerceDiscover() {
   const router = useRouter();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
 
   const { data: categories, isLoading: categoriesLoading } = useQuery("categories", fetchCategories);
+  const { data: showcaseSlides } = useQuery("showcase-slides", fetchShowcaseSlides);
   const { data: flashSale, isLoading: flashLoading } = useQuery(
     ["flash-sale", "ecommerce"],
     () => fetchActiveFlashSale("ecommerce"),
@@ -91,6 +122,14 @@ export default function EcommerceDiscover() {
     // as the admin-configured schedule window opens/closes, without
     // needing a page reload.
     { refetchInterval: 60000 }
+  );
+  const { data: featuredProducts, isLoading: featuredLoading } = useQuery(
+    ["products", "featured"],
+    () => fetchProducts({ featured: true, pageSize: 10 })
+  );
+  const { data: latestProducts, isLoading: latestLoading } = useQuery(
+    ["products", "latest"],
+    () => fetchProducts({ pageSize: 10 })
   );
   const { data: wishlist } = useQuery("wishlist", fetchWishlist, { enabled: isAuthenticated });
   const wishlistedIds = useMemo(
@@ -106,6 +145,8 @@ export default function EcommerceDiscover() {
       <TopBar title={t("ecommerce.discover.title")} showBack={false} />
 
       <HeroBanner t={t} />
+
+      <ProductShowcaseCarousel slides={showcaseSlides || []} />
 
       {/* Category quick-nav - jump straight into browsing without
           scrolling past every themed section below. */}
@@ -159,6 +200,15 @@ export default function EcommerceDiscover() {
         ))}
       </Box>
 
+      {/* Admin-curated pick (see AdminShowcaseTab.js's featured-products
+          manager) - independent of the flash sale / discount sorting. */}
+      <SimpleProductSection
+        title={t("ecommerce.home.featuredProducts")}
+        products={featuredProducts?.items || []}
+        isLoading={featuredLoading}
+        wishlistedIds={wishlistedIds}
+      />
+
       {/* Flash sale - only rendered while an admin-configured FlashSale
           campaign (see AdminFlashSalesTab) is actually inside its
           recurring schedule window; hidden entirely otherwise, rather
@@ -202,6 +252,16 @@ export default function EcommerceDiscover() {
           </Box>
         </Box>
       )}
+
+      {/* Newest listings across every vendor - the default (no sort/
+          featured filter) product query already orders by createdAt
+          desc, so this is just that query with no extra backend work. */}
+      <SimpleProductSection
+        title={t("ecommerce.home.latestProducts")}
+        products={latestProducts?.items || []}
+        isLoading={latestLoading}
+        wishlistedIds={wishlistedIds}
+      />
 
       {topCategories.map((cat, i) => (
         <CategorySection

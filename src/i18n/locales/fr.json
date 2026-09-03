@@ -86,6 +86,7 @@
     "greeting": "{{name}}, voici pour vous",
     "exploreOcass": "Explorer Ocass",
     "popularRightNow": "Populaire en ce moment",
+    "featuredShops": "Boutiques en vedette",
     "freeDeliveryTitle": "Livraison gratuite pour votre première commande",
     "freeDeliverySubtitle": "Offre appliquée automatiquement lors du paiement."
   },
@@ -193,6 +194,8 @@
       "seeMore": "Voir plus",
       "flashSale": "Ventes Flash",
       "endsIn": "Termine dans",
+      "featuredProducts": "Produits vedettes",
+      "latestProducts": "Derniers produits",
       "banners": {
         "sale": {
           "title": "Les meilleures offres du jour",
@@ -965,6 +968,28 @@
       "endAfterStart": "L'heure de fin doit être après l'heure de début",
       "saveFailed": "Impossible d'enregistrer la campagne"
     },
+    "showcase": {
+      "slidesTitle": "Diaporama vitrine",
+      "slidesSubtitle": "Une bannière rotative sur la page d'accueil Boutique. Chaque diapositive est une photo avec un lien optionnel, par exemple vers un produit ou une catégorie.",
+      "newSlide": "Nouvelle diapositive",
+      "title": "Titre",
+      "subtitle": "Sous-titre",
+      "imageUrl": "URL de l'image",
+      "linkUrl": "Lien (optionnel)",
+      "sortOrder": "Ordre d'affichage",
+      "active": "Active",
+      "add": "Ajouter",
+      "editSlide": "Modifier la diapositive",
+      "created": "Diapositive créée",
+      "updated": "Diapositive mise à jour",
+      "slideFieldsRequired": "Un titre et une image sont requis",
+      "saveFailed": "Impossible d'enregistrer la diapositive",
+      "featuredProductsTitle": "Produits vedettes",
+      "featuredProductsSubtitle": "Produits sélectionnés manuellement, affichés dans la rangée « Produits vedettes » de la page d'accueil Boutique.",
+      "searchProducts": "Ajouter un produit",
+      "searchProductsPlaceholder": "Rechercher des produits par nom",
+      "noFeaturedProducts": "Aucun produit vedette pour le moment"
+    },
     "tabs": {
       "dashboard": "Tableau de bord",
       "users": "Utilisateurs",
@@ -973,6 +998,7 @@
       "vendors": "Vendeurs",
       "categories": "Catégories",
       "flashSales": "Ventes flash",
+      "showcase": "Vitrine",
       "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Fournisseurs",
@@ -1052,6 +1078,7 @@
       "owner": "Propriétaire",
       "products": "Produits",
       "active": "Actif",
+      "featured": "En vedette",
       "none": "Aucune boutique vendeur trouvée",
       "updated": "Boutique mise à jour",
       "updateFailed": "Impossible de mettre à jour la boutique"

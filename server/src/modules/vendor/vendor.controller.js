@@ -22,6 +22,31 @@ async function getStoreBySlug(req, res, next) {
   }
 }
 
+/**
+ * Public - the only general store-listing endpoint in the app (everything
+ * else is either a single storefront lookup above or admin-only). Built
+ * for the main Home Screen's "Featured shops" section (see
+ * AdminVendorsTab.js's isFeatured toggle), so `featured=true` is the only
+ * filter for now - add more as real listing use cases show up rather than
+ * guessing at them.
+ */
+async function listStores(req, res, next) {
+  try {
+    const { featured } = req.query;
+    const stores = await prisma.store.findMany({
+      where: {
+        isActive: true,
+        ...(featured === "true" ? { isFeatured: true } : {}),
+      },
+      orderBy: { rating: "desc" },
+      take: 20,
+    });
+    res.json({ stores });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getMyStore(req, res, next) {
   try {
     const store = await prisma.store.findUnique({ where: { ownerId: req.user.id } });
@@ -230,6 +255,7 @@ async function listMyOrders(req, res, next) {
 
 module.exports = {
   getStoreBySlug,
+  listStores,
   getMyStore,
   createStore,
   updateStore,

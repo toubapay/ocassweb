@@ -58,6 +58,7 @@ export default function AdminVendorsTab() {
                 <TableCell>{t("admin.vendors.owner")}</TableCell>
                 <TableCell align="center">{t("admin.vendors.products")}</TableCell>
                 <TableCell align="center">{t("admin.vendors.active")}</TableCell>
+                <TableCell align="center">{t("admin.vendors.featured")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -80,11 +81,20 @@ export default function AdminVendorsTab() {
                       }
                     />
                   </TableCell>
+                  <TableCell align="center">
+                    <Switch
+                      checked={store.isFeatured}
+                      disabled={updateMutation.isLoading}
+                      onChange={(e) =>
+                        updateMutation.mutate({ id: store.id, payload: { isFeatured: e.target.checked } })
+                      }
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
               {!isLoading && (data?.stores || []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ color: "text.secondary" }}>
+                  <TableCell colSpan={5} align="center" sx={{ color: "text.secondary" }}>
                     {t("admin.vendors.none")}
                   </TableCell>
                 </TableRow>

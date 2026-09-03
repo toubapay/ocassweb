@@ -6,6 +6,7 @@ const { getCart, addItem, updateItem, removeItem } = require("./cart.controller"
 const { listOrders, getOrder, createOrder } = require("./orders.controller");
 const { listWishlist, toggleWishlist } = require("./wishlist.controller");
 const { getActiveFlashSale } = require("./flashSales.controller");
+const { listActiveShowcaseSlides } = require("./showcaseSlides.controller");
 
 const router = Router();
 
@@ -13,6 +14,7 @@ router.get("/categories", listCategories);
 router.get("/products", listProducts);
 router.get("/products/:slug", getProduct);
 router.get("/flash-sales/active", getActiveFlashSale);
+router.get("/showcase-slides", listActiveShowcaseSlides);
 
 router.get("/cart", requireAuth, getCart);
 router.post("/cart", requireAuth, addItem);

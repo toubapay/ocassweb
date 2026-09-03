@@ -86,6 +86,7 @@
     "greeting": "{{name}}, these are for you",
     "exploreOcass": "Explore Ocass",
     "popularRightNow": "Popular right now",
+    "featuredShops": "Featured shops",
     "freeDeliveryTitle": "Free delivery on your first order",
     "freeDeliverySubtitle": "Offer applied automatically at checkout."
   },
@@ -193,6 +194,8 @@
       "seeMore": "See more",
       "flashSale": "Flash Sale",
       "endsIn": "Ends in",
+      "featuredProducts": "Featured products",
+      "latestProducts": "Latest products",
       "banners": {
         "sale": {
           "title": "Today's best deals",
@@ -965,6 +968,28 @@
       "endAfterStart": "End time must be after start time",
       "saveFailed": "Could not save campaign"
     },
+    "showcase": {
+      "slidesTitle": "Showcase slides",
+      "slidesSubtitle": "A rotating banner on the Boutique home page. Each slide is a photo with an optional link, e.g. to a product or category.",
+      "newSlide": "New slide",
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "imageUrl": "Image URL",
+      "linkUrl": "Link (optional)",
+      "sortOrder": "Sort order",
+      "active": "Active",
+      "add": "Add",
+      "editSlide": "Edit slide",
+      "created": "Slide created",
+      "updated": "Slide updated",
+      "slideFieldsRequired": "A title and image are required",
+      "saveFailed": "Could not save slide",
+      "featuredProductsTitle": "Featured products",
+      "featuredProductsSubtitle": "Hand-picked products shown in the \"Featured products\" row on the Boutique home page.",
+      "searchProducts": "Add a product",
+      "searchProductsPlaceholder": "Search products by name",
+      "noFeaturedProducts": "No featured products yet"
+    },
     "tabs": {
       "dashboard": "Dashboard",
       "users": "Users",
@@ -973,6 +998,7 @@
       "vendors": "Vendors",
       "categories": "Categories",
       "flashSales": "Flash sales",
+      "showcase": "Showcase",
       "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Providers",
@@ -1052,6 +1078,7 @@
       "owner": "Owner",
       "products": "Products",
       "active": "Active",
+      "featured": "Featured",
       "none": "No vendor stores found",
       "updated": "Store updated",
       "updateFailed": "Could not update store"

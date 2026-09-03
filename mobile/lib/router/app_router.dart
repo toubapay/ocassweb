@@ -13,6 +13,7 @@ import '../screens/ecommerce/checkout_screen.dart';
 import '../screens/ecommerce/orders_screen.dart';
 import '../screens/ecommerce/order_detail_screen.dart';
 import '../screens/ecommerce/wishlist_screen.dart';
+import '../screens/ecommerce/store_screen.dart';
 import '../screens/delivery/delivery_screen.dart';
 import '../screens/delivery/delivery_agent_screen.dart';
 import '../screens/delivery/delivery_track_screen.dart';
@@ -56,6 +57,10 @@ final GoRouter appRouter = GoRouter(
       path: '/ecommerce/product/:slug',
       builder: (context, state) =>
           ProductDetailScreen(slug: state.pathParameters['slug']!),
+    ),
+    GoRoute(
+      path: '/store/:slug',
+      builder: (context, state) => StoreScreen(slug: state.pathParameters['slug']!),
     ),
     GoRoute(
       path: '/delivery/track/:id',

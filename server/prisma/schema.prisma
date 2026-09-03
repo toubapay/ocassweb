@@ -134,23 +134,26 @@ model Category {
 }
 
 model Store {
-  id       String    @id @default(uuid())
-  name     String
-  slug     String    @unique
-  logoUrl  String?
-  address  String?
-  lat      Float?
-  lng      Float?
-  rating   Float     @default(0)
+  id         String    @id @default(uuid())
+  name       String
+  slug       String    @unique
+  logoUrl    String?
+  address    String?
+  lat        Float?
+  lng        Float?
+  rating     Float     @default(0)
   // Admin suspension switch (see AdminVendorsTab.js): suspended stores'
   // products drop out of every public product listing and the storefront
   // shows an "unavailable" state, without deleting the vendor's data.
-  isActive Boolean   @default(true)
+  isActive   Boolean   @default(true)
+  // Admin pick shown in the "Featured shops" section on the main Home
+  // Screen (see AdminVendorsTab.js) - independent of isActive.
+  isFeatured Boolean   @default(false)
   // Nullable + unique: null for admin/seed-managed stores (no self-service
   // owner), unique among non-null values so a vendor can own at most one
   // store (Postgres unique constraints allow any number of NULLs).
-  ownerId  String?   @unique
-  products Product[]
+  ownerId    String?   @unique
+  products   Product[]
 
   owner User? @relation("StoreOwner", fields: [ownerId], references: [id])
 }
@@ -174,6 +177,10 @@ model Product {
   // Public listing/detail endpoints filter this out; the vendor's own
   // product list does not.
   isActive        Boolean  @default(true)
+  // Admin-curated "Featured products" row on the Boutique home page (see
+  // AdminShowcaseTab.js) - independent of discountPercent-driven flash
+  // sale/discount sorting, a plain admin pick.
+  isFeatured      Boolean  @default(false)
   createdAt       DateTime @default(now())
 
   store      Store       @relation(fields: [storeId], references: [id])
@@ -1114,4 +1121,23 @@ model FlashSale {
   // MANUAL mode only - ignored (may be empty) for AUTO, which instead
   // queries top-discounted products live at request time.
   products Product[] @relation("FlashSaleProducts")
+}
+
+// Admin-managed rotating banner on the Boutique (ecommerce) home page (see
+// AdminShowcaseTab.js / pages/ecommerce/index.js's ProductShowcaseCarousel)
+// - distinct from HeroBanner.js's hardcoded app-wide promo carousel, this
+// one is backend-driven and typically points at real products/categories.
+model ShowcaseSlide {
+  id        String   @id @default(uuid())
+  title     String
+  subtitle  String?
+  imageUrl  String
+  // Relative in-app path (e.g. "/ecommerce/product/some-slug" or
+  // "/ecommerce/electronics") - not validated as an absolute URL since it
+  // isn't one; left null the slide simply isn't clickable.
+  linkUrl   String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
