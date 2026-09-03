@@ -17,6 +17,9 @@ export const fetchActiveFlashSale = (placement) =>
     .get("/ecommerce/flash-sales/active", { params: { placement } })
     .then((res) => res.data.flashSale);
 
+export const fetchShowcaseSlides = () =>
+  apiClient.get("/ecommerce/showcase-slides").then((res) => res.data.slides);
+
 export const fetchCart = () =>
   apiClient.get("/ecommerce/cart").then((res) => res.data.items);
 

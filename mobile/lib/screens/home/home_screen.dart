@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/category.dart';
 import '../../models/product.dart';
 import '../../models/flash_sale.dart';
+import '../../models/store.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/module_order_provider.dart';
 import '../../providers/notifications_provider.dart';
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final Future<List<Category>> _categoriesFuture;
   late final Future<ProductListResult> _productsFuture;
   late final Future<FlashSale?> _flashSaleFuture;
+  late final Future<List<Store>> _featuredStoresFuture;
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _categoriesFuture = apiClient.fetchCategories();
     _productsFuture = apiClient.fetchProducts(pageSize: 6);
     _flashSaleFuture = apiClient.fetchActiveFlashSale('home');
+    _featuredStoresFuture = apiClient.fetchStores(featured: true);
   }
 
   @override
@@ -257,6 +260,76 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+              );
+            },
+          ),
+          // Admin-curated stores (see the "Featured" toggle in
+          // AdminVendorsTab.js on web) - hidden entirely when none are set.
+          FutureBuilder<List<Store>>(
+            future: _featuredStoresFuture,
+            builder: (context, snapshot) {
+              final stores = snapshot.data ?? const <Store>[];
+              if (stores.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                    child: Text(context.t('home.featuredShops'),
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+                  ),
+                  SizedBox(
+                    height: 118,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: stores.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, index) {
+                        final store = stores[index];
+                        return GestureDetector(
+                          onTap: () => context.push('/store/${store.slug}'),
+                          child: SizedBox(
+                            width: 88,
+                            child: Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: store.logoUrl != null && store.logoUrl!.isNotEmpty
+                                      ? Image.network(store.logoUrl!,
+                                          width: 88, height: 88, fit: BoxFit.cover)
+                                      : Container(
+                                          width: 88,
+                                          height: 88,
+                                          color: AppColors.purpleSoft,
+                                          child: const Icon(Icons.storefront_rounded,
+                                              color: AppColors.purple, size: 34),
+                                        ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(store.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.star_rounded, color: Color(0xFFFFB020), size: 14),
+                                    const SizedBox(width: 2),
+                                    Text(store.rating.toStringAsFixed(1),
+                                        style: const TextStyle(
+                                            color: AppColors.textSecondary, fontSize: 11)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               );
             },
           ),

@@ -17,6 +17,7 @@ import CloudRoundedIcon from "@mui/icons-material/CloudRounded";
 import MiscellaneousServicesRoundedIcon from "@mui/icons-material/MiscellaneousServicesRounded";
 import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
+import ViewCarouselRoundedIcon from "@mui/icons-material/ViewCarouselRounded";
 import AdminLayout from "../../src/components/admin/AdminLayout";
 import useAuth from "../../src/hooks/useAuth";
 import AdminStatsTab from "../../src/components/admin/AdminStatsTab";
@@ -32,6 +33,7 @@ import AdminProvidersTab from "../../src/components/admin/AdminProvidersTab";
 import AdminServicesTab from "../../src/components/admin/AdminServicesTab";
 import AdminInsuranceTab from "../../src/components/admin/AdminInsuranceTab";
 import AdminFlashSalesTab from "../../src/components/admin/AdminFlashSalesTab";
+import AdminShowcaseTab from "../../src/components/admin/AdminShowcaseTab";
 
 // Single source of truth for the sidebar nav and the content area below -
 // each tab's id doubles as its ?tab= query value, so a section is a real,
@@ -55,6 +57,12 @@ const TABS = [
   { id: "vendors", labelKey: "admin.tabs.vendors", icon: StorefrontRoundedIcon, Component: AdminVendorsTab },
   { id: "categories", labelKey: "admin.tabs.categories", icon: CategoryRoundedIcon, Component: AdminCategoriesTab },
   { id: "flashSales", labelKey: "admin.tabs.flashSales", icon: BoltRoundedIcon, Component: AdminFlashSalesTab },
+  {
+    id: "showcase",
+    labelKey: "admin.tabs.showcase",
+    icon: ViewCarouselRoundedIcon,
+    Component: AdminShowcaseTab,
+  },
   {
     id: "restaurants",
     labelKey: "admin.tabs.restaurants",

@@ -2,7 +2,7 @@ const prisma = require("../../lib/prisma");
 
 async function listProducts(req, res, next) {
   try {
-    const { category, store, search, sort, page = "1", pageSize = "20" } = req.query;
+    const { category, store, search, sort, featured, page = "1", pageSize = "20" } = req.query;
     const take = Math.min(Number(pageSize) || 20, 50);
     const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
 
@@ -39,13 +39,21 @@ async function listProducts(req, res, next) {
       // concept (this app doesn't have one), just today's steepest
       // discounts.
       ...(sort === "discount" ? { discountPercent: { not: null } } : {}),
+      // Admin-curated "Featured products" row (see AdminShowcaseTab.js) -
+      // a plain pick, independent of discount/newest sorting.
+      ...(featured === "true" ? { isFeatured: true } : {}),
     };
 
     const [items, total] = await Promise.all([
       prisma.product.findMany({
         where,
         include: { category: true, store: true },
-        orderBy: sort === "discount" ? { discountPercent: "desc" } : { createdAt: "desc" },
+        orderBy:
+          sort === "discount"
+            ? { discountPercent: "desc" }
+            : featured === "true"
+              ? [{ rating: "desc" }, { createdAt: "desc" }]
+              : { createdAt: "desc" },
         take,
         skip,
       }),

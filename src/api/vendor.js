@@ -1,5 +1,8 @@
 import apiClient from "./client";
 
+export const fetchStores = (params = {}) =>
+  apiClient.get("/vendor/stores", { params }).then((res) => res.data.stores);
+
 export const fetchStoreBySlug = (slug) =>
   apiClient.get(`/vendor/stores/${slug}`).then((res) => res.data.store);
 

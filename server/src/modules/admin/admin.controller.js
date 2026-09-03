@@ -294,7 +294,8 @@ async function listVendorStores(req, res, next) {
 }
 
 const updateVendorStoreSchema = z.object({
-  isActive: z.boolean(),
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 async function updateVendorStore(req, res, next) {
@@ -879,6 +880,87 @@ async function listAutoInsurancePolicies(req, res, next) {
   }
 }
 
+// ---------------- Showcase slides (ecommerce module only) ----------------
+// The Boutique home page's rotating banner (see ShowcaseSlide in
+// schema.prisma, showcaseSlides.controller.js for the public read, and
+// AdminShowcaseTab.js on web). No schedule concept, unlike FlashSale -
+// isActive alone decides whether a slide shows.
+
+const showcaseSlideSchema = z.object({
+  title: z.string().min(1),
+  subtitle: z.string().optional(),
+  imageUrl: z.string().url(),
+  linkUrl: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+
+async function listShowcaseSlidesAdmin(req, res, next) {
+  try {
+    const slides = await prisma.showcaseSlide.findMany({ orderBy: { sortOrder: "asc" } });
+    res.json({ slides });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createShowcaseSlideAdmin(req, res, next) {
+  try {
+    const data = showcaseSlideSchema.parse(req.body);
+    const slide = await prisma.showcaseSlide.create({ data });
+    res.status(201).json({ slide });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateShowcaseSlideAdmin(req, res, next) {
+  try {
+    const data = showcaseSlideSchema.partial().parse(req.body);
+    const slide = await prisma.showcaseSlide.update({ where: { id: req.params.id }, data });
+    res.json({ slide });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteShowcaseSlideAdmin(req, res, next) {
+  try {
+    await prisma.showcaseSlide.delete({ where: { id: req.params.id } });
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------- Featured products (ecommerce module only) ----------------
+// Admin has no general product-management surface (vendors own that, see
+// vendor.controller.js's updateProduct - gated to the vendor themselves,
+// not usable by admin) - this is the one product field admin can flip,
+// purely to curate the "Featured products" row (see AdminShowcaseTab.js
+// and GET /ecommerce/products?featured=true). The admin UI searches for
+// products via the existing public products endpoint (same pattern
+// AdminFlashSalesTab's manual-mode picker already uses) rather than a
+// separate admin search endpoint.
+
+const productFeaturedSchema = z.object({
+  isFeatured: z.boolean(),
+});
+
+async function updateProductFeaturedAdmin(req, res, next) {
+  try {
+    const data = productFeaturedSchema.parse(req.body);
+    const product = await prisma.product.update({
+      where: { id: req.params.id },
+      data,
+      include: { category: true, store: true },
+    });
+    res.json({ product });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Flash sales (ecommerce module only) ----------------
 // See FlashSale in schema.prisma and flashSaleSchedule.js for how the
 // recurring schedule is evaluated. `productIds` here is only meaningful
@@ -1056,6 +1138,11 @@ module.exports = {
   createInsurancePlan,
   updateInsurancePlan,
   listAutoInsurancePolicies,
+  listShowcaseSlidesAdmin,
+  createShowcaseSlideAdmin,
+  updateShowcaseSlideAdmin,
+  deleteShowcaseSlideAdmin,
+  updateProductFeaturedAdmin,
   listFlashSalesAdmin,
   createFlashSaleAdmin,
   updateFlashSaleAdmin,

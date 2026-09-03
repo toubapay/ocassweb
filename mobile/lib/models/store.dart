@@ -7,6 +7,7 @@ class Store {
   final double? lat;
   final double? lng;
   final double rating;
+  final bool isActive;
 
   Store({
     required this.id,
@@ -17,6 +18,7 @@ class Store {
     this.lat,
     this.lng,
     this.rating = 0,
+    this.isActive = true,
   });
 
   factory Store.fromJson(Map<String, dynamic> json) => Store(
@@ -28,5 +30,6 @@ class Store {
         lat: (json['lat'] as num?)?.toDouble(),
         lng: (json['lng'] as num?)?.toDouble(),
         rating: (json['rating'] as num?)?.toDouble() ?? 0,
+        isActive: json['isActive'] as bool? ?? true,
       );
 }
