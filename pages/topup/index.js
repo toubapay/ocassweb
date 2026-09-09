@@ -11,11 +11,23 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Avatar from "@mui/material/Avatar";
+import IconButton from "@mui/material/IconButton";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import CircularProgress from "@mui/material/CircularProgress";
 import AddCircleRoundedIcon from "@mui/icons-material/AddCircleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
-import { fetchMobileServices, createBillPayment, fetchMyMobileTransactions } from "../../src/api/mobile";
+import {
+  fetchMobileServices,
+  createBillPayment,
+  fetchMyMobileTransactions,
+  fetchMobileFeeQuote,
+} from "../../src/api/mobile";
 import { formatCfa } from "../../src/utils/currency";
 
 const STATUS_COLOR = { SUCCESS: "success", PENDING: "warning", FAILED: "error" };
@@ -31,6 +43,7 @@ export default function TopUp() {
   const [billServiceId, setBillServiceId] = useState(null);
   const [accountNumber, setAccountNumber] = useState("");
   const [billAmount, setBillAmount] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Deep-link support for the home screen's separate Airtime / Bills tiles
   // (?tab=airtime|bill) so each opens straight to the right tab.
@@ -51,12 +64,24 @@ export default function TopUp() {
       onSuccess: (transaction) => {
         toast.success(t("topup.bill.success", { reference: transaction.reference }));
         queryClient.invalidateQueries("mobile-transactions");
+        setConfirmOpen(false);
         setAccountNumber("");
         setBillAmount("");
       },
       onError: (err) => toast.error(err.response?.data?.message || t("topup.bill.failed")),
     }
   );
+
+  // Live fee/tax preview before the payment actually fires, mirroring the
+  // airtime flow's confirm dialog (pages/topup/airtime/amount.js) - same
+  // GET /mobile/fee-quote endpoint, just serviceId+amount instead of a
+  // forfaitId, since a bill payment is just a MobileService purchase too.
+  const { data: billQuote, isLoading: billQuoteLoading } = useQuery(
+    ["mobile-fee-quote", billServiceId, billAmount],
+    () => fetchMobileFeeQuote({ serviceId: billServiceId, amount: Number(billAmount) }),
+    { enabled: confirmOpen }
+  );
+  const billConfirmTotal = billQuote?.total ?? Number(billAmount);
 
   const requireLogin = (action) => {
     if (!isAuthenticated) {
@@ -71,7 +96,7 @@ export default function TopUp() {
     if (!billServiceId) return toast.error(t("topup.bill.selectBiller"));
     if (!accountNumber) return toast.error(t("topup.bill.enterAccountNumber"));
     if (!billAmount || Number(billAmount) <= 0) return toast.error(t("topup.bill.enterAmount"));
-    requireLogin(() => billMutation.mutate());
+    requireLogin(() => setConfirmOpen(true));
   };
 
   return (
@@ -198,6 +223,64 @@ export default function TopUp() {
           </Button>
         </Box>
       )}
+
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {t("topup.bill.confirmTitle")}
+          <IconButton onClick={() => setConfirmOpen(false)} size="small">
+            <CloseRoundedIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+            <Typography sx={{ color: "text.secondary" }}>{t("topup.bill.accountNumber")}</Typography>
+            <Typography sx={{ fontWeight: 700 }}>{accountNumber}</Typography>
+          </Box>
+          {billQuote && (billQuote.feeAmount > 0 || billQuote.taxAmount > 0) && (
+            <>
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {t("topup.bill.subtotal")}
+                </Typography>
+                <Typography variant="body2">{formatCfa(billQuote.subtotal)}</Typography>
+              </Box>
+              {billQuote.feeAmount > 0 && (
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    {t("admin.serviceFees.fee")}
+                  </Typography>
+                  <Typography variant="body2">{formatCfa(billQuote.feeAmount)}</Typography>
+                </Box>
+              )}
+              {billQuote.taxAmount > 0 && (
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    {t("admin.serviceFees.tva")}
+                  </Typography>
+                  <Typography variant="body2">{formatCfa(billQuote.taxAmount)}</Typography>
+                </Box>
+              )}
+            </>
+          )}
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Typography sx={{ color: "text.secondary" }}>{t("topup.bill.total")}</Typography>
+            <Typography sx={{ fontWeight: 800 }}>
+              {billQuoteLoading ? t("common.loading") : formatCfa(billConfirmTotal)}
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => billMutation.mutate()}
+            disabled={billQuoteLoading || billMutation.isLoading}
+            sx={{ fontWeight: 800, py: 1.1 }}
+          >
+            {billMutation.isLoading ? <CircularProgress size={22} /> : t("topup.bill.confirm")}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {isAuthenticated && (transactions || []).length > 0 && (
         <Box sx={{ p: 2.5 }}>

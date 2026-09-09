@@ -10,6 +10,8 @@ import '../../models/ride_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_autocomplete_field.dart';
+import '../../widgets/delivery_distance_price_card.dart';
+import '../../widgets/live_tracking_map.dart';
 import '../../widgets/top_bar.dart';
 
 const _vehicleCodes = ['MOTO', 'ECONOMY', 'COMFORT'];
@@ -29,6 +31,7 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
   List<RideRequest> _rides = [];
   (double, double)? _pickupCoords;
   (double, double)? _dropoffCoords;
+  ({double distanceKm, double priceEstimate})? _feeQuote;
 
   @override
   void initState() {
@@ -77,6 +80,34 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
     setState(() => _pickupCoords = coords);
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(context.tr('rideSharing.locationSet'))));
+    _refreshQuote();
+  }
+
+  /// Refetches the live distance + price preview whenever pickup/dropoff
+  /// coordinates or the chosen vehicle type change, mirroring the web's
+  /// rideshare-fee-quote query - lets the customer see cost before
+  /// submitting.
+  Future<void> _refreshQuote() async {
+    final pickup = _pickupCoords;
+    final dropoff = _dropoffCoords;
+    if (pickup == null || dropoff == null) {
+      if (mounted) setState(() => _feeQuote = null);
+      return;
+    }
+    try {
+      final quote = await apiClient.fetchRideshareFeeQuote(
+        pickupLat: pickup.$1,
+        pickupLng: pickup.$2,
+        dropoffLat: dropoff.$1,
+        dropoffLng: dropoff.$2,
+        vehicleType: _vehicleType,
+      );
+      if (mounted) setState(() => _feeQuote = quote);
+    } catch (_) {
+      // Silently ignored, same as delivery's fee-quote preview - the map
+      // preview and the final priceEstimate from creating the ride still
+      // work either way.
+    }
   }
 
   Future<void> _submit() async {
@@ -111,6 +142,7 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
       setState(() {
         _pickupCoords = null;
         _dropoffCoords = null;
+        _feeQuote = null;
       });
       await _loadRides();
     } catch (_) {
@@ -140,9 +172,14 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
                 child: AddressAutocompleteField(
                   controller: _pickupController,
                   label: context.t('rideSharing.pickupLocation'),
-                  onManualEdit: () => setState(() => _pickupCoords = null),
-                  onPlaceSelected: ({required address, required lat, required lng}) =>
-                      setState(() => _pickupCoords = (lat, lng)),
+                  onManualEdit: () {
+                    setState(() => _pickupCoords = null);
+                    _refreshQuote();
+                  },
+                  onPlaceSelected: ({required address, required lat, required lng}) {
+                    setState(() => _pickupCoords = (lat, lng));
+                    _refreshQuote();
+                  },
                 ),
               ),
               const SizedBox(width: 8),
@@ -161,9 +198,14 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
           AddressAutocompleteField(
             controller: _dropoffController,
             label: context.t('rideSharing.dropoffLocation'),
-            onManualEdit: () => setState(() => _dropoffCoords = null),
-            onPlaceSelected: ({required address, required lat, required lng}) =>
-                setState(() => _dropoffCoords = (lat, lng)),
+            onManualEdit: () {
+              setState(() => _dropoffCoords = null);
+              _refreshQuote();
+            },
+            onPlaceSelected: ({required address, required lat, required lng}) {
+              setState(() => _dropoffCoords = (lat, lng));
+              _refreshQuote();
+            },
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -173,7 +215,10 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
               return ChoiceChip(
                 label: Text(context.t('rideSharing.vehicles.$code')),
                 selected: selected,
-                onSelected: (_) => setState(() => _vehicleType = code),
+                onSelected: (_) {
+                  setState(() => _vehicleType = code);
+                  _refreshQuote();
+                },
                 selectedColor: AppColors.blue,
                 labelStyle: TextStyle(
                   color: selected ? Colors.white : AppColors.textPrimary,
@@ -182,6 +227,17 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
               );
             }).toList(),
           ),
+          if (_pickupCoords != null && _dropoffCoords != null) ...[
+            const SizedBox(height: 16),
+            LiveTrackingMap(pickup: _pickupCoords, dropoff: _dropoffCoords, height: 180),
+            if (_feeQuote != null) ...[
+              const SizedBox(height: 8),
+              DeliveryDistancePriceCard(
+                distanceKm: _feeQuote!.distanceKm,
+                priceEstimate: _feeQuote!.priceEstimate,
+              ),
+            ],
+          ],
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -197,45 +253,49 @@ class _RideSharingScreenState extends State<RideSharingScreen> {
             const SizedBox(height: 28),
             Text(context.t('rideSharing.yourRides'), style: const TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),
-            ..._rides.map((r) => Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.divider), borderRadius: BorderRadius.circular(12)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                              child: Text('${r.pickupAddress} → ${r.dropoffAddress}',
-                                  style: const TextStyle(fontWeight: FontWeight.w700))),
-                          Chip(
-                              label: Text(context.tOr('rideSharing.status.${r.status}', r.status)),
-                              visualDensity: VisualDensity.compact),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                              '${context.tOr('rideSharing.vehicles.${r.vehicleType}', r.vehicleType)} · ${formatCfa(r.priceEstimate)}',
-                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                          if (r.status == 'REQUESTED')
-                            TextButton(
-                              onPressed: () => _cancel(r.id),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.red,
-                                minimumSize: Size.zero,
-                                padding: EdgeInsets.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ..._rides.map((r) => InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => context.push('/ride-sharing/track/${r.id}'),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.divider), borderRadius: BorderRadius.circular(12)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                                child: Text('${r.pickupAddress} → ${r.dropoffAddress}',
+                                    style: const TextStyle(fontWeight: FontWeight.w700))),
+                            Chip(
+                                label: Text(context.tOr('rideSharing.status.${r.status}', r.status)),
+                                visualDensity: VisualDensity.compact),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                                '${context.tOr('rideSharing.vehicles.${r.vehicleType}', r.vehicleType)} · ${formatCfa(r.priceEstimate)}',
+                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                            if (r.status == 'REQUESTED')
+                              TextButton(
+                                onPressed: () => _cancel(r.id),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.red,
+                                  minimumSize: Size.zero,
+                                  padding: EdgeInsets.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(context.t('rideSharing.cancel'),
+                                    style: const TextStyle(fontWeight: FontWeight.w700)),
                               ),
-                              child: Text(context.t('rideSharing.cancel'),
-                                  style: const TextStyle(fontWeight: FontWeight.w700)),
-                            ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 )),
           ],

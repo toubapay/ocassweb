@@ -641,6 +641,12 @@ class ApiClient {
         .toList();
   }
 
+  /// Single ride, for the customer's tracking screen to poll.
+  Future<RideRequest> fetchRide(String id) async {
+    final res = await _dio.get('/rideshare/rides/$id');
+    return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
   Future<RideRequest> createRideRequest({
     required String pickupAddress,
     required String dropoffAddress,
@@ -665,6 +671,30 @@ class ApiClient {
   Future<RideRequest> cancelRide(String id) async {
     final res = await _dio.patch('/rideshare/rides/$id/cancel');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
+  /// Live distance + price preview, mirroring GET /rideshare/fee-quote's
+  /// web usage - called once both pickup and dropoff have real
+  /// coordinates, re-fetched per vehicle type since price depends on it.
+  Future<({double distanceKm, double priceEstimate})> fetchRideshareFeeQuote({
+    required double pickupLat,
+    required double pickupLng,
+    required double dropoffLat,
+    required double dropoffLng,
+    String vehicleType = 'ECONOMY',
+  }) async {
+    final res = await _dio.get('/rideshare/fee-quote', queryParameters: {
+      'pickupLat': pickupLat,
+      'pickupLng': pickupLng,
+      'dropoffLat': dropoffLat,
+      'dropoffLng': dropoffLng,
+      'vehicleType': vehicleType,
+    });
+    final data = _data(res);
+    return (
+      distanceKm: (data['distanceKm'] as num).toDouble(),
+      priceEstimate: (data['priceEstimate'] as num).toDouble(),
+    );
   }
 
   // ---------------- Rider dispatch ----------------
@@ -697,6 +727,12 @@ class ApiClient {
     final res = await _dio.post('/rideshare/jobs/$id/complete');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
   }
+
+  /// Rider's live GPS ping while a ride is ACCEPTED/IN_PROGRESS, mirroring
+  /// PATCH /delivery/jobs/:id/location's web usage - powers the customer's
+  /// tracking map.
+  Future<void> updateRideshareRiderLocation(String id, {required double lat, required double lng}) =>
+      _dio.patch('/rideshare/jobs/$id/location', data: {'lat': lat, 'lng': lng});
 
   // ---------------- Mobile top-up / bill payment ----------------
 
@@ -838,12 +874,47 @@ class ApiClient {
     return RidePosting.fromJson(_data(res)['posting'] as Map<String, dynamic>);
   }
 
+  /// Advisory distance-based price suggestion for the posting form's
+  /// "Suggest price" action, mirroring GET /anando/fee-quote's web usage -
+  /// suggestedPrice is null when distance can't be computed (e.g. Maps key
+  /// unset), in which case callers should just leave the field untouched.
+  Future<({double? distanceKm, double? suggestedPrice})> fetchAnandoFeeQuote({
+    required double originLat,
+    required double originLng,
+    required double destinationLat,
+    required double destinationLng,
+  }) async {
+    final res = await _dio.get('/anando/fee-quote', queryParameters: {
+      'originLat': originLat,
+      'originLng': originLng,
+      'destinationLat': destinationLat,
+      'destinationLng': destinationLng,
+    });
+    final data = _data(res);
+    return (
+      distanceKm: (data['distanceKm'] as num?)?.toDouble(),
+      suggestedPrice: (data['suggestedPrice'] as num?)?.toDouble(),
+    );
+  }
+
   Future<void> cancelPosting(String id) => _dio.patch('/anando/postings/$id/cancel');
 
   Future<RidePosting> departPosting(String id) async {
     final res = await _dio.post('/anando/postings/$id/depart');
     return RidePosting.fromJson(_data(res)['posting'] as Map<String, dynamic>);
   }
+
+  /// Single posting, for a booked passenger's tracking screen to poll.
+  Future<RidePosting> fetchPosting(String id) async {
+    final res = await _dio.get('/anando/postings/$id');
+    return RidePosting.fromJson(_data(res)['posting'] as Map<String, dynamic>);
+  }
+
+  /// Driver's live GPS ping once DEPARTED, mirroring PATCH
+  /// /delivery/jobs/:id/location's web usage - powers each booked
+  /// passenger's tracking map.
+  Future<void> updateAnandoDriverLocation(String id, {required double lat, required double lng}) =>
+      _dio.patch('/anando/postings/$id/location', data: {'lat': lat, 'lng': lng});
 
   /// Throws a [DioException] with the server's 409 message ("Not enough
   /// seats available") if another passenger claimed the remaining seats

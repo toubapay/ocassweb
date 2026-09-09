@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -62,10 +63,11 @@ class _InsuranceScreenState extends State<InsuranceScreen> with SingleTickerProv
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(context.tr('insurance.subscribed'))));
       await _loadPolicies();
-    } catch (_) {
+    } on DioException catch (e) {
       if (!mounted) return;
+      final message = (e.response?.data as Map<String, dynamic>?)?['message'] as String?;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.tr('insurance.couldNotSubscribe'))));
+          .showSnackBar(SnackBar(content: Text(message ?? context.tr('insurance.couldNotSubscribe'))));
     }
   }
 

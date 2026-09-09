@@ -44,7 +44,11 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   }
 
   Future<void> _load() async {
-    if (!mounted || context.read<AuthProvider>().user?.store == null) return;
+    if (!mounted) return;
+    if (context.read<AuthProvider>().user?.store == null) {
+      setState(() => _loading = false);
+      return;
+    }
     setState(() => _loading = true);
     try {
       final store = await apiClient.fetchMyStore();

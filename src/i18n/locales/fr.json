@@ -369,7 +369,7 @@
     "coverageUpTo": "Couverture jusqu'à {{amount}}",
     "subscribe": "Souscrire",
     "loginToSubscribe": "Connectez-vous pour souscrire",
-    "subscribed": "Souscrit ! Votre police est en attente d'activation.",
+    "subscribed": "Souscrit ! Votre police est maintenant active.",
     "couldNotSubscribe": "Impossible de souscrire",
     "policyCancelled": "Police annulée",
     "couldNotCancel": "Impossible d'annuler la police",
@@ -608,6 +608,14 @@
     "useMyLocation": "Utiliser ma position",
     "locationSet": "Position de départ définie",
     "locationError": "Impossible d'obtenir votre position",
+    "tracking": {
+      "title": "Suivre la course",
+      "notFound": "Course introuvable",
+      "waitingForRider": "Recherche d'un chauffeur…",
+      "riderAssigned": "{{name}} est en route",
+      "distanceAway": "à {{km}} km de la dépose",
+      "callRider": "Appeler le chauffeur"
+    },
     "driver": {
       "title": "Chauffeur",
       "availableTab": "Disponibles",
@@ -678,7 +686,11 @@
       "enterAccountNumber": "Entrez votre numéro de compte/compteur",
       "enterAmount": "Entrez un montant",
       "success": "Paiement réussi · {{reference}}",
-      "failed": "Échec du paiement"
+      "failed": "Échec du paiement",
+      "confirmTitle": "Confirmer le paiement de la facture",
+      "subtotal": "Sous-total",
+      "total": "Total",
+      "confirm": "Confirmer"
     },
     "recentTransactions": "Transactions récentes",
     "loginToContinue": "Connectez-vous pour continuer",
@@ -868,7 +880,15 @@
     "couldNotBook": "Impossible de réserver cette place",
     "bookingCancelled": "Réservation annulée",
     "enterAddresses": "Indiquez votre point de départ et votre destination",
-    "chooseDeparture": "Choisissez une heure de départ, ou marquez ce trajet comme immédiat"
+    "chooseDeparture": "Choisissez une heure de départ, ou marquez ce trajet comme immédiat",
+    "tracking": {
+      "title": "Suivre le trajet",
+      "notFound": "Trajet introuvable",
+      "waitingForDeparture": "En attente du départ du conducteur…",
+      "driverEnRoute": "{{name}} est en route",
+      "distanceAway": "à {{km}} km de la destination",
+      "callDriver": "Appeler le conducteur"
+    }
   },
   "notifications": {
     "title": "Notifications",

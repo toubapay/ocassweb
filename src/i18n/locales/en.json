@@ -369,7 +369,7 @@
     "coverageUpTo": "Coverage up to {{amount}}",
     "subscribe": "Subscribe",
     "loginToSubscribe": "Log in to subscribe",
-    "subscribed": "Subscribed! Your policy is pending activation.",
+    "subscribed": "Subscribed! Your policy is now active.",
     "couldNotSubscribe": "Could not subscribe",
     "policyCancelled": "Policy cancelled",
     "couldNotCancel": "Could not cancel policy",
@@ -608,6 +608,14 @@
     "useMyLocation": "Use my location",
     "locationSet": "Pickup location set",
     "locationError": "Could not get your location",
+    "tracking": {
+      "title": "Track ride",
+      "notFound": "Ride not found",
+      "waitingForRider": "Looking for a rider…",
+      "riderAssigned": "{{name}} is on the way",
+      "distanceAway": "{{km}} km from the dropoff",
+      "callRider": "Call rider"
+    },
     "driver": {
       "title": "Driver",
       "availableTab": "Available",
@@ -678,7 +686,11 @@
       "enterAccountNumber": "Enter your account/meter number",
       "enterAmount": "Enter an amount",
       "success": "Payment successful · {{reference}}",
-      "failed": "Payment failed"
+      "failed": "Payment failed",
+      "confirmTitle": "Confirm Bill Payment",
+      "subtotal": "Subtotal",
+      "total": "Total",
+      "confirm": "Confirm"
     },
     "recentTransactions": "Recent transactions",
     "loginToContinue": "Log in to continue",
@@ -868,7 +880,15 @@
     "couldNotBook": "Could not book this seat",
     "bookingCancelled": "Booking cancelled",
     "enterAddresses": "Enter where you're leaving from and going to",
-    "chooseDeparture": "Choose a departure time, or mark this ride as instant"
+    "chooseDeparture": "Choose a departure time, or mark this ride as instant",
+    "tracking": {
+      "title": "Track ride",
+      "notFound": "Ride not found",
+      "waitingForDeparture": "Waiting for the driver to depart…",
+      "driverEnRoute": "{{name}} is on the way",
+      "distanceAway": "{{km}} km from the destination",
+      "callDriver": "Call driver"
+    }
   },
   "notifications": {
     "title": "Notifications",

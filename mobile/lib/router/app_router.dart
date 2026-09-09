@@ -29,6 +29,7 @@ import '../screens/restaurant/restaurant_manage_items_screen.dart';
 import '../screens/restaurant/restaurant_manage_orders_screen.dart';
 import '../screens/rideshare/ride_sharing_screen.dart';
 import '../screens/rideshare/ride_sharing_driver_screen.dart';
+import '../screens/rideshare/ride_sharing_track_screen.dart';
 import '../screens/topup/topup_screen.dart';
 import '../screens/topup/topup_airtime_recipient_screen.dart';
 import '../screens/topup/topup_airtime_amount_screen.dart';
@@ -37,6 +38,7 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/anando/anando_screen.dart';
 import '../screens/anando/anando_post_screen.dart';
 import '../screens/anando/anando_book_screen.dart';
+import '../screens/anando/anando_track_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/vendor/vendor_dashboard_screen.dart';
 import '../screens/vendor/vendor_products_screen.dart';
@@ -65,6 +67,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/delivery/track/:id',
       builder: (context, state) => DeliveryTrackScreen(requestId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/ride-sharing/track/:id',
+      builder: (context, state) => RideSharingTrackScreen(rideId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/anando/track/:id',
+      builder: (context, state) => AnandoTrackScreen(postingId: state.pathParameters['id']!),
     ),
     GoRoute(path: '/ecommerce/cart', builder: (context, state) => const CartScreen()),
     GoRoute(path: '/ecommerce/checkout', builder: (context, state) => const CheckoutScreen()),

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
@@ -17,8 +17,42 @@ import {
   acceptRideJob,
   startRideJob,
   completeRideJob,
+  updateRideshareRiderLocation,
 } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
+
+const ACTIVE_STATUSES = ["ACCEPTED", "IN_PROGRESS"];
+const LOCATION_PING_MS = 10000;
+
+/**
+ * Reports this rider's current position for every ride they're actively
+ * working (ACCEPTED/IN_PROGRESS), on an interval - powers the customer's
+ * live tracking map, same pattern as delivery/agent.js's
+ * useLiveLocationBroadcast.
+ */
+function useLiveLocationBroadcast(activeRideIds) {
+  const idsRef = useRef(activeRideIds);
+  idsRef.current = activeRideIds;
+
+  useEffect(() => {
+    if (activeRideIds.length === 0 || !navigator.geolocation) return undefined;
+    const ping = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          idsRef.current.forEach((id) => {
+            updateRideshareRiderLocation(id, { lat, lng }).catch(() => {});
+          });
+        },
+        () => {}
+      );
+    };
+    ping();
+    const interval = setInterval(ping, LOCATION_PING_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRideIds.join(",")]);
+}
 
 export default function RideDriverDashboard() {
   const router = useRouter();
@@ -45,8 +79,11 @@ export default function RideDriverDashboard() {
   const { data: myJobs, isLoading: loadingMine } = useQuery(
     "ride-jobs-mine",
     fetchMyRideJobs,
-    { enabled: isRider }
+    { enabled: isRider, refetchInterval: LOCATION_PING_MS }
   );
+
+  const activeRideIds = (myJobs || []).filter((r) => ACTIVE_STATUSES.includes(r.status)).map((r) => r.id);
+  useLiveLocationBroadcast(activeRideIds);
 
   const invalidateJobs = () => {
     queryClient.invalidateQueries("ride-jobs-available");
