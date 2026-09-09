@@ -1072,7 +1072,9 @@
       "activeRides": "Courses actives",
       "totalStores": "Boutiques vendeurs",
       "totalRidePostings": "Trajets Anando ouverts",
-      "usersByRole": "Utilisateurs par rôle"
+      "usersByRole": "Utilisateurs par rôle",
+      "subtitle": "Aperçu en direct de votre plateforme",
+      "total": "Total"
     },
     "users": {
       "searchPlaceholder": "Rechercher nom, téléphone ou e-mail",
@@ -1190,7 +1192,16 @@
       "saved": "Paramètres de frais et taxe enregistrés",
       "saveFailed": "Impossible d'enregistrer les frais et la taxe"
     },
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "nav": {
+      "overview": "Aperçu",
+      "commerce": "Commerce",
+      "logistics": "Logistique",
+      "finance": "Finance",
+      "platform": "Plateforme"
+    },
+    "backToSite": "Retour au site",
+    "administrator": "Administrateur"
   },
   "store": {
     "title": "Boutique",
