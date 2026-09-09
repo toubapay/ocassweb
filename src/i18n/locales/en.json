@@ -1072,7 +1072,9 @@
       "activeRides": "Active rides",
       "totalStores": "Vendor stores",
       "totalRidePostings": "Open Anando postings",
-      "usersByRole": "Users by role"
+      "usersByRole": "Users by role",
+      "subtitle": "Live snapshot of your platform",
+      "total": "Total"
     },
     "users": {
       "searchPlaceholder": "Search name, phone, or email",
@@ -1190,7 +1192,16 @@
       "saved": "Fee & tax settings saved",
       "saveFailed": "Could not save fee & tax settings"
     },
-    "logout": "Log out"
+    "logout": "Log out",
+    "nav": {
+      "overview": "Overview",
+      "commerce": "Commerce",
+      "logistics": "Logistics",
+      "finance": "Finance",
+      "platform": "Platform"
+    },
+    "backToSite": "Back to site",
+    "administrator": "Administrator"
   },
   "store": {
     "title": "Store",
