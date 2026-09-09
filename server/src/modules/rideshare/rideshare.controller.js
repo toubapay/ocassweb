@@ -15,6 +15,19 @@ const createSchema = z.object({
   vehicleType: z.enum(["MOTO", "ECONOMY", "COMFORT"]).default("ECONOMY"),
 });
 
+const feeQuoteSchema = z.object({
+  pickupLat: z.coerce.number(),
+  pickupLng: z.coerce.number(),
+  dropoffLat: z.coerce.number(),
+  dropoffLng: z.coerce.number(),
+  vehicleType: z.enum(["MOTO", "ECONOMY", "COMFORT"]).default("ECONOMY"),
+});
+
+const locationSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+
 // Falls back to these when an admin hasn't set ModuleConfig("rideshare").
 // feeConfig, or has only set some of these fields (see getModuleFeeConfig).
 const DEFAULT_FEE_CONFIG = {
@@ -34,6 +47,15 @@ const DEFAULT_FEE_CONFIG = {
   riderSharePercent: 80,
 };
 
+function priceForDistance(distanceKm, vehicleType, feeConfig) {
+  const ratesByVehicle = feeConfig.ratePerKmByVehicle || DEFAULT_FEE_CONFIG.ratePerKmByVehicle;
+  const fixedByVehicle = feeConfig.fixedFareByVehicle || DEFAULT_FEE_CONFIG.fixedFareByVehicle;
+  const rate = ratesByVehicle[vehicleType] ?? ratesByVehicle.ECONOMY;
+  const fixed = fixedByVehicle[vehicleType] ?? fixedByVehicle.ECONOMY;
+  const raw = feeConfig.feeType === "FIXED" ? fixed : feeConfig.baseFare + distanceKm * rate;
+  return Math.round(clampFee(raw, feeConfig));
+}
+
 /**
  * Real distance-based pricing when both pickup and dropoff coordinates are
  * available (e.g. from the browser's Geolocation API, or a real Places
@@ -47,17 +69,27 @@ const DEFAULT_FEE_CONFIG = {
  * straight-line distance itself on any failure.
  */
 async function estimatePrice({ pickupLat, pickupLng, dropoffLat, dropoffLng, vehicleType }, feeConfig) {
-  const ratesByVehicle = feeConfig.ratePerKmByVehicle || DEFAULT_FEE_CONFIG.ratePerKmByVehicle;
-  const fixedByVehicle = feeConfig.fixedFareByVehicle || DEFAULT_FEE_CONFIG.fixedFareByVehicle;
-  const rate = ratesByVehicle[vehicleType] ?? ratesByVehicle.ECONOMY;
-  const fixed = fixedByVehicle[vehicleType] ?? fixedByVehicle.ECONOMY;
-
   const km = hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)
     ? await roadDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng)
     : 3 + Math.round(Math.random() * 7);
+  return priceForDistance(km, vehicleType, feeConfig);
+}
 
-  const raw = feeConfig.feeType === "FIXED" ? fixed : feeConfig.baseFare + km * rate;
-  return Math.round(clampFee(raw, feeConfig));
+/**
+ * Live distance + price preview for the request form, called as soon as
+ * both pickup and dropoff have real coordinates - lets the customer see
+ * cost before submitting, mirroring delivery's GET /delivery/fee-quote.
+ * Public (no requireAuth) so a guest can preview before logging in.
+ */
+async function getFeeQuote(req, res, next) {
+  try {
+    const data = feeQuoteSchema.parse(req.query);
+    const feeConfig = await getModuleFeeConfig("rideshare", DEFAULT_FEE_CONFIG);
+    const distanceKm = await roadDistanceKm(data.pickupLat, data.pickupLng, data.dropoffLat, data.dropoffLng);
+    res.json({ distanceKm, priceEstimate: priceForDistance(distanceKm, data.vehicleType, feeConfig) });
+  } catch (err) {
+    next(err);
+  }
 }
 
 async function listMyRides(req, res, next) {
@@ -67,6 +99,22 @@ async function listMyRides(req, res, next) {
       orderBy: { createdAt: "desc" },
     });
     res.json({ rides });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Single ride, for the customer's tracking page to poll (see riderLat/Lng below). */
+async function getRide(req, res, next) {
+  try {
+    const ride = await prisma.rideRequest.findUnique({
+      where: { id: req.params.id },
+      include: { assignedRider: { select: { id: true, name: true, phone: true } } },
+    });
+    if (!ride || ride.userId !== req.user.id) {
+      return res.status(404).json({ message: "Ride not found" });
+    }
+    res.json({ ride });
   } catch (err) {
     next(err);
   }
@@ -175,6 +223,33 @@ async function startRide(req, res, next) {
   }
 }
 
+/**
+ * Rider's live GPS ping while a trip is ACCEPTED/IN_PROGRESS - powers the
+ * customer's tracking map (see getRide above), same pattern as delivery's
+ * PATCH /delivery/jobs/:id/location. Restricted so a finished or cancelled
+ * ride stops accepting updates, but the last known position is left in
+ * place rather than cleared (see schema.prisma).
+ */
+async function updateLocation(req, res, next) {
+  try {
+    const { lat, lng } = locationSchema.parse(req.body);
+    const result = await prisma.rideRequest.updateMany({
+      where: {
+        id: req.params.id,
+        assignedRiderId: req.user.id,
+        status: { in: ["ACCEPTED", "IN_PROGRESS"] },
+      },
+      data: { riderLat: lat, riderLng: lng, riderLocationAt: new Date() },
+    });
+    if (result.count === 0) {
+      return res.status(400).json({ message: "Ride is not active for location updates" });
+    }
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function completeRide(req, res, next) {
   try {
     const existing = await prisma.rideRequest.findUnique({ where: { id: req.params.id } });
@@ -204,11 +279,14 @@ async function completeRide(req, res, next) {
 
 module.exports = {
   listMyRides,
+  getRide,
   createRide,
+  getFeeQuote,
   cancelRide,
   listAvailable,
   listMyJobs,
   acceptRide,
   startRide,
+  updateLocation,
   completeRide,
 };

@@ -59,10 +59,14 @@ export const cancelRestaurantOrder = (id) =>
 // Ride sharing
 export const fetchMyRides = () =>
   apiClient.get("/rideshare/rides").then((res) => res.data.rides);
+export const fetchRide = (id) =>
+  apiClient.get(`/rideshare/rides/${id}`).then((res) => res.data.ride);
 export const createRideRequest = (payload) =>
   apiClient.post("/rideshare/rides", payload).then((res) => res.data.ride);
 export const cancelRide = (id) =>
   apiClient.patch(`/rideshare/rides/${id}/cancel`).then((res) => res.data.ride);
+export const fetchRideshareFeeQuote = (params) =>
+  apiClient.get("/rideshare/fee-quote", { params }).then((res) => res.data);
 
 // Rider dispatch
 export const fetchAvailableRideJobs = () =>
@@ -75,3 +79,5 @@ export const startRideJob = (id) =>
   apiClient.post(`/rideshare/jobs/${id}/start`).then((res) => res.data.ride);
 export const completeRideJob = (id) =>
   apiClient.post(`/rideshare/jobs/${id}/complete`).then((res) => res.data.ride);
+export const updateRideshareRiderLocation = (id, payload) =>
+  apiClient.patch(`/rideshare/jobs/${id}/location`, payload);

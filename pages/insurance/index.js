@@ -41,7 +41,7 @@ export default function Insurance() {
       toast.success(t("insurance.subscribed"));
       queryClient.invalidateQueries("insurance-policies");
     },
-    onError: () => toast.error(t("insurance.couldNotSubscribe")),
+    onError: (err) => toast.error(err.response?.data?.message || t("insurance.couldNotSubscribe")),
   });
 
   const cancelMutation = useMutation((id) => cancelInsurancePolicy(id), {

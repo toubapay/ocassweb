@@ -45,6 +45,11 @@ const createPostingSchema = z.object({
   note: z.string().max(300).optional(),
 });
 
+const locationSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+
 const feeQuoteSchema = z.object({
   originLat: z.coerce.number(),
   originLng: z.coerce.number(),
@@ -398,6 +403,57 @@ async function departPosting(req, res, next) {
   }
 }
 
+/**
+ * Single posting, for a booked passenger's tracking page to poll (see
+ * driverLat/Lng below) - readable by the driver themself or by any
+ * passenger with a CONFIRMED booking on it, unlike listMyPostings/
+ * listMyBookings which are each scoped to one side of the trip.
+ */
+async function getPosting(req, res, next) {
+  try {
+    const posting = await prisma.ridePosting.findUnique({
+      where: { id: req.params.id },
+      include: {
+        driver: { select: DRIVER_SELECT },
+        bookings: { where: { passengerId: req.user.id, status: "CONFIRMED" } },
+      },
+    });
+    if (!posting) {
+      return res.status(404).json({ message: "Ride not found" });
+    }
+    const isDriver = posting.driverId === req.user.id;
+    const isBookedPassenger = posting.bookings.length > 0;
+    if (!isDriver && !isBookedPassenger) {
+      return res.status(404).json({ message: "Ride not found" });
+    }
+    res.json({ posting });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Driver's live GPS ping once DEPARTED - powers each booked passenger's
+ * tracking map (see getPosting above), same pattern as delivery's PATCH
+ * /delivery/jobs/:id/location. The last known position is left in place
+ * rather than cleared once the trip ends (see schema.prisma).
+ */
+async function updateLocation(req, res, next) {
+  try {
+    const { lat, lng } = locationSchema.parse(req.body);
+    const result = await prisma.ridePosting.updateMany({
+      where: { id: req.params.id, driverId: req.user.id, status: "DEPARTED" },
+      data: { driverLat: lat, driverLng: lng, driverLocationAt: new Date() },
+    });
+    if (result.count === 0) {
+      return res.status(400).json({ message: "Ride is not active for location updates" });
+    }
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createPosting,
   getFeeQuote,
@@ -408,4 +464,6 @@ module.exports = {
   cancelBooking,
   cancelPosting,
   departPosting,
+  getPosting,
+  updateLocation,
 };

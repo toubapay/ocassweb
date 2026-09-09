@@ -1,17 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/ride_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
+const _locationPingInterval = Duration(seconds: 10);
+
 /// Mirrors pages/ride-sharing/driver.js: Available/My-rides tabs, race-safe
-/// accept, then walking an accepted ride through start -> complete.
+/// accept, then walking an accepted ride through start -> complete, plus a
+/// location-broadcast timer (mirrors delivery_agent_screen.dart's) that
+/// pings PATCH /rideshare/jobs/:id/location every 10s for every ride this
+/// rider currently has ACCEPTED or IN_PROGRESS.
 class RideSharingDriverScreen extends StatefulWidget {
   const RideSharingDriverScreen({super.key, this.initialTab});
 
@@ -32,6 +40,7 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
   bool _loadingAvailable = true;
   bool _loadingMine = true;
   final Set<String> _busyIds = {};
+  Timer? _locationTimer;
 
   @override
   void initState() {
@@ -47,7 +56,32 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _locationTimer?.cancel();
     super.dispose();
+  }
+
+  List<String> get _activeRideIds =>
+      _mine.where((r) => r.status == 'ACCEPTED' || r.status == 'IN_PROGRESS').map((r) => r.id).toList();
+
+  void _syncLocationTimer() {
+    final activeIds = _activeRideIds;
+    if (activeIds.isEmpty) {
+      _locationTimer?.cancel();
+      _locationTimer = null;
+      return;
+    }
+    if (_locationTimer != null) return; // already running, will pick up the latest _activeRideIds each tick
+    _pingLocation();
+    _locationTimer = Timer.periodic(_locationPingInterval, (_) => _pingLocation());
+  }
+
+  Future<void> _pingLocation() async {
+    final position = await getCurrentLatLng();
+    if (position == null) return;
+    final (lat, lng) = position;
+    for (final id in _activeRideIds) {
+      apiClient.updateRideshareRiderLocation(id, lat: lat, lng: lng).catchError((_) {});
+    }
   }
 
   Future<void> _loadAll() async {
@@ -67,6 +101,7 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
       _loadingAvailable = false;
       _loadingMine = false;
     });
+    _syncLocationTimer();
   }
 
   Future<void> _accept(String id) async {

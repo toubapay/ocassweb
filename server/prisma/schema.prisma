@@ -658,6 +658,13 @@ model RideRequest {
   priceEstimate   Decimal?    @db.Decimal(10, 2)
   status          RideStatus  @default(REQUESTED)
   assignedRiderId String?
+  // Rider's live GPS ping while the trip is ACCEPTED/IN_PROGRESS (see PATCH
+  // /rideshare/jobs/:id/location) - powers the customer-facing live
+  // tracking map, same pattern as DeliveryRequest.agentLat below. Stays at
+  // its last value after COMPLETED rather than being cleared.
+  riderLat        Float?
+  riderLng        Float?
+  riderLocationAt DateTime?
   createdAt       DateTime    @default(now())
 
   user          User  @relation("RideRequester", fields: [userId], references: [id], onDelete: Cascade)
@@ -908,6 +915,13 @@ model RidePosting {
   pricePerSeat       Decimal?          @db.Decimal(10, 2)
   note               String?
   status             RidePostingStatus @default(OPEN)
+  // Driver's live GPS ping once DEPARTED (see PATCH
+  // /anando/postings/:id/location) - powers each booked passenger's live
+  // tracking map, same pattern as DeliveryRequest.agentLat below. Stays at
+  // its last value afterward rather than being cleared.
+  driverLat          Float?
+  driverLng          Float?
+  driverLocationAt   DateTime?
   createdAt          DateTime          @default(now())
 
   driver   User          @relation("RidePostingDriver", fields: [driverId], references: [id], onDelete: Cascade)
