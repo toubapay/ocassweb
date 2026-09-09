@@ -15,6 +15,7 @@ import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import { fetchAdminZones, createAdminZone, updateAdminZone, deleteAdminZone } from "../../api/admin";
 import { MODULE_OPTIONS } from "../../constants/adminModules";
 import useGoogleMaps, { GOOGLE_MAPS_API_KEY } from "../../hooks/useGoogleMaps";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 /**
  * Click-to-place-vertices polygon drawing, built on plain google.maps.Map /
@@ -164,11 +165,12 @@ export default function AdminZonesTab() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.zones.newZone")}
-      </Typography>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+          {t("admin.zones.newZone")}
+        </Typography>
 
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
         <TextField
           size="small"
           label={t("admin.zones.name")}
@@ -218,49 +220,48 @@ export default function AdminZonesTab() {
         </Box>
       )}
 
-      <Button variant="contained" disabled={createMutation.isLoading} onClick={handleSave} sx={{ mb: 3 }}>
-        {t("admin.zones.save")}
-      </Button>
+        <Button variant="contained" disabled={createMutation.isLoading} onClick={handleSave}>
+          {t("admin.zones.save")}
+        </Button>
+      </AdminCard>
 
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.zones.existing")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.zones.existing")} />
       {isLoading ? (
         <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
       ) : (
-        (zones || []).map((z) => (
-          <Box
-            key={z.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontWeight: 700 }}>{z.name}</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {z.moduleKey} · {z.boundary.length} {t("admin.zones.points")}
-                {z.feeMultiplier ? ` · ×${z.feeMultiplier}` : ""}
-              </Typography>
+        <AdminCard sx={{ overflow: "hidden" }}>
+          {(zones || []).map((z, idx) => (
+            <Box
+              key={z.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{z.name}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {z.moduleKey} · {z.boundary.length} {t("admin.zones.points")}
+                  {z.feeMultiplier ? ` · ×${z.feeMultiplier}` : ""}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Switch
+                  checked={z.active}
+                  onChange={(e) => toggleMutation.mutate({ id: z.id, active: e.target.checked })}
+                />
+                <IconButton size="small" onClick={() => deleteMutation.mutate(z.id)}>
+                  <DeleteRoundedIcon fontSize="small" />
+                </IconButton>
+              </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Switch
-                checked={z.active}
-                onChange={(e) => toggleMutation.mutate({ id: z.id, active: e.target.checked })}
-              />
-              <IconButton size="small" onClick={() => deleteMutation.mutate(z.id)}>
-                <DeleteRoundedIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          </Box>
-        ))
+          ))}
+        </AdminCard>
       )}
     </Box>
   );

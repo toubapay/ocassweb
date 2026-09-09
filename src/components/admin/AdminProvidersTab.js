@@ -18,6 +18,7 @@ import {
   updateAdminProvider,
   deleteAdminProvider,
 } from "../../api/admin";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 const SMS_CONFIG_EXAMPLE = JSON.stringify(
   {
@@ -120,14 +121,15 @@ export default function AdminProvidersTab() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.providers.newProvider")}
-      </Typography>
-      <Alert severity="info" sx={{ mb: 2 }}>
-        {t("admin.providers.smsHint")}
-      </Alert>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+          {t("admin.providers.newProvider")}
+        </Typography>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t("admin.providers.smsHint")}
+        </Alert>
 
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 1.5 }}>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 1.5 }}>
         <Autocomplete
           freeSolo
           options={CATEGORY_PRESETS}
@@ -163,64 +165,63 @@ export default function AdminProvidersTab() {
         />
       </Box>
 
-      <TextField
-        multiline
-        minRows={8}
-        fullWidth
-        value={configJson}
-        onChange={(e) => setConfigJson(e.target.value)}
-        error={!!jsonError}
-        helperText={jsonError || t("admin.providers.configHelp")}
-        sx={{ mb: 2, fontFamily: "monospace" }}
-        InputProps={{ sx: { fontFamily: "monospace", fontSize: 13 } }}
-      />
+        <TextField
+          multiline
+          minRows={8}
+          fullWidth
+          value={configJson}
+          onChange={(e) => setConfigJson(e.target.value)}
+          error={!!jsonError}
+          helperText={jsonError || t("admin.providers.configHelp")}
+          sx={{ mb: 2, fontFamily: "monospace" }}
+          InputProps={{ sx: { fontFamily: "monospace", fontSize: 13 } }}
+        />
 
-      <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate} sx={{ mb: 3 }}>
-        {t("admin.providers.save")}
-      </Button>
+        <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
+          {t("admin.providers.save")}
+        </Button>
+      </AdminCard>
 
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.providers.existing")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.providers.existing")} />
       {isLoading ? (
         <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
       ) : (
-        (providers || []).map((p) => (
-          <Box
-            key={p.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontWeight: 700 }}>
-                {p.name} <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>({p.category})</Typography>
-              </Typography>
-              {p.isDefault && (
-                <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700 }}>
-                  {t("admin.providers.defaultBadge")}
+        <AdminCard sx={{ overflow: "hidden" }}>
+          {(providers || []).map((p, idx) => (
+            <Box
+              key={p.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>
+                  {p.name} <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>({p.category})</Typography>
                 </Typography>
-              )}
+                {p.isDefault && (
+                  <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700, display: "block" }}>
+                    {t("admin.providers.defaultBadge")}
+                  </Typography>
+                )}
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Switch
+                  checked={p.isActive}
+                  onChange={(e) => toggleMutation.mutate({ id: p.id, payload: { isActive: e.target.checked } })}
+                />
+                <IconButton size="small" onClick={() => deleteMutation.mutate(p.id)}>
+                  <DeleteRoundedIcon fontSize="small" />
+                </IconButton>
+              </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Switch
-                checked={p.isActive}
-                onChange={(e) => toggleMutation.mutate({ id: p.id, payload: { isActive: e.target.checked } })}
-              />
-              <IconButton size="small" onClick={() => deleteMutation.mutate(p.id)}>
-                <DeleteRoundedIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          </Box>
-        ))
+          ))}
+        </AdminCard>
       )}
     </Box>
   );

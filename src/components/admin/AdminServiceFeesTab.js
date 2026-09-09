@@ -11,6 +11,7 @@ import MenuItem from "@mui/material/MenuItem";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
 import { fetchAdminServiceFees, upsertAdminServiceFee } from "../../api/admin";
+import { AdminCard } from "./AdminUiKit";
 
 // One row per service, with its fee/TVA editable inline (no per-row
 // dialog - there can be dozens of mobile services/forfaits, and a modal
@@ -38,17 +39,8 @@ function ServiceFeeRow({ service }) {
     values.taxRatePercent !== service.taxRatePercent;
 
   return (
-    <Box
-      sx={{
-        py: 1.5,
-        px: 2,
-        mb: 1,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-      }}
-    >
-      <Typography sx={{ fontWeight: 700, mb: 1 }}>{service.label}</Typography>
+    <AdminCard sx={{ py: 1.5, px: 2.5, mb: 1.5 }}>
+      <Typography sx={{ fontWeight: 700, fontSize: 13.5, mb: 1 }}>{service.label}</Typography>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", mb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <Switch
@@ -107,7 +99,7 @@ function ServiceFeeRow({ service }) {
           {t("common.save")}
         </Button>
       </Box>
-    </Box>
+    </AdminCard>
   );
 }
 
