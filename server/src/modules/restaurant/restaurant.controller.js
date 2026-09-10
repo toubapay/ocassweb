@@ -28,7 +28,13 @@ async function getRestaurant(req, res, next) {
   try {
     const restaurant = await prisma.restaurant.findUnique({
       where: { slug: req.params.slug },
-      include: { menuItems: { where: { isActive: true } } },
+      include: {
+        menuItems: {
+          where: { isActive: true },
+          include: { categoryRef: true },
+          orderBy: [{ categoryRef: { name: "asc" } }, { name: "asc" }],
+        },
+      },
     });
     if (!restaurant) return res.status(404).json({ message: "Restaurant not found" });
     res.json({ restaurant });
@@ -112,7 +118,8 @@ async function listMyMenuItems(req, res, next) {
     if (!restaurant) return;
     const menuItems = await prisma.menuItem.findMany({
       where: { restaurantId: restaurant.id },
-      orderBy: { name: "asc" },
+      include: { categoryRef: true },
+      orderBy: [{ categoryRef: { name: "asc" } }, { name: "asc" }],
     });
     res.json({ menuItems });
   } catch (err) {
@@ -125,7 +132,10 @@ const menuItemSchema = z.object({
   description: z.string().optional(),
   price: z.number().positive(),
   imageUrl: z.string().url().optional().or(z.literal("")),
+  // Legacy free-text category - see the comment on MenuItem.category in
+  // schema.prisma. New/edited items should set categoryId instead.
   category: z.string().optional(),
+  categoryId: z.string().uuid().optional().nullable(),
 });
 
 async function createMenuItem(req, res, next) {
@@ -133,8 +143,14 @@ async function createMenuItem(req, res, next) {
     const restaurant = await requireOwnRestaurant(req, res);
     if (!restaurant) return;
     const data = menuItemSchema.parse(req.body);
+    if (data.categoryId) {
+      const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+      if (!category || category.moduleKey !== "restaurant") {
+        return res.status(400).json({ message: "Unknown category" });
+      }
+    }
     const menuItem = await prisma.menuItem.create({
-      data: { ...data, imageUrl: data.imageUrl || null, restaurantId: restaurant.id },
+      data: { ...data, imageUrl: data.imageUrl || null, categoryId: data.categoryId || null, restaurantId: restaurant.id },
     });
     res.status(201).json({ menuItem });
   } catch (err) {
@@ -155,9 +171,19 @@ async function updateMenuItem(req, res, next) {
       return res.status(404).json({ message: "Menu item not found" });
     }
     const data = updateMenuItemSchema.parse(req.body);
+    if (data.categoryId) {
+      const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+      if (!category || category.moduleKey !== "restaurant") {
+        return res.status(400).json({ message: "Unknown category" });
+      }
+    }
     const menuItem = await prisma.menuItem.update({
       where: { id: existing.id },
-      data: { ...data, imageUrl: data.imageUrl === "" ? null : data.imageUrl },
+      data: {
+        ...data,
+        imageUrl: data.imageUrl === "" ? null : data.imageUrl,
+        ...(data.categoryId !== undefined ? { categoryId: data.categoryId || null } : {}),
+      },
     });
     res.json({ menuItem });
   } catch (err) {

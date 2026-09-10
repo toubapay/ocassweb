@@ -546,6 +546,7 @@
       "itemDescription": "Description",
       "itemCategory": "Catégorie",
       "itemCategoryPlaceholder": "ex. Entrées, Plats, Boissons",
+      "noCategory": "Aucune catégorie",
       "itemImageUrl": "URL de l'image",
       "orders": "Commandes",
       "noOrders": "Aucune commande pour l'instant.",

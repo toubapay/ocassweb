@@ -455,6 +455,7 @@ const Map<String, String> frStrings = {
   'restaurant.manage.fillRequiredFields': 'Remplissez les champs requis',
   'restaurant.manage.itemCategory': 'Catégorie',
   'restaurant.manage.itemCategoryPlaceholder': 'ex. Entrées, Plats, Boissons',
+  'restaurant.manage.noCategory': 'Aucune catégorie',
   'restaurant.manage.itemCreated': 'Article ajouté',
   'restaurant.manage.itemDeactivated': 'Article retiré du menu',
   'restaurant.manage.itemDescription': 'Description',

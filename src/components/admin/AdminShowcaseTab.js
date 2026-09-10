@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import Switch from "@mui/material/Switch";
 import IconButton from "@mui/material/IconButton";
@@ -30,6 +32,11 @@ import {
 import { fetchProducts } from "../../api/ecommerce";
 import { compressImageFile } from "../../utils/imageFile";
 import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
+import { MODULE_OPTIONS } from "../../constants/adminModules";
+
+// Only these modules have adopted admin-managed showcase slides so far -
+// see moduleKey on the ShowcaseSlide model in schema.prisma.
+const SHOWCASE_MODULE_OPTIONS = MODULE_OPTIONS.filter((m) => ["ecommerce", "restaurant"].includes(m.key));
 
 /** Shared by the inline create row and the edit dialog below. */
 function UploadImageButton({ onUploaded }) {
@@ -164,14 +171,18 @@ function EditSlideDialog({ slide, onClose }) {
 function ShowcaseSlidesSection() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [moduleKey, setModuleKey] = useState("ecommerce");
   const [form, setForm] = useState(emptySlideForm());
   const [editingSlide, setEditingSlide] = useState(null);
 
-  const { data: slides, isLoading } = useQuery("admin-showcase-slides", fetchAdminShowcaseSlides);
+  const { data: slides, isLoading } = useQuery(
+    ["admin-showcase-slides", moduleKey],
+    () => fetchAdminShowcaseSlides(moduleKey)
+  );
 
   const createMutation = useMutation(createAdminShowcaseSlide, {
     onSuccess: () => {
-      queryClient.invalidateQueries("admin-showcase-slides");
+      queryClient.invalidateQueries(["admin-showcase-slides", moduleKey]);
       toast.success(t("admin.showcase.created"));
       setForm(emptySlideForm());
     },
@@ -179,12 +190,12 @@ function ShowcaseSlidesSection() {
   });
 
   const deleteMutation = useMutation(deleteAdminShowcaseSlide, {
-    onSuccess: () => queryClient.invalidateQueries("admin-showcase-slides"),
+    onSuccess: () => queryClient.invalidateQueries(["admin-showcase-slides", moduleKey]),
   });
 
   const toggleMutation = useMutation(
     ({ id, isActive }) => updateAdminShowcaseSlide(id, { isActive }),
-    { onSuccess: () => queryClient.invalidateQueries("admin-showcase-slides") }
+    { onSuccess: () => queryClient.invalidateQueries(["admin-showcase-slides", moduleKey]) }
   );
 
   const handleCreate = () => {
@@ -192,7 +203,7 @@ function ShowcaseSlidesSection() {
       toast.error(t("admin.showcase.slideFieldsRequired"));
       return;
     }
-    createMutation.mutate(slideToPayload(form));
+    createMutation.mutate({ ...slideToPayload(form), moduleKey });
   };
 
   return (
@@ -204,6 +215,13 @@ function ShowcaseSlidesSection() {
           {t("admin.showcase.newSlide")}
         </Typography>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Select size="small" value={moduleKey} onChange={(e) => setModuleKey(e.target.value)} sx={{ maxWidth: 220 }}>
+            {SHOWCASE_MODULE_OPTIONS.map((m) => (
+              <MenuItem key={m.key} value={m.key}>
+                {m.label}
+              </MenuItem>
+            ))}
+          </Select>
           <TextField
             label={t("admin.showcase.title")}
             value={form.title}

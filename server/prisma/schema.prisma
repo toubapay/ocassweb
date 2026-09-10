@@ -112,8 +112,14 @@ model Address {
 
 model Category {
   id       String     @id @default(uuid())
+  // Which module's browsing/grouping this category belongs to - "ecommerce"
+  // (Product.categoryId) or "restaurant" (MenuItem.categoryId) today, more
+  // as other modules adopt categories (see MODULE_OPTIONS in
+  // adminModules.js for the canonical key strings). Categories are never
+  // shared across modules; the admin panel's category tab filters by this.
+  moduleKey String    @default("ecommerce")
   name     String
-  slug     String     @unique
+  slug     String
   icon     String?
   // Real photo shown on the discover page / home-screen category shortcuts
   // (e.g. pages/ecommerce/index.js's quick-nav row) - `icon` above stays a
@@ -124,13 +130,18 @@ model Category {
   parentId String?
   // Admin takedown switch (see AdminCategoriesTab.js) - hides the category
   // from public browsing/the vendor product-form dropdown without deleting
-  // it, since existing Product rows reference it by id. Any vendor can
-  // also create a category (POST /vendor/categories, always active) - this
-  // is the only way to deactivate one, deliberately admin-only.
+  // it, since existing Product rows reference it by id. Admin-managed only
+  // (there is no vendor/restaurant-owner self-serve category creation).
   isActive Boolean    @default(true)
   parent   Category?  @relation("CategoryToSubcategory", fields: [parentId], references: [id])
   children Category[] @relation("CategoryToSubcategory")
   products Product[]
+  menuItems MenuItem[]
+
+  // Slugs only need to be unique within their own module, not globally -
+  // "drinks" can exist as both an ecommerce category and a restaurant menu
+  // category.
+  @@unique([moduleKey, slug])
 }
 
 model Store {
@@ -578,13 +589,19 @@ model MenuItem {
   description  String?
   price        Decimal @db.Decimal(10, 2)
   imageUrl     String?
+  // Legacy free-text category, from before admin-managed restaurant
+  // categories existed - kept only as a fallback label for old rows that
+  // predate categoryId below and were never re-categorized. New/edited
+  // items should always set categoryId instead.
   category     String?
+  categoryId   String?
   // Soft delete, mirrors Product.isActive - existing order line items
   // reference a menu item by id, so removing one from the menu flips
   // this off instead of deleting the row.
   isActive     Boolean @default(true)
 
   restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryRef Category?            @relation(fields: [categoryId], references: [id])
   orderItems RestaurantOrderItem[]
 }
 
@@ -1154,6 +1171,10 @@ model FlashSale {
 // one is backend-driven and typically points at real products/categories.
 model ShowcaseSlide {
   id        String   @id @default(uuid())
+  // Same per-module scoping as Category.moduleKey above - which home
+  // screen's carousel this slide appears in ("ecommerce" for the Boutique
+  // home, "restaurant" for a restaurant's menu page, etc).
+  moduleKey String   @default("ecommerce")
   title     String
   subtitle  String?
   imageUrl  String

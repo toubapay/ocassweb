@@ -19,11 +19,17 @@ const {
   listMyRestaurantOrders,
   updateOrderStatus,
 } = require("./orders.controller");
+const { listCategoriesForModule } = require("../ecommerce/categories.controller");
+const { listShowcaseSlidesForModule } = require("../ecommerce/showcaseSlides.controller");
 
 const router = Router();
+const listRestaurantCategories = listCategoriesForModule("restaurant");
+const listRestaurantShowcaseSlides = listShowcaseSlidesForModule("restaurant");
 
 // Static routes must be registered before the "/:slug" catch-all below, or
 // Express would match them as slug="orders" / slug="owner".
+router.get("/categories", listRestaurantCategories);
+router.get("/showcase-slides", listRestaurantShowcaseSlides);
 router.get("/orders", requireAuth, listMyOrders);
 router.get("/orders/:id", requireAuth, getMyOrder);
 router.patch("/orders/:id/cancel", requireAuth, cancelOrder);

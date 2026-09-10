@@ -46,8 +46,10 @@ export const updateAdminZone = (id, payload) =>
 export const deleteAdminZone = (id) => apiClient.delete(`/admin/zones/${id}`);
 
 // Categories
-export const fetchAdminCategories = () =>
-  apiClient.get("/admin/categories").then((res) => res.data.categories);
+export const fetchAdminCategories = (moduleKey) =>
+  apiClient
+    .get("/admin/categories", { params: moduleKey ? { moduleKey } : {} })
+    .then((res) => res.data.categories);
 export const createAdminCategory = (payload) =>
   apiClient.post("/admin/categories", payload).then((res) => res.data.category);
 export const updateAdminCategory = (id, payload) =>
@@ -115,8 +117,10 @@ export const updateAdminFlashSale = (id, payload) =>
 export const deleteAdminFlashSale = (id) => apiClient.delete(`/admin/flash-sales/${id}`);
 
 // Showcase slides
-export const fetchAdminShowcaseSlides = () =>
-  apiClient.get("/admin/showcase-slides").then((res) => res.data.slides);
+export const fetchAdminShowcaseSlides = (moduleKey) =>
+  apiClient
+    .get("/admin/showcase-slides", { params: moduleKey ? { moduleKey } : {} })
+    .then((res) => res.data.slides);
 export const createAdminShowcaseSlide = (payload) =>
   apiClient.post("/admin/showcase-slides", payload).then((res) => res.data.slide);
 export const updateAdminShowcaseSlide = (id, payload) =>
