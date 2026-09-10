@@ -13,6 +13,10 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import InputLabel from "@mui/material/InputLabel";
+import FormControl from "@mui/material/FormControl";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
@@ -27,10 +31,20 @@ import {
   updateMenuItem,
   deactivateMenuItem,
 } from "../../../src/api/restaurantOwner";
+import { fetchRestaurantCategories } from "../../../src/api/modules";
 import { formatCfa } from "../../../src/utils/currency";
 import { compressImageFile } from "../../../src/utils/imageFile";
 
-const emptyForm = { name: "", description: "", price: "", imageUrl: "", category: "" };
+const emptyForm = { name: "", description: "", price: "", imageUrl: "", categoryId: "" };
+
+function flattenCategories(categories) {
+  const out = [];
+  (categories || []).forEach((cat) => {
+    out.push(cat);
+    (cat.children || []).forEach((child) => out.push({ ...child, indent: true }));
+  });
+  return out;
+}
 
 export default function RestaurantMenuItems() {
   const router = useRouter();
@@ -47,6 +61,10 @@ export default function RestaurantMenuItems() {
   const { data: menuItems, isLoading } = useQuery("restaurant-menu-items", fetchMyMenuItems, {
     enabled: isOwner,
   });
+  const { data: categories } = useQuery("restaurant-categories", fetchRestaurantCategories, {
+    enabled: isOwner,
+  });
+  const flatCategories = flattenCategories(categories);
 
   const invalidate = () => queryClient.invalidateQueries("restaurant-menu-items");
 
@@ -94,7 +112,7 @@ export default function RestaurantMenuItems() {
       description: item.description || "",
       price: String(item.price),
       imageUrl: item.imageUrl || "",
-      category: item.category || "",
+      categoryId: item.categoryId || "",
     });
     setEditingId(item.id);
     setDialogOpen(true);
@@ -110,7 +128,7 @@ export default function RestaurantMenuItems() {
       description: form.description || undefined,
       price: Number(form.price),
       imageUrl: form.imageUrl || undefined,
-      category: form.category || undefined,
+      categoryId: form.categoryId || null,
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, payload });
@@ -192,9 +210,9 @@ export default function RestaurantMenuItems() {
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
                   {formatCfa(item.price)}
                 </Typography>
-                {item.category && (
+                {(item.categoryRef?.name || item.category) && (
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    · {item.category}
+                    · {item.categoryRef?.name || item.category}
                   </Typography>
                 )}
               </Box>
@@ -240,13 +258,25 @@ export default function RestaurantMenuItems() {
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
-          <TextField
-            label={t("restaurant.manage.itemCategory")}
-            fullWidth
-            placeholder={t("restaurant.manage.itemCategoryPlaceholder")}
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-          />
+          <FormControl fullWidth>
+            <InputLabel id="restaurant-category-label">{t("restaurant.manage.itemCategory")}</InputLabel>
+            <Select
+              labelId="restaurant-category-label"
+              label={t("restaurant.manage.itemCategory")}
+              value={form.categoryId}
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+              displayEmpty
+            >
+              <MenuItem value="">
+                <em>{t("restaurant.manage.noCategory")}</em>
+              </MenuItem>
+              {flatCategories.map((cat) => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.indent ? `— ${cat.name}` : cat.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             label={t("vendor.price")}
             type="number"

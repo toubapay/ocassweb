@@ -432,14 +432,19 @@ async function deleteZone(req, res, next) {
   }
 }
 
-// ---------------- Categories (ecommerce product catalog) ----------------
-// Any vendor can also create a category (POST /vendor/categories, always
-// active, no parent restriction) - this section is what lets an admin
-// additionally edit one (rename, re-parent, change icon) or take it down.
-// No delete: existing Product rows reference a category by id, so isActive
-// is the retire/hide lever, same as every other catalog entity in the app.
+// ---------------- Categories (per-module: ecommerce, restaurant, ...) ----------------
+// Admin-managed grouping used by product/menu-item browsing - see
+// moduleKey on the Category model in schema.prisma. Categories are never
+// shared across modules; every list/create call is scoped to one moduleKey
+// (default "ecommerce" for backward compatibility with the web admin's
+// original ecommerce-only category tab). No delete: existing Product/
+// MenuItem rows reference a category by id, so isActive is the retire/hide
+// lever, same as every other catalog entity in the app.
+
+const CATEGORY_MODULE_KEYS = ["ecommerce", "restaurant"];
 
 const categorySchema = z.object({
+  moduleKey: z.enum(CATEGORY_MODULE_KEYS).optional(),
   name: z.string().min(2),
   parentId: z.string().uuid().optional().nullable(),
   icon: z.string().optional(),
@@ -449,8 +454,10 @@ const categorySchema = z.object({
 
 async function listCategoriesAdmin(req, res, next) {
   try {
+    const moduleKey = req.query.moduleKey || "ecommerce";
     const categories = await prisma.category.findMany({
-      include: { parent: { select: { id: true, name: true } }, _count: { select: { products: true } } },
+      where: { moduleKey },
+      include: { parent: { select: { id: true, name: true } }, _count: { select: { products: true, menuItems: true } } },
       orderBy: [{ parentId: "asc" }, { name: "asc" }],
     });
     res.json({ categories });
@@ -462,16 +469,20 @@ async function listCategoriesAdmin(req, res, next) {
 async function createCategoryAdmin(req, res, next) {
   try {
     const data = categorySchema.parse(req.body);
+    const moduleKey = data.moduleKey || "ecommerce";
     if (data.parentId) {
       const parent = await prisma.category.findUnique({ where: { id: data.parentId } });
-      if (!parent) return res.status(400).json({ message: "Unknown parent category" });
+      if (!parent || parent.moduleKey !== moduleKey) {
+        return res.status(400).json({ message: "Unknown parent category" });
+      }
     }
     const slug = await uniqueSlug(
       data.name,
-      (s) => prisma.category.findUnique({ where: { slug: s } }).then(Boolean)
+      (s) => prisma.category.findUnique({ where: { moduleKey_slug: { moduleKey, slug: s } } }).then(Boolean)
     );
     const category = await prisma.category.create({
       data: {
+        moduleKey,
         name: data.name,
         slug,
         parentId: data.parentId || null,
@@ -487,7 +498,8 @@ async function createCategoryAdmin(req, res, next) {
 
 async function updateCategoryAdmin(req, res, next) {
   try {
-    const data = categorySchema.partial().parse(req.body);
+    const { moduleKey, ...rest } = categorySchema.partial().parse(req.body);
+    const data = rest;
     if (data.parentId) {
       if (data.parentId === req.params.id) {
         return res.status(400).json({ message: "A category can't be its own parent" });
@@ -880,13 +892,16 @@ async function listAutoInsurancePolicies(req, res, next) {
   }
 }
 
-// ---------------- Showcase slides (ecommerce module only) ----------------
-// The Boutique home page's rotating banner (see ShowcaseSlide in
+// ---------------- Showcase slides (per-module: ecommerce, restaurant, ...) ----------------
+// Each module's home-page rotating banner (see moduleKey on ShowcaseSlide in
 // schema.prisma, showcaseSlides.controller.js for the public read, and
 // AdminShowcaseTab.js on web). No schedule concept, unlike FlashSale -
-// isActive alone decides whether a slide shows.
+// isActive alone decides whether a slide shows. Default moduleKey
+// "ecommerce" for backward compatibility with the web admin's original
+// ecommerce-only showcase tab.
 
 const showcaseSlideSchema = z.object({
+  moduleKey: z.enum(CATEGORY_MODULE_KEYS).optional(),
   title: z.string().min(1),
   subtitle: z.string().optional(),
   imageUrl: z.string().url(),
@@ -897,7 +912,8 @@ const showcaseSlideSchema = z.object({
 
 async function listShowcaseSlidesAdmin(req, res, next) {
   try {
-    const slides = await prisma.showcaseSlide.findMany({ orderBy: { sortOrder: "asc" } });
+    const moduleKey = req.query.moduleKey || "ecommerce";
+    const slides = await prisma.showcaseSlide.findMany({ where: { moduleKey }, orderBy: { sortOrder: "asc" } });
     res.json({ slides });
   } catch (err) {
     next(err);
@@ -907,7 +923,7 @@ async function listShowcaseSlidesAdmin(req, res, next) {
 async function createShowcaseSlideAdmin(req, res, next) {
   try {
     const data = showcaseSlideSchema.parse(req.body);
-    const slide = await prisma.showcaseSlide.create({ data });
+    const slide = await prisma.showcaseSlide.create({ data: { ...data, moduleKey: data.moduleKey || "ecommerce" } });
     res.status(201).json({ slide });
   } catch (err) {
     next(err);
@@ -916,7 +932,7 @@ async function createShowcaseSlideAdmin(req, res, next) {
 
 async function updateShowcaseSlideAdmin(req, res, next) {
   try {
-    const data = showcaseSlideSchema.partial().parse(req.body);
+    const { moduleKey, ...data } = showcaseSlideSchema.partial().parse(req.body);
     const slide = await prisma.showcaseSlide.update({ where: { id: req.params.id }, data });
     res.json({ slide });
   } catch (err) {

@@ -47,6 +47,10 @@ export const fetchRestaurants = (search) =>
     .then((res) => res.data.restaurants);
 export const fetchRestaurant = (slug) =>
   apiClient.get(`/restaurants/${slug}`).then((res) => res.data.restaurant);
+export const fetchRestaurantCategories = () =>
+  apiClient.get("/restaurants/categories").then((res) => res.data.categories);
+export const fetchRestaurantShowcaseSlides = () =>
+  apiClient.get("/restaurants/showcase-slides").then((res) => res.data.slides);
 export const createRestaurantOrder = (slug, payload) =>
   apiClient.post(`/restaurants/${slug}/orders`, payload).then((res) => res.data.order);
 export const fetchRestaurantOrders = () =>

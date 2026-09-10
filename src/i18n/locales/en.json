@@ -546,6 +546,7 @@
       "itemDescription": "Description",
       "itemCategory": "Category",
       "itemCategoryPlaceholder": "e.g. Starters, Mains, Drinks",
+      "noCategory": "No category",
       "itemImageUrl": "Image URL",
       "orders": "Orders",
       "noOrders": "No orders yet.",

@@ -498,6 +498,25 @@ class ApiClient {
     return Restaurant.fromJson(_data(res)['restaurant'] as Map<String, dynamic>);
   }
 
+  /// Admin-managed menu-item categories, scoped to the restaurant module -
+  /// see moduleKey on the Category model in schema.prisma and
+  /// AdminCategoriesTab.js on web for management.
+  Future<List<Category>> fetchRestaurantCategories() async {
+    final res = await _dio.get('/restaurants/categories');
+    return (_data(res)['categories'] as List<dynamic>)
+        .map((c) => Category.fromJson(c as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Slides for the restaurant detail page's showcase carousel, just after
+  /// the menu - see AdminShowcaseTab.js on web for management.
+  Future<List<ShowcaseSlide>> fetchRestaurantShowcaseSlides() async {
+    final res = await _dio.get('/restaurants/showcase-slides');
+    return (_data(res)['slides'] as List<dynamic>)
+        .map((s) => ShowcaseSlide.fromJson(s as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<List<RestaurantOrder>> fetchRestaurantOrders() async {
     final res = await _dio.get('/restaurants/orders');
     return (_data(res)['orders'] as List<dynamic>)
@@ -579,14 +598,14 @@ class ApiClient {
     String? description,
     required double price,
     String? imageUrl,
-    String? category,
+    String? categoryId,
   }) async {
     final res = await _dio.post('/restaurants/owner/menu-items', data: {
       'name': name,
       if (description != null && description.isNotEmpty) 'description': description,
       'price': price,
       if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
-      if (category != null && category.isNotEmpty) 'category': category,
+      if (categoryId != null && categoryId.isNotEmpty) 'categoryId': categoryId,
     });
     return MenuItem.fromJson(_data(res)['menuItem'] as Map<String, dynamic>);
   }
@@ -597,7 +616,7 @@ class ApiClient {
     String? description,
     double? price,
     String? imageUrl,
-    String? category,
+    String? categoryId,
     bool? isActive,
   }) async {
     final res = await _dio.patch('/restaurants/owner/menu-items/$id', data: {
@@ -605,7 +624,7 @@ class ApiClient {
       if (description != null) 'description': description,
       if (price != null) 'price': price,
       if (imageUrl != null) 'imageUrl': imageUrl,
-      if (category != null) 'category': category,
+      if (categoryId != null) 'categoryId': categoryId.isEmpty ? null : categoryId,
       if (isActive != null) 'isActive': isActive,
     });
     return MenuItem.fromJson(_data(res)['menuItem'] as Map<String, dynamic>);

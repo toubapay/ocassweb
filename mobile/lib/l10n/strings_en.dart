@@ -455,6 +455,7 @@ const Map<String, String> enStrings = {
   'restaurant.manage.fillRequiredFields': 'Fill in the required fields',
   'restaurant.manage.itemCategory': 'Category',
   'restaurant.manage.itemCategoryPlaceholder': 'e.g. Starters, Mains, Drinks',
+  'restaurant.manage.noCategory': 'No category',
   'restaurant.manage.itemCreated': 'Item added',
   'restaurant.manage.itemDeactivated': 'Item removed from menu',
   'restaurant.manage.itemDescription': 'Description',

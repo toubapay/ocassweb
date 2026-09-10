@@ -25,6 +25,12 @@ import {
 } from "../../api/admin";
 import { compressImageFile } from "../../utils/imageFile";
 import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
+import { MODULE_OPTIONS } from "../../constants/adminModules";
+
+// Only these modules have adopted admin-managed categories so far - see
+// moduleKey on the Category model in schema.prisma. Extend as more modules
+// (e.g. vendor) grow their own category browsing.
+const CATEGORY_MODULE_OPTIONS = MODULE_OPTIONS.filter((m) => ["ecommerce", "restaurant"].includes(m.key));
 
 /** Shared by the inline create row and the edit dialog below. */
 function UploadImageButton({ onUploaded }) {
@@ -125,18 +131,22 @@ function EditCategoryDialog({ category, topLevelCategories, onClose }) {
 export default function AdminCategoriesTab() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [moduleKey, setModuleKey] = useState("ecommerce");
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
   const [icon, setIcon] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [editingCategory, setEditingCategory] = useState(null);
 
-  const { data: categories, isLoading } = useQuery("admin-categories", fetchAdminCategories);
+  const { data: categories, isLoading } = useQuery(
+    ["admin-categories", moduleKey],
+    () => fetchAdminCategories(moduleKey)
+  );
   const topLevelCategories = (categories || []).filter((c) => !c.parentId);
 
   const createMutation = useMutation(createAdminCategory, {
     onSuccess: () => {
-      queryClient.invalidateQueries("admin-categories");
+      queryClient.invalidateQueries(["admin-categories", moduleKey]);
       toast.success(t("admin.categories.created"));
       setName("");
       setParentId("");
@@ -148,7 +158,7 @@ export default function AdminCategoriesTab() {
 
   const toggleMutation = useMutation(
     ({ id, isActive }) => updateAdminCategory(id, { isActive }),
-    { onSuccess: () => queryClient.invalidateQueries("admin-categories") }
+    { onSuccess: () => queryClient.invalidateQueries(["admin-categories", moduleKey]) }
   );
 
   const handleCreate = () => {
@@ -157,6 +167,7 @@ export default function AdminCategoriesTab() {
       return;
     }
     createMutation.mutate({
+      moduleKey,
       name: name.trim(),
       parentId: parentId || undefined,
       icon: icon.trim() || undefined,
@@ -169,6 +180,21 @@ export default function AdminCategoriesTab() {
       <AdminSectionHeading title={t("admin.categories.title")} subtitle={t("admin.categories.subtitle")} />
 
       <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+        <Select
+          size="small"
+          value={moduleKey}
+          onChange={(e) => {
+            setModuleKey(e.target.value);
+            setParentId("");
+          }}
+          sx={{ minWidth: 160 }}
+        >
+          {CATEGORY_MODULE_OPTIONS.map((m) => (
+            <MenuItem key={m.key} value={m.key}>
+              {m.label}
+            </MenuItem>
+          ))}
+        </Select>
         <TextField
           size="small"
           label={t("admin.categories.name")}
@@ -245,7 +271,10 @@ export default function AdminCategoriesTab() {
                     {c.parentId ? `— ${c.name}` : c.name}
                   </Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {c.slug} · {t("admin.categories.productCount", { count: c._count?.products || 0 })}
+                    {c.slug} ·{" "}
+                    {t("admin.categories.productCount", {
+                      count: (c.moduleKey === "restaurant" ? c._count?.menuItems : c._count?.products) || 0,
+                    })}
                     {c.parent ? ` · ${t("admin.categories.under", { name: c.parent.name })}` : ""}
                   </Typography>
                 </Box>

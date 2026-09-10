@@ -6,15 +6,17 @@ import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../core/image_upload.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/category.dart';
 import '../../models/restaurant.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
 /// Mirrors pages/restaurant/manage/items.js: menu item list with a FAB
-/// that opens a create/edit form (name, description, price, free-text
-/// category like "Starters"/"Mains" - not linked to the shared ecommerce
-/// Category tree, MenuItem.category is its own plain string field).
+/// that opens a create/edit form (name, description, price, and a category
+/// picked from the admin-managed restaurant-module Category tree - see
+/// AdminCategoriesTab.js on web; MenuItem.category, the old free-text
+/// field, is kept only as a fallback label for items that predate this).
 class RestaurantManageItemsScreen extends StatefulWidget {
   const RestaurantManageItemsScreen({super.key});
 
@@ -24,9 +26,19 @@ class RestaurantManageItemsScreen extends StatefulWidget {
 
 class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScreen> {
   List<MenuItem> _items = [];
+  List<Category> _categories = [];
   bool _loading = true;
   final Set<String> _busyIds = {};
   final ImagePicker _picker = ImagePicker();
+
+  List<Category> get _flatCategories {
+    final out = <Category>[];
+    for (final cat in _categories) {
+      out.add(cat);
+      out.addAll(cat.children);
+    }
+    return out;
+  }
 
   @override
   void initState() {
@@ -38,9 +50,15 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
     if (!mounted || context.read<AuthProvider>().user?.restaurant == null) return;
     setState(() => _loading = true);
     try {
-      final items = await apiClient.fetchMyMenuItems();
+      final results = await Future.wait([
+        apiClient.fetchMyMenuItems(),
+        apiClient.fetchRestaurantCategories(),
+      ]);
       if (!mounted) return;
-      setState(() => _items = items);
+      setState(() {
+        _items = results[0] as List<MenuItem>;
+        _categories = results[1] as List<Category>;
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -61,7 +79,7 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
     final nameController = TextEditingController(text: item?.name ?? '');
     final descriptionController = TextEditingController(text: item?.description ?? '');
     final priceController = TextEditingController(text: item != null ? '${item.price}' : '');
-    final categoryController = TextEditingController(text: item?.category ?? '');
+    String? categoryId = item?.categoryId;
     final imageUrlController = TextEditingController(text: item?.imageUrl ?? '');
     bool saving = false;
     bool uploadingImage = false;
@@ -103,12 +121,14 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
                   decoration: InputDecoration(labelText: sheetContext.t('vendor.price')),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: categoryController,
-                  decoration: InputDecoration(
-                    labelText: sheetContext.t('restaurant.manage.itemCategory'),
-                    hintText: sheetContext.t('restaurant.manage.itemCategoryPlaceholder'),
-                  ),
+                DropdownButtonFormField<String?>(
+                  value: categoryId,
+                  decoration: InputDecoration(labelText: sheetContext.t('restaurant.manage.itemCategory')),
+                  items: [
+                    DropdownMenuItem(value: null, child: Text(sheetContext.t('restaurant.manage.noCategory'))),
+                    ..._flatCategories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                  ],
+                  onChanged: (v) => setSheetState(() => categoryId = v),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -177,7 +197,7 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
                                   name: nameController.text.trim(),
                                   description: descriptionController.text.trim(),
                                   price: price,
-                                  category: categoryController.text.trim(),
+                                  categoryId: categoryId ?? '',
                                   imageUrl: imageUrlController.text.trim(),
                                 );
                               } else {
@@ -185,7 +205,7 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
                                   name: nameController.text.trim(),
                                   description: descriptionController.text.trim(),
                                   price: price,
-                                  category: categoryController.text.trim(),
+                                  categoryId: categoryId,
                                   imageUrl: imageUrlController.text.trim(),
                                 );
                               }
@@ -275,8 +295,8 @@ class _RestaurantManageItemsScreenState extends State<RestaurantManageItemsScree
                                   ),
                                   Text(formatCfa(item.price),
                                       style: const TextStyle(color: AppColors.textSecondary)),
-                                  if (item.category != null)
-                                    Text(item.category!,
+                                  if ((item.categoryRef?.name ?? item.category) != null)
+                                    Text(item.categoryRef?.name ?? item.category!,
                                         style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                                 ],
                               ),
