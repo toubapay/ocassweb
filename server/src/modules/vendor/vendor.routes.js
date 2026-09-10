@@ -11,6 +11,7 @@ const {
   updateProduct,
   deactivateProduct,
   listMyOrders,
+  updateOrderStatus,
 } = require("./vendor.controller");
 
 const router = Router();
@@ -41,5 +42,6 @@ router.patch("/products/:id", updateProduct);
 router.delete("/products/:id", deactivateProduct);
 
 router.get("/orders", listMyOrders);
+router.patch("/orders/:id/status", updateOrderStatus);
 
 module.exports = router;

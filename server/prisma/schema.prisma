@@ -238,11 +238,19 @@ model Order {
   // never optimistically on order creation.
   paid              Boolean     @default(false)
   paymentId         String?     @unique
+  // Set once a vendor marks a single-store order ready and a
+  // DeliveryRequest is auto-created for it, same "hand off to the delivery
+  // module" pattern as RestaurantOrder.deliveryRequestId below - see
+  // dispatchForDelivery in vendor/vendor.controller.js. A multi-vendor
+  // order (items from more than one store) never gets one, since a single
+  // delivery pickup can only be from one physical location.
+  deliveryRequestId String?     @unique
   createdAt         DateTime    @default(now())
 
-  user            User        @relation(fields: [userId], references: [id])
-  deliveryAddress Address?    @relation(fields: [deliveryAddressId], references: [id])
-  payment         Payment?    @relation(fields: [paymentId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  deliveryAddress Address?         @relation(fields: [deliveryAddressId], references: [id])
+  payment         Payment?         @relation(fields: [paymentId], references: [id])
+  deliveryRequest DeliveryRequest? @relation(fields: [deliveryRequestId], references: [id])
   items           OrderItem[]
 }
 
@@ -372,6 +380,9 @@ model DeliveryRequest {
   // restaurant order's DeliveryRequest be traced back to it (see
   // markDelivered's status cascade in delivery.controller.js).
   restaurantOrder RestaurantOrder?
+  // Same back-relation for Order.deliveryRequestId (ecommerce, single-vendor
+  // orders only - see dispatchForDelivery in vendor/vendor.controller.js).
+  order           Order?
 
   @@index([assignedAgentId])
 }

@@ -264,7 +264,8 @@
         "DELIVERED": "Delivered",
         "CANCELLED": "Cancelled"
       },
-      "subtotal": "Subtotal: {{amount}}"
+      "subtotal": "Subtotal: {{amount}}",
+      "track": "Track"
     },
     "wishlist": {
       "title": "Wishlist",
@@ -787,7 +788,9 @@
       "PENDING": "Pending",
       "CONFIRMED": "Confirmed",
       "DELIVERED": "Delivered",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "PREPARING": "Preparing",
+      "OUT_FOR_DELIVERY": "Out for delivery"
     },
     "register": {
       "title": "Sell on Ocass",
@@ -814,6 +817,19 @@
       "logIn": "Log in",
       "newBusiness": "New business? Register here",
       "notAVendorYet": "This account isn't set up as a vendor yet."
+    },
+    "manage": {
+      "deliveryStatus": "Delivery: {{status}}",
+      "cancel": "Cancel",
+      "startPreparing": "Start preparing",
+      "readyForDelivery": "Ready for delivery",
+      "couldNotUpdateStatus": "Could not update order status",
+      "multiVendorNote": "This order includes items from other sellers and can't be managed here",
+      "statusSet": {
+        "PREPARING": "Order marked as preparing",
+        "OUT_FOR_DELIVERY": "Order handed off for delivery",
+        "CANCELLED": "Order cancelled"
+      }
     }
   },
   "anando": {

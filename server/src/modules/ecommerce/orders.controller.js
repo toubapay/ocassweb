@@ -42,7 +42,11 @@ const createOrderSchema = z.object({
   paymentMethod: z.enum(["paydunya", "wallet", "cash"]).default("cash"),
 });
 
-const ORDER_INCLUDE = { items: { include: { product: true } }, deliveryAddress: true };
+const ORDER_INCLUDE = {
+  items: { include: { product: true } },
+  deliveryAddress: true,
+  deliveryRequest: { select: { id: true, status: true } },
+};
 
 async function listOrders(req, res, next) {
   try {

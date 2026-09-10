@@ -24,3 +24,5 @@ export const deactivateProduct = (id) =>
 
 export const fetchMyVendorOrders = () =>
   apiClient.get("/vendor/orders").then((res) => res.data.orders);
+export const updateVendorOrderStatus = (id, status) =>
+  apiClient.patch(`/vendor/orders/${id}/status`, { status }).then((res) => res.data.order);
