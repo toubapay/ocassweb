@@ -1100,8 +1100,28 @@
       "phone": "Téléphone",
       "role": "Rôle",
       "active": "Actif",
+      "suspended": "Suspendu",
       "updated": "Utilisateur mis à jour",
-      "updateFailed": "Impossible de mettre à jour l'utilisateur"
+      "updateFailed": "Impossible de mettre à jour l'utilisateur",
+      "statusAndRole": "Statut & rôle",
+      "ownsStore": "Possède la boutique : {{name}} ({{status}})",
+      "ownsRestaurant": "Possède le restaurant : {{name}} ({{status}})",
+      "activitySummary": "{{orders}} commandes · {{deliveries}} livraisons · {{rides}} courses · {{postings}} trajets Anando",
+      "commissionTitle": "Commission",
+      "commissionExplainer": "Remplace la commission de la plateforme sur ce pour quoi cet utilisateur est payé - ventes vendeur, commandes restaurant, livraisons, courses ou réservations Anando - au lieu du taux par défaut de ce module.",
+      "commissionContext": {
+        "VENDOR": "chaque vente vendeur",
+        "RESTAURANT_OWNER": "chaque commande restaurant",
+        "DELIVERY_AGENT": "chaque livraison terminée",
+        "RIDER": "chaque course terminée"
+      },
+      "commissionDefaultForRole": "Taux par défaut pour {{context}} : {{percent}}%",
+      "commissionDefaultAnando": "La part chauffeur Anando est actuellement de {{percent}}% par défaut",
+      "commissionUseDefault": "Utiliser le taux par défaut",
+      "commissionUseCustom": "Pourcentage personnalisé",
+      "commissionInvalid": "Entrez une commission entre 0 et 100",
+      "commissionUpdated": "Commission mise à jour",
+      "saveCommission": "Enregistrer la commission"
     },
     "modules": {
       "fees": "Frais",

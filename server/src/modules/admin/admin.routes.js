@@ -2,6 +2,7 @@ const { Router } = require("express");
 const { requireAuth, requireRole } = require("../../middleware/auth");
 const {
   listUsers,
+  getUser,
   updateUser,
   listModules,
   updateModule,
@@ -56,6 +57,7 @@ router.use(requireAuth, requireRole("ADMIN"));
 router.get("/stats", getStats);
 
 router.get("/users", listUsers);
+router.get("/users/:id", getUser);
 router.patch("/users/:id", updateUser);
 
 router.get("/modules", listModules);

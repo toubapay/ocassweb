@@ -2,10 +2,67 @@ const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const { MODULE_KEYS } = require("../../constants/modules");
 const { uniqueSlug } = require("../../utils/slugify");
+const { getModuleFeeConfig } = require("../../utils/feeConfig");
 
 // ---------------- Users ----------------
 
 const USER_ROLES = ["CUSTOMER", "VENDOR", "RESTAURANT_OWNER", "RIDER", "DELIVERY_AGENT", "ADMIN"];
+
+// Which module/share-percent a user's commissionSharePercent override
+// applies to, keyed by their primary role - used only to show the
+// platform-wide default it would otherwise fall back to (see
+// User.commissionSharePercent's comment in schema.prisma for why this is
+// one field covering every *SharePercent). Anando driving isn't role-
+// gated (any user can post a ride), so it has no entry here - the detail
+// page notes it separately rather than picking one context per role.
+const ROLE_COMMISSION_CONTEXT = {
+  VENDOR: { moduleKey: "vendor", shareField: "vendorSharePercent", default: 85 },
+  RESTAURANT_OWNER: { moduleKey: "restaurant", shareField: "ownerSharePercent", default: 85 },
+  DELIVERY_AGENT: { moduleKey: "delivery", shareField: "agentSharePercent", default: 80 },
+  RIDER: { moduleKey: "rideshare", shareField: "riderSharePercent", default: 80 },
+};
+const ANANDO_DEFAULT_DRIVER_SHARE = 85;
+
+const userDetailSelect = {
+  id: true,
+  phone: true,
+  name: true,
+  email: true,
+  role: true,
+  active: true,
+  createdAt: true,
+  commissionSharePercent: true,
+  store: { select: { id: true, name: true, isActive: true } },
+  restaurant: { select: { id: true, name: true, isActive: true } },
+  _count: { select: { assignedDeliveries: true, assignedRides: true, ridePostings: true, orders: true } },
+};
+
+async function getUser(req, res, next) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id }, select: userDetailSelect });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const context = ROLE_COMMISSION_CONTEXT[user.role];
+    const [roleDefault, anandoConfig] = await Promise.all([
+      context
+        ? getModuleFeeConfig(context.moduleKey, { [context.shareField]: context.default }).then(
+            (c) => c[context.shareField]
+          )
+        : Promise.resolve(null),
+      getModuleFeeConfig("anando", { driverSharePercent: ANANDO_DEFAULT_DRIVER_SHARE }),
+    ]);
+
+    res.json({
+      user: {
+        ...user,
+        defaultCommissionSharePercent: roleDefault,
+        defaultAnandoDriverSharePercent: anandoConfig.driverSharePercent,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
 
 async function listUsers(req, res, next) {
   try {
@@ -54,6 +111,9 @@ async function listUsers(req, res, next) {
 const updateUserSchema = z.object({
   role: z.enum(USER_ROLES).optional(),
   active: z.boolean().optional(),
+  // Null clears the override back to the module's platform-wide default;
+  // omit the field entirely to leave it untouched.
+  commissionSharePercent: z.number().min(0).max(100).nullable().optional(),
 });
 
 async function updateUser(req, res, next) {
@@ -73,6 +133,7 @@ async function updateUser(req, res, next) {
         role: true,
         active: true,
         createdAt: true,
+        commissionSharePercent: true,
       },
     });
     res.json({ user });
@@ -1120,6 +1181,7 @@ async function getStats(req, res, next) {
 
 module.exports = {
   listUsers,
+  getUser,
   updateUser,
   listModules,
   updateModule,

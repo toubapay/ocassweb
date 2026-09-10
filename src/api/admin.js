@@ -7,6 +7,8 @@ export const fetchAdminStats = () =>
 // Users
 export const fetchAdminUsers = (params) =>
   apiClient.get("/admin/users", { params }).then((res) => res.data);
+export const fetchAdminUser = (id) =>
+  apiClient.get(`/admin/users/${id}`).then((res) => res.data.user);
 export const updateAdminUser = (id, payload) =>
   apiClient.patch(`/admin/users/${id}`, payload).then((res) => res.data.user);
 

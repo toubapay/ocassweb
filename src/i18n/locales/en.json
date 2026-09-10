@@ -1100,8 +1100,28 @@
       "phone": "Phone",
       "role": "Role",
       "active": "Active",
+      "suspended": "Suspended",
       "updated": "User updated",
-      "updateFailed": "Could not update user"
+      "updateFailed": "Could not update user",
+      "statusAndRole": "Status & role",
+      "ownsStore": "Owns store: {{name}} ({{status}})",
+      "ownsRestaurant": "Owns restaurant: {{name}} ({{status}})",
+      "activitySummary": "{{orders}} orders · {{deliveries}} deliveries · {{rides}} rides · {{postings}} Anando postings",
+      "commissionTitle": "Commission",
+      "commissionExplainer": "Overrides the platform-wide commission for whatever this user is paid for - vendor sales, restaurant orders, deliveries, rides, or Anando bookings - instead of the default for that module.",
+      "commissionContext": {
+        "VENDOR": "each vendor sale",
+        "RESTAURANT_OWNER": "each restaurant order",
+        "DELIVERY_AGENT": "each completed delivery",
+        "RIDER": "each completed ride"
+      },
+      "commissionDefaultForRole": "Platform default for {{context}}: {{percent}}%",
+      "commissionDefaultAnando": "Anando driver share currently defaults to {{percent}}%",
+      "commissionUseDefault": "Use platform default",
+      "commissionUseCustom": "Custom percentage",
+      "commissionInvalid": "Enter a commission between 0 and 100",
+      "commissionUpdated": "Commission updated",
+      "saveCommission": "Save commission"
     },
     "modules": {
       "fees": "Fees",

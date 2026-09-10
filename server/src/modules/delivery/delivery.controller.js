@@ -300,9 +300,15 @@ async function markDelivered(req, res, next) {
     });
     if (existing.priceEstimate) {
       const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
+      // Per-agent override (see User.commissionSharePercent) beats the
+      // module-wide default when the admin has set one for this agent.
+      const agentShare =
+        req.user.commissionSharePercent != null
+          ? Number(req.user.commissionSharePercent) / 100
+          : feeConfig.agentSharePercent / 100;
       await walletService.credit({
         userId: req.user.id,
-        amount: Number(existing.priceEstimate) * (feeConfig.agentSharePercent / 100),
+        amount: Number(existing.priceEstimate) * agentShare,
         type: "EARNING",
         purpose: "DELIVERY_REQUEST",
         purposeId: request.id,
