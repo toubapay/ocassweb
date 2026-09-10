@@ -1,6 +1,8 @@
 const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const { uniqueSlug } = require("../../utils/slugify");
+const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
+const { getModuleFeeConfig } = require("../../utils/feeConfig");
 
 async function requireOwnStore(req, res) {
   const store = await prisma.store.findUnique({ where: { ownerId: req.user.id } });
@@ -234,6 +236,11 @@ async function deactivateProduct(req, res, next) {
  * order's `items` is filtered down to only that vendor's own items - a
  * cart/order can in principle span multiple stores, and a vendor should
  * only ever see their own line items, not another vendor's.
+ *
+ * `isSingleVendor` tells the vendor UI whether this order is eligible for
+ * the ready-for-delivery dispatch below - true only when every item in
+ * the *whole* order (not just this vendor's slice) belongs to this same
+ * store, since a delivery pickup can only be from one physical location.
  */
 async function listMyOrders(req, res, next) {
   try {
@@ -244,11 +251,158 @@ async function listMyOrders(req, res, next) {
       include: {
         items: { where: { product: { storeId: store.id } }, include: { product: true } },
         user: { select: { id: true, name: true, phone: true } },
+        deliveryAddress: true,
+        deliveryRequest: { select: { id: true, status: true } },
+        _count: { select: { items: true } },
       },
       orderBy: { createdAt: "desc" },
     });
-    res.json({ orders });
+    res.json({
+      orders: orders.map((order) => {
+        const { _count, ...rest } = order;
+        return { ...rest, isSingleVendor: _count.items === order.items.length };
+      }),
+    });
   } catch (err) {
+    next(err);
+  }
+}
+
+// Falls back to this when an admin hasn't set ModuleConfig("delivery").
+// Mirrors restaurant/orders.controller.js's own DELIVERY_DEFAULT_FEE_CONFIG/
+// estimateDeliveryPrice exactly, duplicated rather than imported since
+// that module's version is private to it; both compute the same
+// real-distance (or simulated-fallback) price for a pickup/dropoff pair.
+const DELIVERY_DEFAULT_FEE_CONFIG = {
+  baseFare: 500,
+  ratePerKm: 300,
+  agentSharePercent: 80,
+};
+
+function estimateDeliveryPrice({ pickupLat, pickupLng, dropoffLat, dropoffLng }, feeConfig) {
+  if (hasCoordinates(pickupLat, pickupLng, dropoffLat, dropoffLng)) {
+    const km = haversineDistanceKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    return Math.round(feeConfig.baseFare + km * feeConfig.ratePerKm);
+  }
+  return 1500 + Math.round(Math.random() * 2000);
+}
+
+/**
+ * Hands a ready single-vendor order off to the delivery module: creates a
+ * DeliveryRequest (pickup = this store, dropoff = the order's delivery
+ * address) with no assigned agent, so it appears on the same open job
+ * board any package-delivery agent already sees - same integration
+ * restaurant orders use (see dispatchForDelivery in
+ * restaurant/orders.controller.js), no parallel dispatch system.
+ */
+async function dispatchForDelivery(order, store, ownerPhone) {
+  if (!store.address || store.lat == null || store.lng == null) {
+    throw Object.assign(new Error("Your store has no pickup address configured"), { status: 400 });
+  }
+  if (!order.deliveryAddress) {
+    throw Object.assign(new Error("This order has no delivery address"), { status: 400 });
+  }
+  const feeConfig = await getModuleFeeConfig("delivery", DELIVERY_DEFAULT_FEE_CONFIG);
+  const pickup = {
+    pickupLat: store.lat,
+    pickupLng: store.lng,
+    dropoffLat: order.deliveryAddress.lat,
+    dropoffLng: order.deliveryAddress.lng,
+  };
+
+  const deliveryRequest = await prisma.deliveryRequest.create({
+    data: {
+      userId: order.userId,
+      senderName: store.name,
+      senderPhone: ownerPhone,
+      pickupAddress: store.address,
+      pickupLat: store.lat,
+      pickupLng: store.lng,
+      receiverName: order.user.name || order.user.phone,
+      receiverPhone: order.user.phone,
+      dropoffAddress: `${order.deliveryAddress.label ? `${order.deliveryAddress.label} - ` : ""}${order.deliveryAddress.line1}, ${order.deliveryAddress.city}`,
+      dropoffLat: order.deliveryAddress.lat,
+      dropoffLng: order.deliveryAddress.lng,
+      packageNote: `Ecommerce order from ${store.name} (#${order.id.slice(0, 8)})`,
+      priceEstimate: estimateDeliveryPrice(pickup, feeConfig),
+    },
+  });
+
+  return prisma.order.update({
+    where: { id: order.id },
+    data: { deliveryRequestId: deliveryRequest.id, status: "OUT_FOR_DELIVERY" },
+    include: {
+      items: { include: { product: true } },
+      deliveryAddress: true,
+      deliveryRequest: { select: { id: true, status: true } },
+    },
+  });
+}
+
+const OWNER_TRANSITIONS = {
+  CONFIRMED: ["PREPARING", "CANCELLED"],
+  PREPARING: ["OUT_FOR_DELIVERY", "CANCELLED"],
+};
+
+const updateOrderStatusSchema = z.object({
+  status: z.enum(["PREPARING", "OUT_FOR_DELIVERY", "CANCELLED"]),
+});
+
+/**
+ * Vendor walks their own order through CONFIRMED -> PREPARING ->
+ * OUT_FOR_DELIVERY (or CANCELLED from either of the first two) - same
+ * OWNER_TRANSITIONS shape as restaurant/orders.controller.js. Rejected
+ * outright for a multi-vendor order (see isSingleVendor above): there is
+ * no single pickup location to dispatch, and no other vendor's items
+ * would be represented by this vendor alone marking it ready.
+ */
+async function updateOrderStatus(req, res, next) {
+  try {
+    const store = await requireOwnStore(req, res);
+    if (!store) return;
+
+    const existing = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: {
+        items: { include: { product: true } },
+        user: true,
+        deliveryAddress: true,
+      },
+    });
+    if (!existing || !existing.items.some((item) => item.product.storeId === store.id)) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const storeIds = new Set(existing.items.map((item) => item.product.storeId));
+    if (storeIds.size > 1) {
+      return res.status(400).json({ message: "This order includes items from other sellers and can't be managed here" });
+    }
+
+    const { status } = updateOrderStatusSchema.parse(req.body);
+    const allowed = OWNER_TRANSITIONS[existing.status] || [];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ message: `Cannot move an order from ${existing.status} to ${status}` });
+    }
+
+    if (status === "OUT_FOR_DELIVERY") {
+      const order = await dispatchForDelivery(existing, store, req.user.phone);
+      return res.json({ order });
+    }
+
+    const order = await prisma.order.update({
+      where: { id: existing.id },
+      data: { status },
+      include: {
+        items: { include: { product: true } },
+        deliveryAddress: true,
+        deliveryRequest: { select: { id: true, status: true } },
+      },
+    });
+    res.json({ order });
+  } catch (err) {
+    if (err.status === 400) {
+      return res.status(400).json({ message: err.message });
+    }
     next(err);
   }
 }
@@ -264,4 +418,5 @@ module.exports = {
   updateProduct,
   deactivateProduct,
   listMyOrders,
+  updateOrderStatus,
 };

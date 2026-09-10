@@ -29,6 +29,7 @@ import {
 } from "../../api/admin";
 import { fetchProducts } from "../../api/ecommerce";
 import { compressImageFile } from "../../utils/imageFile";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 /** Shared by the inline create row and the edit dialog below. */
 function UploadImageButton({ onUploaded }) {
@@ -196,14 +197,9 @@ function ShowcaseSlidesSection() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.showcase.slidesTitle")}
-      </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        {t("admin.showcase.slidesSubtitle")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.showcase.slidesTitle")} subtitle={t("admin.showcase.slidesSubtitle")} />
 
-      <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, mb: 3 }}>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
           {t("admin.showcase.newSlide")}
         </Typography>
@@ -261,54 +257,54 @@ function ShowcaseSlidesSection() {
         >
           {t("admin.showcase.add")}
         </Button>
-      </Box>
+      </AdminCard>
 
-      {isLoading ? (
-        <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
-      ) : (
-        (slides || []).map((slide) => (
-          <Box
-            key={slide.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-              opacity: slide.isActive ? 1 : 0.55,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar src={slide.imageUrl} variant="rounded" sx={{ width: 48, height: 48 }}>
-                <ImageRoundedIcon />
-              </Avatar>
-              <Box>
-                <Typography sx={{ fontWeight: 700 }}>{slide.title}</Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {t("admin.showcase.sortOrder")}: {slide.sortOrder}
-                  {slide.linkUrl ? ` · ${slide.linkUrl}` : ""}
-                </Typography>
+      <AdminCard sx={{ overflow: "hidden" }}>
+        {isLoading ? (
+          <Typography sx={{ color: "text.secondary", p: 3 }}>{t("common.loading")}</Typography>
+        ) : (
+          (slides || []).map((slide, idx) => (
+            <Box
+              key={slide.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                opacity: slide.isActive ? 1 : 0.55,
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Avatar src={slide.imageUrl} variant="rounded" sx={{ width: 48, height: 48 }}>
+                  <ImageRoundedIcon />
+                </Avatar>
+                <Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{slide.title}</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {t("admin.showcase.sortOrder")}: {slide.sortOrder}
+                    {slide.linkUrl ? ` · ${slide.linkUrl}` : ""}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <IconButton size="small" onClick={() => setEditingSlide(slide)}>
+                  <EditRoundedIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => deleteMutation.mutate(slide.id)}>
+                  <DeleteRoundedIcon fontSize="small" />
+                </IconButton>
+                <Switch
+                  checked={slide.isActive}
+                  onChange={(e) => toggleMutation.mutate({ id: slide.id, isActive: e.target.checked })}
+                />
               </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <IconButton size="small" onClick={() => setEditingSlide(slide)}>
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={() => deleteMutation.mutate(slide.id)}>
-                <DeleteRoundedIcon fontSize="small" />
-              </IconButton>
-              <Switch
-                checked={slide.isActive}
-                onChange={(e) => toggleMutation.mutate({ id: slide.id, isActive: e.target.checked })}
-              />
-            </Box>
-          </Box>
-        ))
-      )}
+          ))
+        )}
+      </AdminCard>
 
       {editingSlide && <EditSlideDialog slide={editingSlide} onClose={() => setEditingSlide(null)} />}
     </Box>
@@ -342,12 +338,10 @@ function FeaturedProductsSection() {
   return (
     <Box sx={{ mt: 4 }}>
       <Divider sx={{ mb: 3 }} />
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.showcase.featuredProductsTitle")}
-      </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        {t("admin.showcase.featuredProductsSubtitle")}
-      </Typography>
+      <AdminSectionHeading
+        title={t("admin.showcase.featuredProductsTitle")}
+        subtitle={t("admin.showcase.featuredProductsSubtitle")}
+      />
 
       <Autocomplete
         value={null}
@@ -378,41 +372,41 @@ function FeaturedProductsSection() {
           {t("admin.showcase.noFeaturedProducts")}
         </Typography>
       ) : (
-        (featured?.items || []).map((product) => (
-          <Box
-            key={product.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar src={product.images?.[0]} variant="rounded" sx={{ width: 40, height: 40 }}>
-                <CategoryRoundedIcon fontSize="small" />
-              </Avatar>
-              <Box>
-                <Typography sx={{ fontWeight: 700 }}>{product.name}</Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {product.store?.name}
-                </Typography>
-              </Box>
-            </Box>
-            <IconButton
-              size="small"
-              disabled={setFeaturedMutation.isLoading}
-              onClick={() => setFeaturedMutation.mutate({ id: product.id, isFeatured: false })}
+        <AdminCard sx={{ overflow: "hidden" }}>
+          {(featured?.items || []).map((product, idx) => (
+            <Box
+              key={product.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
             >
-              <DeleteRoundedIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        ))
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Avatar src={product.images?.[0]} variant="rounded" sx={{ width: 40, height: 40 }}>
+                  <CategoryRoundedIcon fontSize="small" />
+                </Avatar>
+                <Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{product.name}</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {product.store?.name}
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton
+                size="small"
+                disabled={setFeaturedMutation.isLoading}
+                onClick={() => setFeaturedMutation.mutate({ id: product.id, isFeatured: false })}
+              >
+                <DeleteRoundedIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          ))}
+        </AdminCard>
       )}
     </Box>
   );

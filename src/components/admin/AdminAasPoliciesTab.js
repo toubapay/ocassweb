@@ -8,6 +8,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Link from "@mui/material/Link";
 import { fetchAdminAutoInsurancePolicies } from "../../api/admin";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 const STATUS_COLORS = {
   ACTIVE: "success",
@@ -32,12 +33,7 @@ export default function AdminAasPoliciesTab() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.aasPolicies.title")}
-      </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        {t("admin.aasPolicies.subtitle")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.aasPolicies.title")} subtitle={t("admin.aasPolicies.subtitle")} />
 
       <ToggleButtonGroup
         value={status}
@@ -59,16 +55,7 @@ export default function AdminAasPoliciesTab() {
         <Typography sx={{ color: "text.secondary" }}>{t("admin.aasPolicies.empty")}</Typography>
       ) : (
         policies.map((p) => (
-          <Box
-            key={p.id}
-            sx={{
-              p: 2,
-              mb: 1.5,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
+          <AdminCard key={p.id} sx={{ p: 2, mb: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
               <Chip label={p.status} color={STATUS_COLORS[p.status] || "default"} size="small" sx={{ fontWeight: 700 }} />
               <Typography sx={{ fontWeight: 700 }}>
@@ -99,7 +86,7 @@ export default function AdminAasPoliciesTab() {
                 </Typography>
               </Box>
             )}
-          </Box>
+          </AdminCard>
         ))
       )}
     </Box>

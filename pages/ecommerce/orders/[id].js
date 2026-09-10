@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
+import LocationOnRoundedIcon from "@mui/icons-material/LocationOnRounded";
 import TopBar from "../../../src/components/layout/TopBar";
 import useAuth from "../../../src/hooks/useAuth";
 import { fetchOrder } from "../../../src/api/ecommerce";
@@ -102,6 +103,21 @@ export default function EcommerceOrderDetail() {
               {order.deliveryAddress.line1}, {order.deliveryAddress.city}
             </Typography>
           </Box>
+        )}
+
+        {/* Only a single-vendor order ever gets dispatched to a real
+            delivery agent (see dispatchForDelivery in
+            vendor/vendor.controller.js) - stays reachable for the life of
+            the order, same as restaurant's own tracking link. */}
+        {order.deliveryRequestId && (
+          <Button
+            variant="contained"
+            startIcon={<LocationOnRoundedIcon />}
+            onClick={() => router.push(`/delivery/track/${order.deliveryRequestId}`)}
+            sx={{ fontWeight: 700, mb: 2 }}
+          >
+            {t("ecommerce.orders.track")}
+          </Button>
         )}
 
         <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 2, mb: 2 }}>

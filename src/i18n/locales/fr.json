@@ -264,7 +264,8 @@
         "DELIVERED": "Livrée",
         "CANCELLED": "Annulée"
       },
-      "subtotal": "Sous-total : {{amount}}"
+      "subtotal": "Sous-total : {{amount}}",
+      "track": "Suivre"
     },
     "wishlist": {
       "title": "Liste de souhaits",
@@ -787,7 +788,9 @@
       "PENDING": "En attente",
       "CONFIRMED": "Confirmée",
       "DELIVERED": "Livrée",
-      "CANCELLED": "Annulée"
+      "CANCELLED": "Annulée",
+      "PREPARING": "En préparation",
+      "OUT_FOR_DELIVERY": "En cours de livraison"
     },
     "register": {
       "title": "Vendre sur Ocass",
@@ -814,6 +817,19 @@
       "logIn": "Se connecter",
       "newBusiness": "Nouvelle entreprise ? Inscrivez-vous",
       "notAVendorYet": "Ce compte n'est pas encore configuré comme vendeur."
+    },
+    "manage": {
+      "deliveryStatus": "Livraison : {{status}}",
+      "cancel": "Annuler",
+      "startPreparing": "Commencer la préparation",
+      "readyForDelivery": "Prête pour la livraison",
+      "couldNotUpdateStatus": "Impossible de mettre à jour le statut de la commande",
+      "multiVendorNote": "Cette commande contient des articles d'autres vendeurs et ne peut pas être gérée ici",
+      "statusSet": {
+        "PREPARING": "Commande marquée en préparation",
+        "OUT_FOR_DELIVERY": "Commande remise pour livraison",
+        "CANCELLED": "Commande annulée"
+      }
     }
   },
   "anando": {

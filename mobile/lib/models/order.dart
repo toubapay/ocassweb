@@ -49,6 +49,17 @@ class Order {
   final String? deliveryAddressLabel;
   final String? deliveryAddressLine1;
   final String? deliveryAddressCity;
+  // Set once a vendor marks a single-store order ready and it's auto-
+  // dispatched to the delivery module (see dispatchForDelivery in
+  // vendor/vendor.controller.js) - null until then. deliveryRequestStatus
+  // is only ever present alongside deliveryRequestId.
+  final String? deliveryRequestId;
+  final String? deliveryRequestStatus;
+  // Only present on the vendor's own order listing (GET /vendor/orders) -
+  // null on the buyer's own /orders, where every order is implicitly "not
+  // this vendor's to dispatch". True only when every item in the whole
+  // order (not just this vendor's slice) belongs to this vendor's store.
+  final bool? isSingleVendor;
 
   Order({
     required this.id,
@@ -65,10 +76,14 @@ class Order {
     this.deliveryAddressLabel,
     this.deliveryAddressLine1,
     this.deliveryAddressCity,
+    this.deliveryRequestId,
+    this.deliveryRequestStatus,
+    this.isSingleVendor,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final deliveryAddress = json['deliveryAddress'] as Map<String, dynamic>?;
+    final deliveryRequest = json['deliveryRequest'] as Map<String, dynamic>?;
     return Order(
       id: json['id'] as String,
       status: json['status'] as String,
@@ -86,6 +101,9 @@ class Order {
       deliveryAddressLabel: deliveryAddress?['label'] as String?,
       deliveryAddressLine1: deliveryAddress?['line1'] as String?,
       deliveryAddressCity: deliveryAddress?['city'] as String?,
+      deliveryRequestId: json['deliveryRequestId'] as String?,
+      deliveryRequestStatus: deliveryRequest?['status'] as String?,
+      isSingleVendor: json['isSingleVendor'] as bool?,
     );
   }
 }

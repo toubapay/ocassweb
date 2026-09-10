@@ -24,6 +24,7 @@ import {
   updateAdminCategory,
 } from "../../api/admin";
 import { compressImageFile } from "../../utils/imageFile";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 /** Shared by the inline create row and the edit dialog below. */
 function UploadImageButton({ onUploaded }) {
@@ -165,14 +166,9 @@ export default function AdminCategoriesTab() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.categories.title")}
-      </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        {t("admin.categories.subtitle")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.categories.title")} subtitle={t("admin.categories.subtitle")} />
 
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 3 }}>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, display: "flex", gap: 1.5, flexWrap: "wrap" }}>
         <TextField
           size="small"
           label={t("admin.categories.name")}
@@ -219,54 +215,54 @@ export default function AdminCategoriesTab() {
         <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
           {t("admin.categories.add")}
         </Button>
-      </Box>
+      </AdminCard>
 
-      {isLoading ? (
-        <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
-      ) : (
-        (categories || []).map((c) => (
-          <Box
-            key={c.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              ml: c.parentId ? 3 : 0,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-              opacity: c.isActive ? 1 : 0.55,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar src={c.imageUrl || undefined} variant="rounded" sx={{ width: 40, height: 40 }}>
-                <CategoryRoundedIcon fontSize="small" />
-              </Avatar>
-              <Box>
-                <Typography sx={{ fontWeight: 700 }}>
-                  {c.parentId ? `— ${c.name}` : c.name}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {c.slug} · {t("admin.categories.productCount", { count: c._count?.products || 0 })}
-                  {c.parent ? ` · ${t("admin.categories.under", { name: c.parent.name })}` : ""}
-                </Typography>
+      <AdminCard sx={{ overflow: "hidden" }}>
+        {isLoading ? (
+          <Typography sx={{ color: "text.secondary", p: 3 }}>{t("common.loading")}</Typography>
+        ) : (
+          (categories || []).map((c, idx) => (
+            <Box
+              key={c.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                pl: c.parentId ? 5 : 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                opacity: c.isActive ? 1 : 0.55,
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Avatar src={c.imageUrl || undefined} variant="rounded" sx={{ width: 40, height: 40 }}>
+                  <CategoryRoundedIcon fontSize="small" />
+                </Avatar>
+                <Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>
+                    {c.parentId ? `— ${c.name}` : c.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {c.slug} · {t("admin.categories.productCount", { count: c._count?.products || 0 })}
+                    {c.parent ? ` · ${t("admin.categories.under", { name: c.parent.name })}` : ""}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <IconButton size="small" onClick={() => setEditingCategory(c)}>
+                  <EditRoundedIcon fontSize="small" />
+                </IconButton>
+                <Switch
+                  checked={c.isActive}
+                  onChange={(e) => toggleMutation.mutate({ id: c.id, isActive: e.target.checked })}
+                />
               </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <IconButton size="small" onClick={() => setEditingCategory(c)}>
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
-              <Switch
-                checked={c.isActive}
-                onChange={(e) => toggleMutation.mutate({ id: c.id, isActive: e.target.checked })}
-              />
-            </Box>
-          </Box>
-        ))
-      )}
+          ))
+        )}
+      </AdminCard>
 
       {editingCategory && (
         <EditCategoryDialog

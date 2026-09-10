@@ -28,6 +28,7 @@ import {
   packageTypeIconComponent,
   packageTypeColors,
 } from "../../constants/deliveryPackageTypeOptions";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 function IconTile({ icon, colorKey, size = 32 }) {
   const Icon = packageTypeIconComponent(icon);
@@ -235,14 +236,12 @@ export default function AdminDeliveryPackageTypesTab() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.deliveryPackageTypes.title")}
-      </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        {t("admin.deliveryPackageTypes.subtitle")}
-      </Typography>
+      <AdminSectionHeading
+        title={t("admin.deliveryPackageTypes.title")}
+        subtitle={t("admin.deliveryPackageTypes.subtitle")}
+      />
 
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center", mb: 3 }}>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
         <TextField
           size="small"
           label={t("admin.deliveryPackageTypes.labelEn")}
@@ -262,53 +261,53 @@ export default function AdminDeliveryPackageTypesTab() {
         <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
           {t("admin.deliveryPackageTypes.add")}
         </Button>
-      </Box>
+      </AdminCard>
 
-      {isLoading ? (
-        <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
-      ) : (
-        (packageTypes || []).map((pt) => (
-          <Box
-            key={pt.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-              opacity: pt.isActive ? 1 : 0.55,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <IconTile icon={pt.icon} colorKey={pt.colorKey} />
-              <Box>
-                <Typography sx={{ fontWeight: 700 }}>
-                  {pt.labelEn} <span style={{ fontWeight: 400 }}>/ {pt.labelFr}</span>
-                </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {pt.key}
-                </Typography>
+      <AdminCard sx={{ overflow: "hidden" }}>
+        {isLoading ? (
+          <Typography sx={{ color: "text.secondary", p: 3 }}>{t("common.loading")}</Typography>
+        ) : (
+          (packageTypes || []).map((pt, idx) => (
+            <Box
+              key={pt.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                opacity: pt.isActive ? 1 : 0.55,
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <IconTile icon={pt.icon} colorKey={pt.colorKey} />
+                <Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>
+                    {pt.labelEn} <span style={{ fontWeight: 400 }}>/ {pt.labelFr}</span>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {pt.key}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <IconButton size="small" onClick={() => setEditingType(pt)}>
+                  <EditRoundedIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" disabled={deleteMutation.isLoading} onClick={() => handleDelete(pt)}>
+                  <DeleteRoundedIcon fontSize="small" />
+                </IconButton>
+                <Switch
+                  checked={pt.isActive}
+                  onChange={(e) => toggleMutation.mutate({ id: pt.id, isActive: e.target.checked })}
+                />
               </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <IconButton size="small" onClick={() => setEditingType(pt)}>
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" disabled={deleteMutation.isLoading} onClick={() => handleDelete(pt)}>
-                <DeleteRoundedIcon fontSize="small" />
-              </IconButton>
-              <Switch
-                checked={pt.isActive}
-                onChange={(e) => toggleMutation.mutate({ id: pt.id, isActive: e.target.checked })}
-              />
-            </Box>
-          </Box>
-        ))
-      )}
+          ))
+        )}
+      </AdminCard>
 
       {editingType && <EditPackageTypeDialog packageType={editingType} onClose={() => setEditingType(null)} />}
     </Box>

@@ -1056,6 +1056,11 @@ class ApiClient {
         .map((o) => Order.fromJson(o as Map<String, dynamic>))
         .toList();
   }
+
+  Future<Order> updateVendorOrderStatus(String id, String status) async {
+    final res = await _dio.patch('/vendor/orders/$id/status', data: {'status': status});
+    return Order.fromJson(_data(res)['order'] as Map<String, dynamic>);
+  }
 }
 
 final apiClient = ApiClient.instance;

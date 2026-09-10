@@ -11,7 +11,6 @@ import IconButton from "@mui/material/IconButton";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
-import Divider from "@mui/material/Divider";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import {
@@ -20,6 +19,7 @@ import {
   updateAdminProvider,
   deleteAdminProvider,
 } from "../../api/admin";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 const CATEGORY = "INSURANCE_AAS";
 
@@ -140,14 +140,15 @@ export default function AdminInsuranceProviderTab() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {form.id ? t("admin.insuranceProvider.editTitle") : t("admin.insuranceProvider.newTitle")}
-      </Typography>
-      <Alert severity="info" sx={{ mb: 2 }}>
-        {t("admin.insuranceProvider.hint")}
-      </Alert>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+          {form.id ? t("admin.insuranceProvider.editTitle") : t("admin.insuranceProvider.newTitle")}
+        </Typography>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {t("admin.insuranceProvider.hint")}
+        </Alert>
 
-      <TextField
+        <TextField
         label={t("admin.insuranceProvider.name")}
         fullWidth
         value={form.name}
@@ -234,69 +235,66 @@ export default function AdminInsuranceProviderTab() {
         />
       </Box>
 
-      <Box sx={{ display: "flex", gap: 1, mb: 4 }}>
-        <Button variant="contained" disabled={isSaving} onClick={handleSave} sx={{ fontWeight: 700 }}>
-          {form.id ? t("admin.insuranceProvider.saveChanges") : t("admin.providers.save")}
-        </Button>
-        {form.id && (
-          <Button onClick={() => setForm(emptyForm)} sx={{ fontWeight: 700 }}>
-            {t("admin.insuranceProvider.cancelEdit")}
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button variant="contained" disabled={isSaving} onClick={handleSave} sx={{ fontWeight: 700 }}>
+            {form.id ? t("admin.insuranceProvider.saveChanges") : t("admin.providers.save")}
           </Button>
-        )}
-      </Box>
+          {form.id && (
+            <Button onClick={() => setForm(emptyForm)} sx={{ fontWeight: 700 }}>
+              {t("admin.insuranceProvider.cancelEdit")}
+            </Button>
+          )}
+        </Box>
+      </AdminCard>
 
-      <Divider sx={{ mb: 2 }} />
-
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.providers.existing")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.providers.existing")} />
       {isLoading ? (
         <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
       ) : !providers?.length ? (
         <Typography sx={{ color: "text.secondary" }}>{t("admin.insuranceProvider.none")}</Typography>
       ) : (
-        providers.map((p) => (
-          <Box
-            key={p.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontWeight: 700 }}>
-                {p.name}{" "}
-                <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>
-                  ({p.config?.partner || t("admin.insuranceProvider.noPartner")})
+        <AdminCard sx={{ overflow: "hidden" }}>
+          {providers.map((p, idx) => (
+            <Box
+              key={p.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>
+                  {p.name}{" "}
+                  <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>
+                    ({p.config?.partner || t("admin.insuranceProvider.noPartner")})
+                  </Typography>
                 </Typography>
-              </Typography>
-              {p.isDefault && (
-                <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700, display: "block" }}>
-                  {t("admin.providers.defaultBadge")}
-                </Typography>
-              )}
+                {p.isDefault && (
+                  <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700, display: "block" }}>
+                    {t("admin.providers.defaultBadge")}
+                  </Typography>
+                )}
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Switch
+                  checked={p.isActive}
+                  onChange={(e) => toggleMutation.mutate({ id: p.id, payload: { isActive: e.target.checked } })}
+                />
+                <IconButton size="small" onClick={() => loadIntoForm(p)}>
+                  <EditRoundedIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => deleteMutation.mutate(p.id)}>
+                  <DeleteRoundedIcon fontSize="small" />
+                </IconButton>
+              </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Switch
-                checked={p.isActive}
-                onChange={(e) => toggleMutation.mutate({ id: p.id, payload: { isActive: e.target.checked } })}
-              />
-              <IconButton size="small" onClick={() => loadIntoForm(p)}>
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={() => deleteMutation.mutate(p.id)}>
-                <DeleteRoundedIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          </Box>
-        ))
+          ))}
+        </AdminCard>
       )}
     </Box>
   );

@@ -30,6 +30,7 @@ import {
   deleteAdminFlashSale,
 } from "../../api/admin";
 import { fetchProducts } from "../../api/ecommerce";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 const DAY_OF_WEEK_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -313,14 +314,9 @@ export default function AdminFlashSalesTab() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.flashSales.title")}
-      </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        {t("admin.flashSales.subtitle")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.flashSales.title")} subtitle={t("admin.flashSales.subtitle")} />
 
-      <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, mb: 3 }}>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
           {t("admin.flashSales.newCampaign")}
         </Typography>
@@ -338,56 +334,69 @@ export default function AdminFlashSalesTab() {
         >
           {t("admin.flashSales.add")}
         </Button>
-      </Box>
+      </AdminCard>
 
-      {isLoading ? (
-        <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
-      ) : (
-        (flashSales || []).map((fs) => (
-          <Box
-            key={fs.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-              opacity: fs.isActive ? 1 : 0.55,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <BoltRoundedIcon sx={{ color: "#FACC15" }} />
-              <Box>
-                <Typography sx={{ fontWeight: 700 }}>{fs.title}</Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  {recurrenceLabel(fs)} · {fs.startTime}–{fs.endTime} ·{" "}
-                  {fs.selectionMode === "MANUAL"
-                    ? t("admin.flashSales.productCount", { count: fs.products?.length || 0 })
-                    : t("admin.flashSales.selectionModeAuto")}
-                  {fs.onHomeScreen ? ` · ${t("admin.flashSales.onHomeScreen")}` : ""}
-                  {fs.onEcommerceHome ? ` · ${t("admin.flashSales.onEcommerceHome")}` : ""}
-                </Typography>
+      <AdminCard sx={{ overflow: "hidden" }}>
+        {isLoading ? (
+          <Typography sx={{ color: "text.secondary", p: 3 }}>{t("common.loading")}</Typography>
+        ) : (
+          (flashSales || []).map((fs, idx) => (
+            <Box
+              key={fs.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                opacity: fs.isActive ? 1 : 0.55,
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 2,
+                    bgcolor: "#FEF3C7",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <BoltRoundedIcon sx={{ color: "#D97706", fontSize: 19 }} />
+                </Box>
+                <Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{fs.title}</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {recurrenceLabel(fs)} · {fs.startTime}–{fs.endTime} ·{" "}
+                    {fs.selectionMode === "MANUAL"
+                      ? t("admin.flashSales.productCount", { count: fs.products?.length || 0 })
+                      : t("admin.flashSales.selectionModeAuto")}
+                    {fs.onHomeScreen ? ` · ${t("admin.flashSales.onHomeScreen")}` : ""}
+                    {fs.onEcommerceHome ? ` · ${t("admin.flashSales.onEcommerceHome")}` : ""}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <IconButton size="small" onClick={() => setEditingFlashSale(fs)}>
+                  <EditRoundedIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => deleteMutation.mutate(fs.id)}>
+                  <DeleteRoundedIcon fontSize="small" />
+                </IconButton>
+                <Switch
+                  checked={fs.isActive}
+                  onChange={(e) => toggleMutation.mutate({ id: fs.id, isActive: e.target.checked })}
+                />
               </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <IconButton size="small" onClick={() => setEditingFlashSale(fs)}>
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={() => deleteMutation.mutate(fs.id)}>
-                <DeleteRoundedIcon fontSize="small" />
-              </IconButton>
-              <Switch
-                checked={fs.isActive}
-                onChange={(e) => toggleMutation.mutate({ id: fs.id, isActive: e.target.checked })}
-              />
-            </Box>
-          </Box>
-        ))
-      )}
+          ))
+        )}
+      </AdminCard>
 
       {editingFlashSale && (
         <EditFlashSaleDialog flashSale={editingFlashSale} onClose={() => setEditingFlashSale(null)} />
