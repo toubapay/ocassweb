@@ -48,6 +48,16 @@ model User {
   // rejects any request from an inactive user with 403, independent of
   // whether their token is still otherwise valid.
   active       Boolean  @default(true)
+  // Admin-set override of this user's earner-share percent on whatever
+  // they're paid out for - vendorSharePercent (vendor.service.js),
+  // ownerSharePercent (restaurant.service.js), agentSharePercent
+  // (delivery.controller.js), riderSharePercent (rideshare.controller.js),
+  // or driverSharePercent (anando.service.js) - each of those falls back
+  // to the module-wide ModuleConfig default (see getModuleFeeConfig) when
+  // this is null. One field regardless of role since a user only ever
+  // earns from one context in practice, and the four *SharePercent
+  // meanings never combine on the same payout.
+  commissionSharePercent Decimal? @db.Decimal(5, 2)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

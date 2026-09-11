@@ -262,9 +262,15 @@ async function completeRide(req, res, next) {
     });
     if (existing.priceEstimate) {
       const feeConfig = await getModuleFeeConfig("rideshare", DEFAULT_FEE_CONFIG);
+      // Per-rider override (see User.commissionSharePercent) beats the
+      // module-wide default when the admin has set one for this rider.
+      const riderShare =
+        req.user.commissionSharePercent != null
+          ? Number(req.user.commissionSharePercent) / 100
+          : feeConfig.riderSharePercent / 100;
       await walletService.credit({
         userId: req.user.id,
-        amount: Number(existing.priceEstimate) * (feeConfig.riderSharePercent / 100),
+        amount: Number(existing.priceEstimate) * riderShare,
         type: "EARNING",
         purpose: "RIDE_REQUEST",
         purposeId: ride.id,
