@@ -18,6 +18,7 @@ import MiscellaneousServicesRoundedIcon from "@mui/icons-material/MiscellaneousS
 import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import ViewCarouselRoundedIcon from "@mui/icons-material/ViewCarouselRounded";
+import CardGiftcardRoundedIcon from "@mui/icons-material/CardGiftcardRounded";
 import AdminLayout from "../../src/components/admin/AdminLayout";
 import useAuth from "../../src/hooks/useAuth";
 import AdminStatsTab from "../../src/components/admin/AdminStatsTab";
@@ -34,6 +35,7 @@ import AdminServicesTab from "../../src/components/admin/AdminServicesTab";
 import AdminInsuranceTab from "../../src/components/admin/AdminInsuranceTab";
 import AdminFlashSalesTab from "../../src/components/admin/AdminFlashSalesTab";
 import AdminShowcaseTab from "../../src/components/admin/AdminShowcaseTab";
+import AdminHomeBannerTab from "../../src/components/admin/AdminHomeBannerTab";
 
 // Single source of truth for the sidebar nav and the content area below -
 // each tab's id doubles as its ?tab= query value, so a section is a real,
@@ -51,6 +53,13 @@ const TABS = [
     labelKey: "admin.tabs.users",
     icon: PeopleRoundedIcon,
     Component: AdminUsersTab,
+    group: "overview",
+  },
+  {
+    id: "homeBanner",
+    labelKey: "admin.tabs.homeBanner",
+    icon: CardGiftcardRoundedIcon,
+    Component: AdminHomeBannerTab,
     group: "overview",
   },
   {

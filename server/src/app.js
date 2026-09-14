@@ -17,6 +17,7 @@ const walletRoutes = require("./modules/wallet/wallet.routes");
 const vendorRoutes = require("./modules/vendor/vendor.routes");
 const anandoRoutes = require("./modules/anando/anando.routes");
 const notificationsRoutes = require("./modules/notifications/notifications.routes");
+const homeRoutes = require("./modules/home/home.routes");
 const adminRoutes = require("./modules/admin/admin.routes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { requireModuleEnabled } = require("./middleware/moduleGate");
@@ -72,6 +73,10 @@ app.use("/api/wallet", requireModuleEnabled("wallet"), walletRoutes);
 app.use("/api/vendor", requireModuleEnabled("vendor"), vendorRoutes);
 app.use("/api/anando", requireModuleEnabled("anando"), anandoRoutes);
 app.use("/api/notifications", notificationsRoutes);
+// Not module-gated (unlike every route above) - the main Home Screen
+// itself is never a togglable module, so its admin-editable promo banner
+// must stay reachable regardless of which business modules are enabled.
+app.use("/api/home", homeRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use(notFound);

@@ -129,6 +129,12 @@ export const updateAdminShowcaseSlide = (id, payload) =>
   apiClient.patch(`/admin/showcase-slides/${id}`, payload).then((res) => res.data.slide);
 export const deleteAdminShowcaseSlide = (id) => apiClient.delete(`/admin/showcase-slides/${id}`);
 
+// Home banner
+export const fetchAdminHomeBanner = () =>
+  apiClient.get("/admin/home-banner").then((res) => res.data.banner);
+export const updateAdminHomeBanner = (payload) =>
+  apiClient.patch("/admin/home-banner", payload).then((res) => res.data.banner);
+
 // Featured products
 export const updateAdminProductFeatured = (id, isFeatured) =>
   apiClient.patch(`/admin/products/${id}/featured`, { isFeatured }).then((res) => res.data.product);

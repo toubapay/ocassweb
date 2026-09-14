@@ -242,8 +242,6 @@ const Map<String, String> enStrings = {
   'home.dragHint': 'Hold and drag an icon to rearrange',
   'home.exploreOcass': 'Explore Ocass',
   'home.featuredShops': 'Featured shops',
-  'home.freeDeliverySubtitle': 'Offer applied automatically at checkout.',
-  'home.freeDeliveryTitle': 'Free delivery on your first order',
   'home.greeting': '{{name}}, these are for you',
   'home.popularRightNow': 'Popular right now',
   'insurance.auto.assure': 'Insured person',

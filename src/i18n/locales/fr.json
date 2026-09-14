@@ -86,9 +86,7 @@
     "greeting": "{{name}}, voici pour vous",
     "exploreOcass": "Explorer Ocass",
     "popularRightNow": "Populaire en ce moment",
-    "featuredShops": "Boutiques en vedette",
-    "freeDeliveryTitle": "Livraison gratuite pour votre première commande",
-    "freeDeliverySubtitle": "Offre appliquée automatiquement lors du paiement."
+    "featuredShops": "Boutiques en vedette"
   },
   "auth": {
     "login": {
@@ -1027,6 +1025,19 @@
       "searchProductsPlaceholder": "Rechercher des produits par nom",
       "noFeaturedProducts": "Aucun produit vedette pour le moment"
     },
+    "homeBanner": {
+      "title": "Bannière de l'accueil",
+      "subtitle": "La carte promotionnelle unique affichée en haut de l'écran d'accueil principal.",
+      "shown": "Affichée",
+      "hidden": "Masquée",
+      "bannerTitle": "Titre",
+      "bannerSubtitle": "Sous-titre",
+      "imageUrl": "URL de l'image",
+      "linkUrl": "Lien (optionnel)",
+      "titleRequired": "Un titre est requis",
+      "saved": "Bannière enregistrée",
+      "saveFailed": "Impossible d'enregistrer la bannière"
+    },
     "tabs": {
       "dashboard": "Tableau de bord",
       "users": "Utilisateurs",
@@ -1036,6 +1047,7 @@
       "categories": "Catégories",
       "flashSales": "Ventes flash",
       "showcase": "Vitrine",
+      "homeBanner": "Bannière d'accueil",
       "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Fournisseurs",

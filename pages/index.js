@@ -42,6 +42,7 @@ import useAuth from "../src/hooks/useAuth";
 import { fetchProducts, fetchCategories, fetchActiveFlashSale } from "../src/api/ecommerce";
 import { fetchStores } from "../src/api/vendor";
 import { fetchUnreadCount } from "../src/api/notifications";
+import { fetchHomeBanner } from "../src/api/home";
 
 const CATEGORY_ICONS = {
   footwear: { icon: CheckroomRoundedIcon, color: "#0FAE58", bg: "#E7F7EE" },
@@ -67,6 +68,7 @@ export default function Home() {
     { refetchInterval: 60000 }
   );
   const { data: featuredStores } = useQuery("featured-stores", () => fetchStores({ featured: true }));
+  const { data: homeBanner } = useQuery("home-banner", fetchHomeBanner);
   const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
     enabled: isAuthenticated,
     refetchInterval: 30000,
@@ -284,58 +286,71 @@ export default function Home() {
         </Box>
       )}
 
-      <Box sx={{ px: 2.5, pb: 3 }}>
-        <Box
-          sx={{
-            position: "relative",
-            background: "linear-gradient(135deg, #E7F7EE 0%, #FFF6E5 100%)",
-            borderRadius: 4,
-            p: 2.5,
-            pr: 11,
-            overflow: "visible",
-          }}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            {t("home.freeDeliveryTitle")}
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            {t("home.freeDeliverySubtitle")}
-          </Typography>
-
+      {homeBanner && (
+        <Box sx={{ px: 2.5, pb: 3 }}>
           <Box
+            onClick={() => homeBanner.linkUrl && router.push(homeBanner.linkUrl)}
             sx={{
-              position: "absolute",
-              right: 18,
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: 71,
-              height: 71,
-              borderRadius: "50%",
-              bgcolor: "primary.main",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 6px 16px rgba(15,174,88,0.35)",
+              position: "relative",
+              background: "linear-gradient(135deg, #E7F7EE 0%, #FFF6E5 100%)",
+              borderRadius: 4,
+              p: 2.5,
+              pr: 11,
+              overflow: "visible",
+              cursor: homeBanner.linkUrl ? "pointer" : "default",
             }}
           >
-            <CardGiftcardRoundedIcon sx={{ color: "#fff", fontSize: 34 }} />
-          </Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+              {homeBanner.title}
+            </Typography>
+            {homeBanner.subtitle && (
+              <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+                {homeBanner.subtitle}
+              </Typography>
+            )}
 
-          <IconButton
-            size="small"
-            sx={{
-              position: "absolute",
-              bottom: 10,
-              right: 10,
-              bgcolor: "#fff",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-              "&:hover": { bgcolor: "#fff" },
-            }}
-          >
-            <ArrowForwardRoundedIcon fontSize="small" sx={{ color: "primary.main" }} />
-          </IconButton>
+            <Box
+              sx={{
+                position: "absolute",
+                right: 18,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 71,
+                height: 71,
+                borderRadius: "50%",
+                bgcolor: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 16px rgba(15,174,88,0.35)",
+                overflow: "hidden",
+              }}
+            >
+              {homeBanner.imageUrl ? (
+                <Box component="img" src={homeBanner.imageUrl} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <CardGiftcardRoundedIcon sx={{ color: "#fff", fontSize: 34 }} />
+              )}
+            </Box>
+
+            {homeBanner.linkUrl && (
+              <IconButton
+                size="small"
+                sx={{
+                  position: "absolute",
+                  bottom: 10,
+                  right: 10,
+                  bgcolor: "#fff",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                  "&:hover": { bgcolor: "#fff" },
+                }}
+              >
+                <ArrowForwardRoundedIcon fontSize="small" sx={{ color: "primary.main" }} />
+              </IconButton>
+            )}
+          </Box>
         </Box>
-      </Box>
+      )}
 
       <DeliveryAddressDialog open={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} />
     </Box>

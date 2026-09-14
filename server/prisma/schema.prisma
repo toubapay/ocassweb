@@ -1043,6 +1043,23 @@ model ModuleConfig {
   updatedAt DateTime @updatedAt
 }
 
+// The single admin-editable promo card on the main Home Screen (see
+// AdminHomeBannerTab.js and GET /api/home/banner) - originally a
+// hardcoded "free delivery on your first order" card. Exactly one row,
+// seeded by migration and always present, keyed the same singleton-by-
+// key way as ModuleConfig - admin.controller.js only ever fetches/updates
+// it by the fixed key "main", never creates or deletes.
+model HomeBanner {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  title     String
+  subtitle  String?
+  imageUrl  String?
+  linkUrl   String?
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
 enum FeeValueType {
   PERCENT
   FLAT

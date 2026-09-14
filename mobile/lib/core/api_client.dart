@@ -25,6 +25,7 @@ import '../models/app_notification.dart';
 import '../models/store.dart';
 import '../models/flash_sale.dart';
 import '../models/showcase_slide.dart';
+import '../models/home_banner.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -181,6 +182,15 @@ class ApiClient {
     return (_data(res)['stores'] as List<dynamic>)
         .map((s) => Store.fromJson(s as Map<String, dynamic>))
         .toList();
+  }
+
+  /// The main Home Screen's single admin-editable promo card - null when
+  /// the admin has turned it off (see AdminHomeBannerTab.js on web). Not
+  /// gated behind any module, always reachable.
+  Future<HomeBanner?> fetchHomeBanner() async {
+    final res = await _dio.get('/home/banner');
+    final banner = _data(res)['banner'];
+    return banner == null ? null : HomeBanner.fromJson(banner as Map<String, dynamic>);
   }
 
   Future<CartItem> addToCart(String productId, {int quantity = 1}) async {

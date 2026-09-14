@@ -1010,6 +1010,48 @@ async function deleteShowcaseSlideAdmin(req, res, next) {
   }
 }
 
+// ---------------- Home banner ----------------
+// The single promo card on the main Home Screen (originally a hardcoded
+// "free delivery on your first order" card, now admin-editable image +
+// title + subtitle) - see AdminHomeBannerTab.js and GET /api/home/banner
+// for the public read. Exactly one row, seeded by migration and always
+// present (same singleton-by-key pattern as ModuleConfig) - no create/
+// delete, just fetch + update.
+const HOME_BANNER_KEY = "main";
+
+const updateHomeBannerSchema = z.object({
+  title: z.string().min(1).optional(),
+  subtitle: z.string().optional(),
+  imageUrl: z.string().url().optional().or(z.literal("")),
+  linkUrl: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+async function getHomeBannerAdmin(req, res, next) {
+  try {
+    const banner = await prisma.homeBanner.findUnique({ where: { key: HOME_BANNER_KEY } });
+    res.json({ banner });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateHomeBannerAdmin(req, res, next) {
+  try {
+    const data = updateHomeBannerSchema.parse(req.body);
+    const banner = await prisma.homeBanner.update({
+      where: { key: HOME_BANNER_KEY },
+      data: {
+        ...data,
+        ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl || null } : {}),
+      },
+    });
+    res.json({ banner });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Featured products (ecommerce module only) ----------------
 // Admin has no general product-management surface (vendors own that, see
 // vendor.controller.js's updateProduct - gated to the vendor themselves,
@@ -1220,6 +1262,8 @@ module.exports = {
   createShowcaseSlideAdmin,
   updateShowcaseSlideAdmin,
   deleteShowcaseSlideAdmin,
+  getHomeBannerAdmin,
+  updateHomeBannerAdmin,
   updateProductFeaturedAdmin,
   listFlashSalesAdmin,
   createFlashSaleAdmin,
