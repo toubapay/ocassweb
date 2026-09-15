@@ -9,6 +9,7 @@ import '../../models/category.dart';
 import '../../models/product.dart';
 import '../../models/flash_sale.dart';
 import '../../models/store.dart';
+import '../../models/home_banner.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/module_order_provider.dart';
 import '../../providers/notifications_provider.dart';
@@ -45,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final Future<ProductListResult> _productsFuture;
   late final Future<FlashSale?> _flashSaleFuture;
   late final Future<List<Store>> _featuredStoresFuture;
+  late final Future<HomeBanner?> _homeBannerFuture;
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _productsFuture = apiClient.fetchProducts(pageSize: 6);
     _flashSaleFuture = apiClient.fetchActiveFlashSale('home');
     _featuredStoresFuture = apiClient.fetchStores(featured: true);
+    _homeBannerFuture = apiClient.fetchHomeBanner();
   }
 
   @override
@@ -333,37 +336,57 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.greenSoft, AppColors.amberSoft]),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          FutureBuilder<HomeBanner?>(
+            future: _homeBannerFuture,
+            builder: (context, snapshot) {
+              final banner = snapshot.data;
+              if (banner == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: GestureDetector(
+                  onTap: banner.linkUrl != null && banner.linkUrl!.isNotEmpty
+                      ? () => context.push(banner.linkUrl!)
+                      : null,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [AppColors.greenSoft, AppColors.amberSoft]),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Row(
                       children: [
-                        Text(context.t('home.freeDeliveryTitle'),
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.8)),
-                        const SizedBox(height: 4),
-                        Text(context.t('home.freeDeliverySubtitle'),
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.6)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(banner.title,
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.8)),
+                              if (banner.subtitle != null && banner.subtitle!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(banner.subtitle!,
+                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.6)),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 59,
+                          height: 59,
+                          decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.green),
+                          clipBehavior: Clip.antiAlias,
+                          child: banner.imageUrl != null
+                              ? Image.network(banner.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const Icon(Icons.card_giftcard_rounded, color: Colors.white))
+                              : const Icon(Icons.card_giftcard_rounded, color: Colors.white),
+                        ),
                       ],
                     ),
                   ),
-                  Container(
-                    width: 59,
-                    height: 59,
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.green),
-                    child: const Icon(Icons.card_giftcard_rounded, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ],
       ),

@@ -86,9 +86,7 @@
     "greeting": "{{name}}, these are for you",
     "exploreOcass": "Explore Ocass",
     "popularRightNow": "Popular right now",
-    "featuredShops": "Featured shops",
-    "freeDeliveryTitle": "Free delivery on your first order",
-    "freeDeliverySubtitle": "Offer applied automatically at checkout."
+    "featuredShops": "Featured shops"
   },
   "auth": {
     "login": {
@@ -1027,6 +1025,19 @@
       "searchProductsPlaceholder": "Search products by name",
       "noFeaturedProducts": "No featured products yet"
     },
+    "homeBanner": {
+      "title": "Home Screen banner",
+      "subtitle": "The single promo card shown near the top of the main Home Screen.",
+      "shown": "Shown",
+      "hidden": "Hidden",
+      "bannerTitle": "Title",
+      "bannerSubtitle": "Subtitle",
+      "imageUrl": "Image URL",
+      "linkUrl": "Link (optional)",
+      "titleRequired": "A title is required",
+      "saved": "Banner saved",
+      "saveFailed": "Could not save banner"
+    },
     "tabs": {
       "dashboard": "Dashboard",
       "users": "Users",
@@ -1036,6 +1047,7 @@
       "categories": "Categories",
       "flashSales": "Flash sales",
       "showcase": "Showcase",
+      "homeBanner": "Home banner",
       "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Providers",

@@ -41,6 +41,8 @@ const {
   createShowcaseSlideAdmin,
   updateShowcaseSlideAdmin,
   deleteShowcaseSlideAdmin,
+  getHomeBannerAdmin,
+  updateHomeBannerAdmin,
   updateProductFeaturedAdmin,
   listFlashSalesAdmin,
   createFlashSaleAdmin,
@@ -109,6 +111,9 @@ router.get("/showcase-slides", listShowcaseSlidesAdmin);
 router.post("/showcase-slides", createShowcaseSlideAdmin);
 router.patch("/showcase-slides/:id", updateShowcaseSlideAdmin);
 router.delete("/showcase-slides/:id", deleteShowcaseSlideAdmin);
+
+router.get("/home-banner", getHomeBannerAdmin);
+router.patch("/home-banner", updateHomeBannerAdmin);
 
 router.patch("/products/:id/featured", updateProductFeaturedAdmin);
 

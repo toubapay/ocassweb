@@ -242,8 +242,6 @@ const Map<String, String> frStrings = {
   'home.dragHint': 'Maintenez et faites glisser une icône pour la réorganiser',
   'home.exploreOcass': 'Explorer Ocass',
   'home.featuredShops': 'Boutiques en vedette',
-  'home.freeDeliverySubtitle': 'Offre appliquée automatiquement lors du paiement.',
-  'home.freeDeliveryTitle': 'Livraison gratuite pour votre première commande',
   'home.greeting': '{{name}}, voici pour vous',
   'home.popularRightNow': 'Populaire en ce moment',
   'insurance.auto.assure': 'Assuré',
