@@ -11,7 +11,7 @@ async function listProducts(req, res, next) {
       // A category slug may refer to a parent (e.g. "footwear") which has no
       // products of its own, so resolve it to itself + its children.
       const found = await prisma.category.findUnique({
-        where: { slug: String(category) },
+        where: { moduleKey_slug: { moduleKey: "ecommerce", slug: String(category) } },
         include: { children: true },
       });
       if (found) {
