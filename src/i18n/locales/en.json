@@ -86,7 +86,17 @@
     "exploreOcass": "Explore Ocass",
     "popularRightNow": "Popular right now",
     "freeDeliveryTitle": "Free delivery on your first order",
-    "freeDeliverySubtitle": "Offer applied automatically at checkout."
+    "freeDeliverySubtitle": "Offer applied automatically at checkout.",
+    "jobsBadge": {
+      "deliveryTitle_one": "1 delivery available",
+      "deliveryTitle_other": "{{count}} deliveries available",
+      "rideTitle_one": "1 trip available",
+      "rideTitle_other": "{{count}} trips available",
+      "subtitle": "Waiting to be accepted",
+      "view": "View",
+      "mute": "Mute job alerts",
+      "unmute": "Unmute job alerts"
+    }
   },
   "auth": {
     "login": {

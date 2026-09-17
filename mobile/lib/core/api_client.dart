@@ -323,6 +323,15 @@ class ApiClient {
     await _dio.patch('/delivery/jobs/$id/location', data: {'lat': lat, 'lng': lng});
   }
 
+  /// Just the number of open jobs, for the home screen's available-jobs
+  /// badge - the board's own rows are far more than a badge needs, and this
+  /// one is polled while an agent sits on the home screen. Excludes the
+  /// caller's own requests server-side, which accept refuses anyway.
+  Future<int> fetchAvailableDeliveryJobCount() async {
+    final res = await _dio.get('/delivery/jobs/available/count');
+    return (_data(res)['count'] as num).toInt();
+  }
+
   // ---------------- Insurance ----------------
 
   Future<List<InsurancePlan>> fetchInsurancePlans({String? category}) async {
@@ -631,6 +640,12 @@ class ApiClient {
   Future<RideRequest> startRideJob(String id) async {
     final res = await _dio.post('/rideshare/jobs/$id/start');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
+  /// See fetchAvailableDeliveryJobCount - same reasoning, rider side.
+  Future<int> fetchAvailableRideJobCount() async {
+    final res = await _dio.get('/rideshare/jobs/available/count');
+    return (_data(res)['count'] as num).toInt();
   }
 
   Future<RideRequest> completeRideJob(String id) async {

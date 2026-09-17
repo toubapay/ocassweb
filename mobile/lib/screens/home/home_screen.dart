@@ -12,6 +12,7 @@ import '../../providers/module_order_provider.dart';
 import '../../providers/notifications_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_bar.dart';
+import '../../widgets/available_jobs_badge.dart';
 import '../../widgets/header_wave.dart';
 import '../../widgets/module_tile.dart';
 import '../../widgets/product_card.dart';
@@ -126,6 +127,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          // Straight under the module grid, in the middle of the first
+          // screenful: a delivery agent / rider needs to see that work is
+          // waiting without scrolling or opening a dashboard. Renders
+          // nothing for everyone else, and nothing when no job is open.
+          const AvailableJobsBadge(),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
             child: Row(

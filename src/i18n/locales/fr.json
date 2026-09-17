@@ -86,7 +86,17 @@
     "exploreOcass": "Explorer Ocass",
     "popularRightNow": "Populaire en ce moment",
     "freeDeliveryTitle": "Livraison gratuite pour votre première commande",
-    "freeDeliverySubtitle": "Offre appliquée automatiquement lors du paiement."
+    "freeDeliverySubtitle": "Offre appliquée automatiquement lors du paiement.",
+    "jobsBadge": {
+      "deliveryTitle_one": "1 livraison disponible",
+      "deliveryTitle_other": "{{count}} livraisons disponibles",
+      "rideTitle_one": "1 course disponible",
+      "rideTitle_other": "{{count}} courses disponibles",
+      "subtitle": "En attente d'acceptation",
+      "view": "Voir",
+      "mute": "Couper le son des alertes",
+      "unmute": "Activer le son des alertes"
+    }
   },
   "auth": {
     "login": {

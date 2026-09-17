@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
 import DirectionsCarFilledRoundedIcon from "@mui/icons-material/DirectionsCarFilledRounded";
+import TwoWheelerRoundedIcon from "@mui/icons-material/TwoWheelerRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
 import {
@@ -23,6 +24,35 @@ function timeAgo(dateStr, locale) {
   if (hours < 24) return locale === "fr" ? `il y a ${hours} h` : `${hours}h ago`;
   const days = Math.round(hours / 24);
   return locale === "fr" ? `il y a ${days} j` : `${days}d ago`;
+}
+
+/**
+ * Where tapping a notification goes.
+ *
+ * `data.role` says which side of the job this row belongs to (written by
+ * delivery.notify.js / rideshare.notify.js), and the two sides belong on
+ * different screens: the customer wants the tracking page for that one
+ * delivery, the agent wants the board where their jobs are. Sending both
+ * to the same place would strand one of them.
+ *
+ * Anything with no recognised pointer stays a plain, unclickable row
+ * rather than navigating somewhere arbitrary.
+ */
+function notificationTarget(n) {
+  const data = n.data || {};
+  if (data.deliveryRequestId) {
+    return data.role === "AGENT" ? "/delivery/agent?tab=mine" : `/delivery/track/${data.deliveryRequestId}`;
+  }
+  if (data.rideRequestId) {
+    return data.role === "RIDER" ? "/ride-sharing/driver?tab=mine" : "/ride-sharing";
+  }
+  if (data.postingId) return "/anando";
+  return null;
+}
+
+/** A parcel is not a car - an inbox of mixed jobs has to be skimmable. */
+function notificationIcon(n) {
+  return (n.data || {}).deliveryRequestId ? TwoWheelerRoundedIcon : DirectionsCarFilledRoundedIcon;
 }
 
 export default function Notifications() {
@@ -90,12 +120,15 @@ export default function Notifications() {
       )}
 
       <Box sx={{ px: 2, pt: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
-        {(notifications || []).map((n) => (
+        {(notifications || []).map((n) => {
+          const target = notificationTarget(n);
+          const Icon = notificationIcon(n);
+          return (
           <Box
             key={n.id}
             onClick={() => {
               if (!n.read) readMutation.mutate(n.id);
-              if (n.data?.postingId) router.push("/anando");
+              if (target) router.push(target);
             }}
             sx={{
               display: "flex",
@@ -104,7 +137,7 @@ export default function Notifications() {
               borderRadius: 3,
               border: "1px solid #EEEEEE",
               bgcolor: n.read ? "background.paper" : "#FDF1F7",
-              cursor: "pointer",
+              cursor: target ? "pointer" : "default",
             }}
           >
             <Box
@@ -120,7 +153,7 @@ export default function Notifications() {
                 flexShrink: 0,
               }}
             >
-              <DirectionsCarFilledRoundedIcon fontSize="small" />
+              <Icon fontSize="small" />
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body2" sx={{ fontWeight: n.read ? 600 : 800 }}>
@@ -139,7 +172,8 @@ export default function Notifications() {
               <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#EC4899", flexShrink: 0, mt: 0.75 }} />
             )}
           </Box>
-        ))}
+          );
+        })}
       </Box>
     </Box>
   );

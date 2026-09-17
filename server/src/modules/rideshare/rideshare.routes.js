@@ -5,6 +5,7 @@ const {
   createRide,
   cancelRide,
   listAvailable,
+  countAvailable,
   listMyJobs,
   acceptRide,
   startRide,
@@ -20,6 +21,9 @@ router.patch("/rides/:id/cancel", requireAuth, cancelRide);
 
 // Rider dispatch - own /jobs prefix, same reasoning as delivery.routes.js.
 router.get("/jobs/available", requireAuth, requireRider, listAvailable);
+// Static path before the dynamic /jobs/:id/* ones - same note as
+// delivery.routes.js. Powers the home screen's badge.
+router.get("/jobs/available/count", requireAuth, requireRider, countAvailable);
 router.get("/jobs/mine", requireAuth, requireRider, listMyJobs);
 router.post("/jobs/:id/accept", requireAuth, requireRider, acceptRide);
 router.post("/jobs/:id/start", requireAuth, requireRider, startRide);

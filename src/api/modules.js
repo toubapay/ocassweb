@@ -27,6 +27,10 @@ export const markDeliveryDelivered = (id) =>
   apiClient.post(`/delivery/jobs/${id}/delivered`).then((res) => res.data.request);
 export const updateDeliveryAgentLocation = (id, payload) =>
   apiClient.patch(`/delivery/jobs/${id}/location`, payload);
+// Just the count, for the home screen's available-jobs badge - the board's
+// own rows are far more than a number needs (see countAvailable).
+export const fetchAvailableDeliveryJobCount = () =>
+  apiClient.get("/delivery/jobs/available/count").then((res) => res.data.count);
 
 // Insurance
 export const fetchInsurancePlans = (category) =>
@@ -75,3 +79,5 @@ export const startRideJob = (id) =>
   apiClient.post(`/rideshare/jobs/${id}/start`).then((res) => res.data.ride);
 export const completeRideJob = (id) =>
   apiClient.post(`/rideshare/jobs/${id}/complete`).then((res) => res.data.ride);
+export const fetchAvailableRideJobCount = () =>
+  apiClient.get("/rideshare/jobs/available/count").then((res) => res.data.count);

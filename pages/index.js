@@ -33,6 +33,7 @@ import DeliveryAddressDialog from "../src/components/home/DeliveryAddressDialog"
 import SortableModuleTile from "../src/components/home/SortableModuleTile";
 import HeaderWave from "../src/components/home/HeaderWave";
 import ShortcutCard from "../src/components/home/ShortcutCard";
+import AvailableJobsBadge from "../src/components/home/AvailableJobsBadge";
 import ProductCard from "../src/components/ecommerce/ProductCard";
 import useAuth from "../src/hooks/useAuth";
 import { fetchProducts, fetchCategories } from "../src/api/ecommerce";
@@ -141,6 +142,12 @@ export default function Home() {
 
         <HeaderWave />
       </Box>
+
+      {/* Straight under the module grid, in the middle of the first
+          screenful: a delivery agent / rider needs to see that work is
+          waiting without scrolling or opening a dashboard. Renders nothing
+          for everyone else, and nothing when there is no open job. */}
+      <AvailableJobsBadge />
 
       <Box sx={{ px: 2.5, pt: 3, pb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

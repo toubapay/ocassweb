@@ -188,8 +188,10 @@ fallback in production.
   of other users each claim a seat until it's full. Pay by cash, wallet, or
   PayDunya. See "Anando" below.
 - **In-app notifications** — a generic `Notification` model with a bell +
-  unread badge (home page and most top bars); Anando is the first module
-  that creates them (new booking, seat cancelled, ride cancelled).
+  unread badge (home page and most top bars). Every delivery and every
+  ride writes to it at each stage of its lifecycle, for **both** the
+  customer and the agent/rider who took the job; Anando writes to it too
+  (new booking, seat cancelled, ride cancelled). See "Notifications" below.
 - **French / English** — the whole web app is translated (`src/i18n/`,
   `react-i18next`), French by default. A toggle on the profile page switches
   languages instantly and the choice persists (redux-persist) across
@@ -221,6 +223,37 @@ request-and-cancel:
 **Pricing**: real Haversine (straight-line) distance-based pricing when both
 pickup and dropoff coordinates are available, falling back to the original
 simulated estimate otherwise.
+
+**"There is work waiting"**: an agent/rider gets a badge in the middle of
+the home screen with the number of open jobs, a button through to their
+board, and a chime when that number goes up
+(`src/components/home/AvailableJobsBadge.js` +
+`src/hooks/useJobAlertSound.js`; `widgets/available_jobs_badge.dart` +
+`providers/available_jobs_provider.dart` on Flutter). Four rules it holds
+to:
+
+- It reads `GET /{delivery,rideshare}/jobs/available/count`, **not** the
+  board - the badge needs one integer, and it polls it every 15s while
+  someone sits on the home screen, whereas the board's rows carry both
+  addresses, both coordinate pairs and the contact names of every open job
+  in the city.
+- That count, and the board itself, **exclude the caller's own requests**.
+  `acceptRequest`/`acceptRide` refuse those (you can't fulfil your own
+  delivery), so counting them would send an agent to a board where the one
+  job they were promised answers 400 when tapped. Both now share one
+  `availableJobsWhere()` helper so they cannot disagree.
+- It renders nothing at zero and nothing for a user with no gig role, and
+  it **disappears when the work is taken by anyone** - the count is the
+  server's answer about what is still unassigned, not a local tally.
+  Accepting from the board invalidates/refreshes the count so it clears at
+  once rather than up to a poll later.
+- **Only a rise rings**, and the chime is muteable with the choice
+  persisted. The first count on load is not news, and a beep on every poll
+  that returns the same number gets the app silenced within a minute. On
+  the web it's a two-note Web Audio chime (no asset to ship or fail to
+  load, and the service worker caches no media); on Flutter it's the
+  platform alert sound plus a vibration via `SystemSound`/`HapticFeedback`,
+  deliberately no audio package.
 
 **Not built**: an approval/verification flow for becoming an agent or rider
 (this is deliberately a self-service MVP toggle). A user with both a
@@ -472,13 +505,42 @@ instant-claim only, per the product decision behind this module).
 
 A generic `Notification` model (`server/src/modules/notifications/`,
 `GET/PATCH /api/notifications/*`) that any module can write to via
-`notificationsService.notify({ userId, type, title, body, data })` -
-Anando is the first and only caller today (new booking, booking
-cancelled, posting cancelled, PayDunya payment confirmed). Surfaced as a
-bell + unread badge on the home page and most top bars
+`notificationsService.notify({ userId, type, title, body, data })`.
+Surfaced as a bell + unread badge on the home page and most top bars
 (`showNotifications` prop on `TopBar`), linking to `/notifications`.
 Polls for the unread count every 30s; there's no push/real-time delivery
 (no websocket or service worker wired up).
+
+**Delivery and rideshare write to it at every stage, for both sides of the
+job** (`delivery.notify.js`, `rideshare.notify.js`). A job has two people
+in it and they are not the same person - the customer who requested it and
+the agent/rider who accepted it off the board - so each stage has its own
+copy per side: "your parcel has been picked up" is not "next stop: drop
+off at X". Notes worth keeping:
+
+- The copy lives in its own module per domain rather than inline in the
+  controller, because a delivery is also created by the restaurant module
+  when an order goes OUT_FOR_DELIVERY. Both create paths call
+  `notifyCreated`, so a restaurant-dispatched delivery doesn't skip the
+  customer's first message and jump straight to "picked up".
+- An accept message quotes **the fare** (the figure the board already
+  showed), and a completion message quotes **what was actually credited**
+  to the wallet - captured from the credit call rather than recomputed, so
+  a change to `agentSharePercent` between accepting and completing can't
+  make the notification disagree with the ledger.
+- `data.role` (`CUSTOMER` / `AGENT` / `RIDER`) is stored so tapping a row
+  opens the right screen: the customer's delivery tracking page, or the
+  agent's own job board. Sending both to the same place would strand one
+  of them.
+- There is deliberately **no** "new job available" notification fanned out
+  to every agent: that is one row per agent per request, growing with the
+  fleet, for something none of them may act on. The open-job signal is the
+  home screen's badge (see "Delivery & ride dispatch"); the inbox is for
+  jobs you are actually part of.
+- Notification titles/bodies are written in French at write time (the
+  existing Anando convention) rather than as i18n keys, so an English-UI
+  user still reads French notification text. Changing that means storing
+  a key + params and translating at render time on both clients.
 
 ## Internationalization
 

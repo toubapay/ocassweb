@@ -5,6 +5,7 @@ const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
 const { getModuleFeeConfig } = require("../../utils/feeConfig");
 const { getServiceFeeConfig, computeFeeAndTax } = require("../../utils/serviceFee");
 const { payoutOwnerForOrder } = require("./restaurant.service");
+const deliveryNotify = require("../delivery/delivery.notify");
 
 const createOrderSchema = z.object({
   items: z
@@ -271,6 +272,12 @@ async function dispatchForDelivery(order, ownerPhone) {
       priceEstimate: estimateDeliveryPrice(pickup, feeConfig),
     },
   });
+
+  // The customer is this delivery's requester (userId above), so they get
+  // the same first message a standalone package delivery files - otherwise
+  // a restaurant order's delivery would be the one delivery in the app that
+  // starts silently, and its inbox would jump straight to "picked up".
+  deliveryNotify.notifyCreated(deliveryRequest);
 
   return prisma.restaurantOrder.update({
     where: { id: order.id },

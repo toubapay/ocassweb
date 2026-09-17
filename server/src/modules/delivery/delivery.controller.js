@@ -1,6 +1,7 @@
 const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
+const deliveryNotify = require("./delivery.notify");
 const { hasCoordinates } = require("../../utils/geo");
 const { roadDistanceKm } = require("../../utils/distanceMatrix");
 const { getModuleFeeConfig, clampFee } = require("../../utils/feeConfig");
@@ -169,6 +170,7 @@ async function createRequest(req, res, next) {
         priceEstimate: quote.priceEstimate,
       },
     });
+    deliveryNotify.notifyCreated(request);
     res.status(201).json({ request });
   } catch (err) {
     next(err);
@@ -188,6 +190,7 @@ async function cancelRequest(req, res, next) {
       where: { id: req.params.id },
       data: { status: "CANCELLED" },
     });
+    deliveryNotify.notifyCancelled(request);
     res.json({ request });
   } catch (err) {
     next(err);
@@ -216,14 +219,46 @@ const AVAILABLE_JOB_FIELDS = {
   createdAt: true,
 };
 
+/**
+ * What "available to me" means, for both the board and its count - so the
+ * badge on the home screen can never advertise a job the board won't show
+ * or accept refuses.
+ *
+ * The agent's own requests are excluded: acceptRequest rejects those (a
+ * user who is both a customer and an agent can't fulfil their own
+ * delivery), so counting them would send someone to a board where the one
+ * job they were promised either isn't there or answers 400 when tapped.
+ */
+function availableJobsWhere(userId) {
+  return { status: "REQUESTED", assignedAgentId: null, userId: { not: userId } };
+}
+
 async function listAvailable(req, res, next) {
   try {
     const requests = await prisma.deliveryRequest.findMany({
-      where: { status: "REQUESTED", assignedAgentId: null },
+      where: availableJobsWhere(req.user.id),
       select: AVAILABLE_JOB_FIELDS,
       orderBy: { createdAt: "asc" },
     });
     res.json({ requests });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Just the number of open jobs, for the home screen's available-jobs badge.
+ *
+ * A separate endpoint rather than `listAvailable().length` on the client:
+ * the home screen polls this while an agent sits on it, and the board's
+ * rows carry both addresses, both coordinate pairs, the note and the
+ * sender/receiver names for every open job in the city. One integer is the
+ * whole of what the badge needs.
+ */
+async function countAvailable(req, res, next) {
+  try {
+    const count = await prisma.deliveryRequest.count({ where: availableJobsWhere(req.user.id) });
+    res.json({ count });
   } catch (err) {
     next(err);
   }
@@ -266,6 +301,9 @@ async function acceptRequest(req, res, next) {
       return res.status(409).json({ message: "This job was already taken" });
     }
     const request = await prisma.deliveryRequest.findUnique({ where: { id: req.params.id } });
+    // req.user is the accepting agent (requireAuth re-reads it every
+    // request), so the customer's message can name them without a lookup.
+    deliveryNotify.notifyAccepted(request, req.user);
     res.json({ request });
   } catch (err) {
     next(err);
@@ -282,6 +320,7 @@ async function markPickedUp(req, res, next) {
       return res.status(400).json({ message: "Job is not in a state you can mark picked up" });
     }
     const request = await prisma.deliveryRequest.findUnique({ where: { id: req.params.id } });
+    deliveryNotify.notifyPickedUp(request);
     res.json({ request });
   } catch (err) {
     next(err);
@@ -298,11 +337,16 @@ async function markDelivered(req, res, next) {
       where: { id: req.params.id },
       data: { status: "DELIVERED" },
     });
+    // Captured so the agent's notification can state what actually landed
+    // in their wallet, rather than recomputing a share that would be a
+    // second, drifting definition of the same number.
+    let earned = null;
     if (existing.priceEstimate) {
       const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
+      earned = Number(existing.priceEstimate) * (feeConfig.agentSharePercent / 100);
       await walletService.credit({
         userId: req.user.id,
-        amount: Number(existing.priceEstimate) * (feeConfig.agentSharePercent / 100),
+        amount: earned,
         type: "EARNING",
         purpose: "DELIVERY_REQUEST",
         purposeId: request.id,
@@ -318,6 +362,7 @@ async function markDelivered(req, res, next) {
       where: { deliveryRequestId: request.id },
       data: { status: "DELIVERED" },
     });
+    deliveryNotify.notifyDelivered(request, earned);
     res.json({ request });
   } catch (err) {
     next(err);
@@ -358,6 +403,7 @@ module.exports = {
   getFeeQuote,
   listPackageTypes,
   listAvailable,
+  countAvailable,
   listMyJobs,
   acceptRequest,
   markPickedUp,

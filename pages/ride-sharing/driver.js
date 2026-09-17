@@ -51,6 +51,9 @@ export default function RideDriverDashboard() {
   const invalidateJobs = () => {
     queryClient.invalidateQueries("ride-jobs-available");
     queryClient.invalidateQueries("ride-jobs-mine");
+    // Clears the home screen's badge immediately - see the same note in
+    // pages/delivery/agent.js.
+    queryClient.invalidateQueries("ride-jobs-available-count");
   };
 
   const acceptMutation = useMutation((id) => acceptRideJob(id), {

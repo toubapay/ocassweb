@@ -10,6 +10,7 @@ import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/delivery_request.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/available_jobs_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
@@ -110,6 +111,10 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen>
       _loadingMine = false;
     });
     _syncLocationTimer();
+    // The home screen's badge reads the same open-job set. Refreshing it
+    // here is what makes it disappear the moment a job is accepted rather
+    // than up to a poll interval later - which is the whole promise of it.
+    if (mounted) context.read<AvailableJobsProvider>().refresh();
   }
 
   Future<void> _accept(String id) async {

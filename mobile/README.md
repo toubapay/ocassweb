@@ -5,7 +5,30 @@ modules as the web app (Ecommerce, Restaurant, Delivery, Ride Sharing,
 Insurance, Airtime Top-up & Bill Payment, the Vendor marketplace, Anando
 carpooling, and in-app notifications) against the same backend (`/server`).
 
-## ⚠️ Before you start: this code has not been compiled
+## Status: `pub get` + `flutter analyze` have now run
+
+An SDK became available (Flutter 3.47.1), so `flutter pub get` and
+`flutter analyze` have finally run against this code. `pubspec.lock` is
+checked in as of that first resolution, and `analysis_options.yaml` gained
+the `analyzer.exclude` block the tool adds for generated platform
+directories.
+
+**`flutter analyze` is error-free.** What it caught was list item 2 below:
+`flutter_contacts` resolved to 2.5.0, which moved permissions onto
+`FlutterContacts.permissions`, replaced `getContacts()` with
+`getAll(properties: ...)` and made `Contact.displayName` nullable -
+`topup_airtime_recipient_screen.dart` is now written against that API and
+the pubspec constraint says `^2.5.0`. The 27 remaining findings are all
+`info`/`warning` deprecations (`withOpacity`, Radio `groupValue`, form
+field `value`), untouched.
+
+**Still not built as an app**: there are no platform directories here
+(no `flutter create` has run in the repo), so nothing has been compiled
+for Android or iOS and no screen has been rendered on a device. A web
+build of a throwaway copy does run, which is how the available-jobs badge
+was checked for layout overflow, but that is not the shipped target.
+
+## ⚠️ The original warning, kept for the rest of the list
 
 This was written in an environment with no Flutter SDK and a network
 policy that blocks the hosts the Flutter SDK installer itself needs

@@ -99,6 +99,11 @@ export default function DeliveryAgentDashboard() {
   const invalidateJobs = () => {
     queryClient.invalidateQueries("delivery-jobs-available");
     queryClient.invalidateQueries("delivery-jobs-mine");
+    // The home screen's available-jobs badge reads the same open-job set
+    // (AvailableJobsBadge.js). Without this it would keep showing the job
+    // just accepted for up to one poll interval - and the whole promise of
+    // that badge is that it goes away when the work is taken.
+    queryClient.invalidateQueries("delivery-jobs-available-count");
   };
 
   const acceptMutation = useMutation((id) => acceptDeliveryJob(id), {
