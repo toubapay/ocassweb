@@ -254,6 +254,7 @@ const Map<String, String> frStrings = {
   'insurance.auto.cancelPolicy': 'Annuler la police',
   'insurance.auto.cellulaire': 'Téléphone',
   'insurance.auto.chassis': 'Numéro de châssis',
+  'insurance.auto.chooseFromGallery': 'Choisir depuis la galerie',
   'insurance.auto.commercial': 'Commercial',
   'insurance.auto.compareButton': 'Comparer les tarifs',
   'insurance.auto.couldNotCancel': 'Impossible d\'annuler la police',

@@ -254,6 +254,7 @@ const Map<String, String> enStrings = {
   'insurance.auto.cancelPolicy': 'Cancel policy',
   'insurance.auto.cellulaire': 'Phone',
   'insurance.auto.chassis': 'Chassis number',
+  'insurance.auto.chooseFromGallery': 'Choose from gallery',
   'insurance.auto.commercial': 'Commercial',
   'insurance.auto.compareButton': 'Compare quotes',
   'insurance.auto.couldNotCancel': 'Could not cancel policy',
