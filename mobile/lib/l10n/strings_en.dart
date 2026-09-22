@@ -109,6 +109,8 @@ const Map<String, String> enStrings = {
   'delivery.agent.noAvailable': 'No jobs available right now.',
   'delivery.agent.noMyJobs': 'You haven\'t accepted any jobs yet.',
   'delivery.agent.pickedUpToast': 'Marked as picked up',
+  'delivery.agent.receiver': 'Receiver',
+  'delivery.agent.sender': 'Sender',
   'delivery.agent.sharingLocation': 'Sharing your live location',
   'delivery.agent.title': 'Delivery agent',
   'delivery.cancel': 'Cancel',

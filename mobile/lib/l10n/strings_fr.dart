@@ -109,6 +109,8 @@ const Map<String, String> frStrings = {
   'delivery.agent.noAvailable': 'Aucune livraison disponible pour le moment.',
   'delivery.agent.noMyJobs': 'Vous n\'avez encore accepté aucune livraison.',
   'delivery.agent.pickedUpToast': 'Marquée comme récupérée',
+  'delivery.agent.receiver': 'Destinataire',
+  'delivery.agent.sender': 'Expéditeur',
   'delivery.agent.sharingLocation': 'Partage de votre position en direct',
   'delivery.agent.title': 'Livreur',
   'delivery.cancel': 'Annuler',
