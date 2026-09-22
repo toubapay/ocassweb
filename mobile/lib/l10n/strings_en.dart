@@ -96,6 +96,8 @@ const Map<String, String> enStrings = {
   'common.note': 'Note',
   'common.setDeliveryAddress': 'Set your delivery address',
   'common.startShopping': 'Start shopping',
+  'common.useMyLocation': 'Use my location',
+  'common.locationError': 'Could not get your location',
   'delivery.agent.accept': 'Accept',
   'delivery.agent.accepted': 'Job accepted',
   'delivery.agent.alreadyTaken': 'This job was already taken',

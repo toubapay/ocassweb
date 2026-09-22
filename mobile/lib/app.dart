@@ -9,6 +9,7 @@ import 'providers/cart_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'providers/module_order_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/location_provider.dart';
 import 'providers/notifications_provider.dart';
 
 class OcassApp extends StatefulWidget {
@@ -24,6 +25,7 @@ class _OcassAppState extends State<OcassApp> {
   final WishlistProvider _wishlistProvider = WishlistProvider();
   final ModuleOrderProvider _moduleOrderProvider = ModuleOrderProvider();
   final LocaleProvider _localeProvider = LocaleProvider();
+  final LocationProvider _locationProvider = LocationProvider();
   final NotificationsProvider _notificationsProvider = NotificationsProvider();
 
   @override
@@ -35,6 +37,7 @@ class _OcassAppState extends State<OcassApp> {
     apiClient.onUnauthorized = _authProvider.logout;
     _moduleOrderProvider.load();
     _localeProvider.load();
+    _locationProvider.load();
     _authProvider.bootstrap().then((_) {
       if (_authProvider.isAuthenticated) {
         _cartProvider.fetch();
@@ -53,6 +56,7 @@ class _OcassAppState extends State<OcassApp> {
         ChangeNotifierProvider<WishlistProvider>.value(value: _wishlistProvider),
         ChangeNotifierProvider<ModuleOrderProvider>.value(value: _moduleOrderProvider),
         ChangeNotifierProvider<LocaleProvider>.value(value: _localeProvider),
+        ChangeNotifierProvider<LocationProvider>.value(value: _locationProvider),
         ChangeNotifierProvider<NotificationsProvider>.value(value: _notificationsProvider),
       ],
       child: MaterialApp.router(

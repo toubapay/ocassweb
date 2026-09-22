@@ -96,6 +96,8 @@ const Map<String, String> frStrings = {
   'common.note': 'Remarque',
   'common.setDeliveryAddress': 'Définissez votre adresse de livraison',
   'common.startShopping': 'Commencer les achats',
+  'common.useMyLocation': 'Utiliser ma position',
+  'common.locationError': 'Impossible d\'obtenir votre position',
   'delivery.agent.accept': 'Accepter',
   'delivery.agent.accepted': 'Livraison acceptée',
   'delivery.agent.alreadyTaken': 'Cette livraison a déjà été prise',
