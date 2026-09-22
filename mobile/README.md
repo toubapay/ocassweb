@@ -50,6 +50,13 @@ fixing whatever it finds** - most likely spots, in rough order of risk:
    from pub.dev docs, not verified against a real build; the API has been
    stable for a long time so this is low-risk, but check it first if
    `flutter analyze` flags anything in that file.
+9. `app.dart`'s `AppLinks()` usage (`app_links: ^6.3.3`, added for the
+   PayDunya return deep link). The API (`AppLinks()` singleton,
+   `uriLinkStream`) was cross-checked against the package's actual source
+   on pub.dev rather than just its docs, so this is lower-risk than most of
+   the list above - but it still needs the native manifest/plist entries
+   from the setup step below, and a real device/emulator to confirm the OS
+   actually routes `ocass://` back to this app.
 
 ## First-time setup
 
@@ -137,6 +144,37 @@ For the carte grise photo scan in Auto Insurance (`image_picker`,
   ```xml
   <key>NSCameraUsageDescription</key>
   <string>Ocass uses your camera to scan your vehicle's registration card (carte grise) and prefill your insurance application.</string>
+  ```
+
+For PayDunya's checkout to hand control back to this app instead of
+stranding the customer on the web app's return page (`app_links`,
+`lib/app.dart`'s `AppLinks` listener, `lib/screens/payments/*`), register
+the `ocass://` custom URL scheme:
+
+- **Android** (`android/app/src/main/AndroidManifest.xml`), inside the
+  `<activity>` block for `.MainActivity` (alongside the existing
+  `<intent-filter>` for `android.intent.action.MAIN`):
+  ```xml
+  <intent-filter>
+    <action android:name="android.intent.action.VIEW"/>
+    <category android:name="android.intent.category.DEFAULT"/>
+    <category android:name="android.intent.category.BROWSABLE"/>
+    <data android:scheme="ocass" android:host="payments"/>
+  </intent-filter>
+  ```
+- **iOS** (`ios/Runner/Info.plist`), inside the top-level `<dict>`:
+  ```xml
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>ocass</string>
+      </array>
+      <key>CFBundleURLName</key>
+      <string>com.ocass.payments</string>
+    </dict>
+  </array>
   ```
 
 ## Running against the backend
@@ -254,13 +292,16 @@ while signed in, matching the web's `refetchInterval: 30000`), and a
 `/notifications` list screen with mark-read/mark-all-read. Anando booking
 notifications deep-link to `/anando` on tap, same as the web app.
 
-PayDunya's hosted checkout (used by both ecommerce checkout and wallet
-top-up) opens in the device's external browser via `url_launcher` rather
-than in-app - there's no custom URL scheme registered for PayDunya's
-return_url to hand control back to the app, so after paying the customer
-finishes on the web app's `/payments/return` page and returns to the app
-manually. A real deep link back into the app is the natural follow-up if
-this becomes the primary flow.
+PayDunya's hosted checkout (used by ecommerce checkout, wallet top-up, and
+paid Anando bookings) opens in the device's external browser via
+`url_launcher`, same as web opens it in the same tab. The backend picks a
+return_url based on which client started the payment (an `X-Client-Platform:
+mobile` header `api_client.dart` sends on every request): mobile gets
+`ocass://payments/return`, a custom URL scheme the OS hands back to this
+app (see the `app_links` setup step above and `lib/app.dart`'s listener),
+landing on `lib/screens/payments/payment_return_screen.dart` - the same
+poll-until-confirmed screen as web's `/payments/return`, reached instead of
+requiring the customer to switch back to the app manually.
 
 The home screen's module icons are drag-to-reorder (long-press then drag,
 via `reorderable_grid_view`), persisted locally with `shared_preferences` -

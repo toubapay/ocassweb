@@ -184,6 +184,7 @@ async function createOrder(req, res, next) {
         purpose: "ECOMMERCE_ORDER",
         purposeId: order.id,
         description: `Ocass order #${order.id.slice(0, 8)}`,
+        platform: req.headers["x-client-platform"] === "mobile" ? "mobile" : "web",
       });
     } catch (paymentErr) {
       await prisma.order.delete({ where: { id: order.id } });

@@ -11,10 +11,12 @@ import '../../models/flash_sale.dart';
 import '../../models/store.dart';
 import '../../models/home_banner.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/location_provider.dart';
 import '../../providers/module_order_provider.dart';
 import '../../providers/notifications_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_bar.dart';
+import '../../widgets/delivery_address_dialog.dart';
 import '../../widgets/flash_sale_countdown.dart';
 import '../../widgets/header_wave.dart';
 import '../../widgets/module_tile.dart';
@@ -66,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final firstName = user?.name?.split(' ').first;
     final unreadCount =
         auth.isAuthenticated ? context.watch<NotificationsProvider>().unreadCount : 0;
+    final deliveryAddress = context.watch<LocationProvider>().address;
 
     return SingleChildScrollView(
       child: Column(
@@ -89,7 +92,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Expanded(child: AddressBar(address: 'Plateau, Dakar')),
+                        Expanded(
+                          child: AddressBar(
+                            address: deliveryAddress ?? context.t('common.setDeliveryAddress'),
+                            onTap: () => showDialog(
+                              context: context,
+                              builder: (_) => const DeliveryAddressDialog(),
+                            ),
+                          ),
+                        ),
                         if (auth.isAuthenticated)
                           IconButton(
                             onPressed: () => context.push('/notifications'),

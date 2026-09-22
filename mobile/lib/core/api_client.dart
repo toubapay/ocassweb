@@ -26,6 +26,7 @@ import '../models/store.dart';
 import '../models/flash_sale.dart';
 import '../models/showcase_slide.dart';
 import '../models/home_banner.dart';
+import '../models/payment_status.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -38,6 +39,10 @@ class ApiClient {
       baseUrl: apiBaseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
+      // Lets payments.controller.js pick a PayDunya return_url that deep
+      // links back into this app instead of the web app's /payments/return
+      // page - see paydunya.service.js's createInvoice.
+      headers: {'X-Client-Platform': 'mobile'},
     ));
 
     _dio.interceptors.add(InterceptorsWrapper(
@@ -256,6 +261,15 @@ class ApiClient {
   Future<String?> topUpWallet(double amount) async {
     final res = await _dio.post('/wallet/topup', data: {'amount': amount});
     return _data(res)['paymentUrl'] as String?;
+  }
+
+  /// Re-confirms a PayDunya invoice's real status with the backend (which
+  /// in turn re-confirms with PayDunya's API) - polled by
+  /// PaymentReturnScreen after the deep link back from checkout, same
+  /// distrust-the-redirect-alone rule as pages/payments/return.js on web.
+  Future<PaymentStatus> fetchPaymentStatus(String token) async {
+    final res = await _dio.get('/payments/paydunya/status/$token');
+    return PaymentStatus.fromJson(_data(res)['payment'] as Map<String, dynamic>);
   }
 
   Future<List<WishlistItem>> fetchWishlist() async {
@@ -948,11 +962,17 @@ class ApiClient {
   /// Throws a [DioException] with the server's 409 message ("Not enough
   /// seats available") if another passenger claimed the remaining seats
   /// first - the caller should surface `error.response.data.message`.
-  Future<void> bookSeat(String postingId, {required int seatsBooked, required String paymentMethod}) =>
-      _dio.post('/anando/postings/$postingId/book', data: {
-        'seatsBooked': seatsBooked,
-        'paymentMethod': paymentMethod,
-      });
+  /// Returns the PayDunya checkout URL when [paymentMethod] is 'PAYDUNYA'
+  /// and the posting has a price (null for CASH/WALLET, which settle
+  /// synchronously server-side) - mirrors createOrder/topUpWallet's
+  /// "null means no redirect needed" contract.
+  Future<String?> bookSeat(String postingId, {required int seatsBooked, required String paymentMethod}) async {
+    final res = await _dio.post('/anando/postings/$postingId/book', data: {
+      'seatsBooked': seatsBooked,
+      'paymentMethod': paymentMethod,
+    });
+    return _data(res)['paymentUrl'] as String?;
+  }
 
   Future<void> cancelBooking(String id) => _dio.patch('/anando/bookings/$id/cancel');
 

@@ -38,6 +38,7 @@ async function topUp(req, res, next) {
         purpose: "WALLET_TOPUP",
         purposeId: wallet.id,
         description: `Ocass wallet top-up`,
+        platform: req.headers["x-client-platform"] === "mobile" ? "mobile" : "web",
       });
     } catch (paymentErr) {
       return res.status(502).json({ message: "Could not start payment. Please try again." });

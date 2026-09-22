@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
@@ -32,8 +33,18 @@ class _AnandoBookScreenState extends State<AnandoBookScreen> {
   Future<void> _confirm() async {
     setState(() => _submitting = true);
     try {
-      await apiClient.bookSeat(widget.posting.id, seatsBooked: _seats, paymentMethod: _paymentMethod);
+      final paymentUrl =
+          await apiClient.bookSeat(widget.posting.id, seatsBooked: _seats, paymentMethod: _paymentMethod);
       if (!mounted) return;
+      if (paymentUrl != null) {
+        // PayDunya's hosted checkout is a web page with no way back into
+        // the app - same external-browser handoff as ecommerce checkout
+        // and wallet top-up (see checkout_screen.dart/wallet_screen.dart).
+        await launchUrl(Uri.parse(paymentUrl), mode: LaunchMode.externalApplication);
+        if (!mounted) return;
+        context.pop();
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('anando.booked'))));
       context.pop();
     } on DioException catch (e) {

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,6 +12,7 @@ import 'providers/cart_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'providers/module_order_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/location_provider.dart';
 import 'providers/notifications_provider.dart';
 
 class OcassApp extends StatefulWidget {
@@ -24,7 +28,10 @@ class _OcassAppState extends State<OcassApp> {
   final WishlistProvider _wishlistProvider = WishlistProvider();
   final ModuleOrderProvider _moduleOrderProvider = ModuleOrderProvider();
   final LocaleProvider _localeProvider = LocaleProvider();
+  final LocationProvider _locationProvider = LocationProvider();
   final NotificationsProvider _notificationsProvider = NotificationsProvider();
+  final AppLinks _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
@@ -35,6 +42,7 @@ class _OcassAppState extends State<OcassApp> {
     apiClient.onUnauthorized = _authProvider.logout;
     _moduleOrderProvider.load();
     _localeProvider.load();
+    _locationProvider.load();
     _authProvider.bootstrap().then((_) {
       if (_authProvider.isAuthenticated) {
         _cartProvider.fetch();
@@ -42,6 +50,24 @@ class _OcassAppState extends State<OcassApp> {
         _notificationsProvider.startPolling();
       }
     });
+    // Catches PayDunya's return_url/cancel_url redirect (ocass://payments/...)
+    // once the OS hands control back to this app - see paydunya.service.js's
+    // mobile return_url and app_router.dart's /payments/return + /cancel
+    // routes. uriLinkStream re-emits the link that launched the app cold as
+    // well as any received while it's already running.
+    _linkSubscription = _appLinks.uriLinkStream.listen(_handlePaymentDeepLink);
+  }
+
+  void _handlePaymentDeepLink(Uri uri) {
+    if (uri.scheme != 'ocass' || uri.host != 'payments') return;
+    final query = uri.hasQuery ? '?${uri.query}' : '';
+    appRouter.go('/payments${uri.path}$query');
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -53,6 +79,7 @@ class _OcassAppState extends State<OcassApp> {
         ChangeNotifierProvider<WishlistProvider>.value(value: _wishlistProvider),
         ChangeNotifierProvider<ModuleOrderProvider>.value(value: _moduleOrderProvider),
         ChangeNotifierProvider<LocaleProvider>.value(value: _localeProvider),
+        ChangeNotifierProvider<LocationProvider>.value(value: _locationProvider),
         ChangeNotifierProvider<NotificationsProvider>.value(value: _notificationsProvider),
       ],
       child: MaterialApp.router(

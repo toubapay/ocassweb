@@ -259,6 +259,18 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen>
               children: [
                 Text('${job.pickupAddress} → ${job.dropoffAddress}',
                     style: const TextStyle(fontWeight: FontWeight.w700)),
+                if (job.senderName != null || job.receiverName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      [
+                        if (job.senderName != null) '${context.t('delivery.agent.sender')}: ${job.senderName}',
+                        if (job.receiverName != null)
+                          '${context.t('delivery.agent.receiver')}: ${job.receiverName}',
+                      ].join(' · '),
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                  ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -311,6 +323,19 @@ class _DeliveryAgentScreenState extends State<DeliveryAgentScreen>
                         visualDensity: VisualDensity.compact),
                   ],
                 ),
+                if (job.senderName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '${context.t('delivery.agent.sender')}: ${job.senderName} · ${job.senderPhone ?? ''}',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    ),
+                  ),
+                if (job.receiverName != null)
+                  Text(
+                    '${context.t('delivery.agent.receiver')}: ${job.receiverName} · ${job.receiverPhone ?? ''}',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

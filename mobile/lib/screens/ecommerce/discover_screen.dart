@@ -21,6 +21,15 @@ const _bgColors = [
   AppColors.purpleSoft,
 ];
 
+const _categoryBandColors = [
+  Color(0xFF0FAE58),
+  Color(0xFF3B82F6),
+  Color(0xFFF97316),
+  Color(0xFF8B5CF6),
+  Color(0xFFE5484D),
+  Color(0xFF0D9488),
+];
+
 /// Boutique home page - showcase carousel, featured/latest product rows,
 /// flash sale and a category landing grid, matching
 /// pages/ecommerce/index.js in the web app.
@@ -135,6 +144,27 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               future: _latestFuture,
             ),
           ),
+          // One themed band per top-level category (colored header + "see
+          // more" + product row), matching pages/ecommerce/index.js's
+          // topCategories.map(CategorySection) - each fetches just that
+          // category's products independently.
+          SliverToBoxAdapter(
+            child: FutureBuilder<List<Category>>(
+              future: _future,
+              builder: (context, snapshot) {
+                final categories = snapshot.data ?? const <Category>[];
+                return Column(
+                  children: [
+                    for (var i = 0; i < categories.length; i++)
+                      _CategorySection(
+                        category: categories[i],
+                        color: _categoryBandColors[i % _categoryBandColors.length],
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: FutureBuilder<List<Category>>(
@@ -215,6 +245,95 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Themed horizontal band (colored header + "see more" + product row) -
+/// the repeating per-category home-page pattern, mirroring
+/// pages/ecommerce/index.js's CategorySection. One of these per
+/// top-level category, each fetching just that category's products.
+class _CategorySection extends StatefulWidget {
+  final Category category;
+  final Color color;
+
+  const _CategorySection({required this.category, required this.color});
+
+  @override
+  State<_CategorySection> createState() => _CategorySectionState();
+}
+
+class _CategorySectionState extends State<_CategorySection> {
+  late final Future<ProductListResult> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = apiClient.fetchProducts(category: widget.category.slug, pageSize: 10);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<ProductListResult>(
+      future: _future,
+      builder: (context, snapshot) {
+        final items = snapshot.data?.items ?? const <Product>[];
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        if (!isLoading && items.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => context.push('/ecommerce/${widget.category.slug}'),
+              child: Container(
+                color: widget.color,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tOr('categories.${widget.category.slug}', widget.category.name),
+                          style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 16),
+                        ),
+                        Text(
+                          context.t('ecommerce.home.bestOffers'),
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          context.t('ecommerce.home.seeMore'),
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 250,
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, index) =>
+                          SizedBox(width: 150, child: ProductCard(product: items[index])),
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

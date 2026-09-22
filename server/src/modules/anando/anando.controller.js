@@ -259,6 +259,7 @@ async function bookSeat(req, res, next) {
           purpose: "ANANDO_BOOKING",
           purposeId: booking.id,
           description: `Anando: ${posting.originAddress} → ${posting.destinationAddress}`,
+          platform: req.headers["x-client-platform"] === "mobile" ? "mobile" : "web",
         });
         paymentUrl = payment.checkoutUrl;
       } catch (paymentErr) {
