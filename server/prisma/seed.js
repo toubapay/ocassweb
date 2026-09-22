@@ -10,46 +10,46 @@ async function main() {
 
   // ---------- Categories ----------
   const footwear = await prisma.category.upsert({
-    where: { slug: "footwear" },
+    where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "footwear" } },
     update: {},
     create: { name: "Footwear", slug: "footwear", icon: "shoe" },
   });
 
   const [sportsShoes, formalShoes, sandal, slippers] = await Promise.all([
     prisma.category.upsert({
-      where: { slug: "sports-shoes" },
+      where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "sports-shoes" } },
       update: {},
       create: { name: "Sports Shoes", slug: "sports-shoes", parentId: footwear.id },
     }),
     prisma.category.upsert({
-      where: { slug: "formal-shoes" },
+      where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "formal-shoes" } },
       update: {},
       create: { name: "Formal Shoes", slug: "formal-shoes", parentId: footwear.id },
     }),
     prisma.category.upsert({
-      where: { slug: "sandal" },
+      where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "sandal" } },
       update: {},
       create: { name: "Sandal", slug: "sandal", parentId: footwear.id },
     }),
     prisma.category.upsert({
-      where: { slug: "slippers" },
+      where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "slippers" } },
       update: {},
       create: { name: "Slippers", slug: "slippers", parentId: footwear.id },
     }),
   ]);
 
   const electronics = await prisma.category.upsert({
-    where: { slug: "electronics" },
+    where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "electronics" } },
     update: {},
     create: { name: "Electronics", slug: "electronics", icon: "device" },
   });
   const groceries = await prisma.category.upsert({
-    where: { slug: "groceries" },
+    where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "groceries" } },
     update: {},
     create: { name: "Groceries", slug: "groceries", icon: "cart" },
   });
   const beauty = await prisma.category.upsert({
-    where: { slug: "beauty" },
+    where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "beauty" } },
     update: {},
     create: { name: "Beauty", slug: "beauty", icon: "sparkle" },
   });

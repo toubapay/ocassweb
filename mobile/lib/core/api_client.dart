@@ -948,11 +948,17 @@ class ApiClient {
   /// Throws a [DioException] with the server's 409 message ("Not enough
   /// seats available") if another passenger claimed the remaining seats
   /// first - the caller should surface `error.response.data.message`.
-  Future<void> bookSeat(String postingId, {required int seatsBooked, required String paymentMethod}) =>
-      _dio.post('/anando/postings/$postingId/book', data: {
-        'seatsBooked': seatsBooked,
-        'paymentMethod': paymentMethod,
-      });
+  /// Returns the PayDunya checkout URL when [paymentMethod] is 'PAYDUNYA'
+  /// and the posting has a price (null for CASH/WALLET, which settle
+  /// synchronously server-side) - mirrors createOrder/topUpWallet's
+  /// "null means no redirect needed" contract.
+  Future<String?> bookSeat(String postingId, {required int seatsBooked, required String paymentMethod}) async {
+    final res = await _dio.post('/anando/postings/$postingId/book', data: {
+      'seatsBooked': seatsBooked,
+      'paymentMethod': paymentMethod,
+    });
+    return _data(res)['paymentUrl'] as String?;
+  }
 
   Future<void> cancelBooking(String id) => _dio.patch('/anando/bookings/$id/cancel');
 

@@ -141,7 +141,9 @@ async function main() {
       ownerId: vendor.id,
     },
   });
-  const electronicsCategory = await prisma.category.findUnique({ where: { slug: "electronics" } });
+  const electronicsCategory = await prisma.category.findUnique({
+    where: { moduleKey_slug: { moduleKey: "ecommerce", slug: "electronics" } },
+  });
   if (electronicsCategory) {
     await prisma.product.upsert({
       where: { slug: "moussa-store-power-bank" },
@@ -173,6 +175,7 @@ async function main() {
           userId: customer.id,
           deliveryAddressId: address.id,
           status: "CONFIRMED",
+          subtotal: total,
           total,
           paid: true,
           items: {
@@ -201,6 +204,7 @@ async function main() {
           userId: customer.id,
           restaurantId: restaurant.id,
           status: "DELIVERED",
+          subtotal: total,
           total,
           items: {
             create: items.map((i) => ({ menuItemId: i.id, quantity: 1, price: i.price })),
