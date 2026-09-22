@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -27,6 +30,8 @@ class _OcassAppState extends State<OcassApp> {
   final LocaleProvider _localeProvider = LocaleProvider();
   final LocationProvider _locationProvider = LocationProvider();
   final NotificationsProvider _notificationsProvider = NotificationsProvider();
+  final AppLinks _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
@@ -45,6 +50,24 @@ class _OcassAppState extends State<OcassApp> {
         _notificationsProvider.startPolling();
       }
     });
+    // Catches PayDunya's return_url/cancel_url redirect (ocass://payments/...)
+    // once the OS hands control back to this app - see paydunya.service.js's
+    // mobile return_url and app_router.dart's /payments/return + /cancel
+    // routes. uriLinkStream re-emits the link that launched the app cold as
+    // well as any received while it's already running.
+    _linkSubscription = _appLinks.uriLinkStream.listen(_handlePaymentDeepLink);
+  }
+
+  void _handlePaymentDeepLink(Uri uri) {
+    if (uri.scheme != 'ocass' || uri.host != 'payments') return;
+    final query = uri.hasQuery ? '?${uri.query}' : '';
+    appRouter.go('/payments${uri.path}$query');
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
   }
 
   @override

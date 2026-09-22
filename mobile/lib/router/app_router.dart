@@ -43,6 +43,8 @@ import '../screens/notifications/notifications_screen.dart';
 import '../screens/vendor/vendor_dashboard_screen.dart';
 import '../screens/vendor/vendor_products_screen.dart';
 import '../screens/vendor/vendor_orders_screen.dart';
+import '../screens/payments/payment_return_screen.dart';
+import '../screens/payments/payment_cancelled_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -97,6 +99,14 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    // Reached via the ocass://payments/return and ocass://payments/cancel
+    // deep links - see app.dart's AppLinks listener.
+    GoRoute(
+      path: '/payments/return',
+      builder: (context, state) =>
+          PaymentReturnScreen(token: state.uri.queryParameters['token']),
+    ),
+    GoRoute(path: '/payments/cancel', builder: (context, state) => const PaymentCancelledScreen()),
 
     // Everything else keeps the bottom tab bar.
     ShellRoute(
