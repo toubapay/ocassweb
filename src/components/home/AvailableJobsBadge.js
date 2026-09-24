@@ -12,12 +12,17 @@ import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import useAuth from "../../hooks/useAuth";
 import useJobAlertSound from "../../hooks/useJobAlertSound";
+import { useLiveStatus } from "../live/LiveUpdatesProvider";
 import { fetchAvailableDeliveryJobCount, fetchAvailableRideJobCount } from "../../api/modules";
 
 // Matches the job boards' own refetchInterval (pages/delivery/agent.js,
 // pages/ride-sharing/driver.js), so an agent watching the home screen and
-// an agent watching the board learn about a new job at the same cadence.
+// an agent watching the board learn about a new job at the same cadence -
+// and when the live stream is connected, neither of them waits for it: a
+// job posted anywhere reaches this badge in milliseconds (see
+// LiveUpdatesProvider.js). The poll stays on as the backstop, slower.
 const POLL_MS = 15000;
+const LIVE_POLL_MS = 120000;
 
 /**
  * Per gig-work role: which count to poll, where "accept it" goes, and what
@@ -62,11 +67,12 @@ export default function AvailableJobsBadge() {
   const router = useRouter();
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
+  const { connected } = useLiveStatus();
   const config = ROLES[user?.role];
 
   const { data: count } = useQuery(config?.queryKey ?? "gig-jobs-available-count", config?.fetchCount, {
     enabled: Boolean(isAuthenticated && config),
-    refetchInterval: POLL_MS,
+    refetchInterval: connected ? LIVE_POLL_MS : POLL_MS,
     // A dropped poll keeps the last count on screen rather than blanking
     // the card - "no jobs" is a claim, and a failed request isn't evidence
     // for it.

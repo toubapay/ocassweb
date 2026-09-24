@@ -13,6 +13,14 @@ import { useQuery } from "react-query";
 import { fetchCart } from "../../api/ecommerce";
 import { fetchUnreadCount } from "../../api/notifications";
 import useAuth from "../../hooks/useAuth";
+import { useLiveStatus } from "../live/LiveUpdatesProvider";
+
+// The unread count arrives on the live stream (LiveUpdatesProvider), so
+// while that is connected the poll is only a backstop against a missed
+// event - a single-process bus with no replay, see realtime.bus.js. When
+// the stream is down it is the whole mechanism, and goes back to 30s.
+const POLL_MS = 30000;
+const LIVE_POLL_MS = 180000;
 
 export default function TopBar({
   title,
@@ -24,6 +32,7 @@ export default function TopBar({
 }) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+  const { connected } = useLiveStatus();
 
   const { data: cartItems } = useQuery("cart", fetchCart, {
     enabled: isAuthenticated && showCart,
@@ -32,7 +41,7 @@ export default function TopBar({
 
   const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
     enabled: isAuthenticated && showNotifications,
-    refetchInterval: 30000,
+    refetchInterval: connected ? LIVE_POLL_MS : POLL_MS,
   });
 
   return (

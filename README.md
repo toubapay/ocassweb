@@ -198,8 +198,8 @@ fallback in production.
   reloads. See "Internationalization" below for how to add new strings.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage as
   the web app, including French/English i18n, the delivery/ride dispatch
-  system, the vendor marketplace, Anando, and in-app notifications (see
-  `mobile/README.md`).
+  system, the vendor marketplace, Anando, in-app notifications and the same
+  live-update stream (see `mobile/README.md`).
 
 ## Delivery & ride dispatch
 
@@ -507,9 +507,9 @@ A generic `Notification` model (`server/src/modules/notifications/`,
 `GET/PATCH /api/notifications/*`) that any module can write to via
 `notificationsService.notify({ userId, type, title, body, data })`.
 Surfaced as a bell + unread badge on the home page and most top bars
-(`showNotifications` prop on `TopBar`), linking to `/notifications`.
-Polls for the unread count every 30s; there's no push/real-time delivery
-(no websocket or service worker wired up).
+(`showNotifications` prop on `TopBar`), linking to `/notifications`. The
+count updates itself as the backend changes - see "Live updates" below -
+with a slow poll behind it as the backstop.
 
 **Delivery and rideshare write to it at every stage, for both sides of the
 job** (`delivery.notify.js`, `rideshare.notify.js`). A job has two people
@@ -541,6 +541,106 @@ off at X". Notes worth keeping:
   existing Anando convention) rather than as i18n keys, so an English-UI
   user still reads French notification text. Changing that means storing
   a key + params and translating at render time on both clients.
+
+## Live updates (Server-Sent Events)
+
+The bell in the top banner, the agent's available-jobs badge and the lists
+behind them update as the backend changes, instead of on their next poll.
+One connection per signed-in client does it: `GET /api/realtime/stream`
+(`server/src/modules/realtime/`), held open by `LiveUpdatesProvider.js` on
+the React side and `core/live_updates.dart` on Flutter.
+
+**SSE, not a WebSocket.** Every requirement points one way: the traffic is
+server-to-client only (a client that wants to *do* something has the REST
+API), it is ordinary HTTP so it passes through `middleware.js`'s proxy and
+any middlebox that allows the rest of the app, the browser's EventSource
+reconnects by itself, and it needs no new dependency on either side. A
+WebSocket would add a server library, a second protocol to authenticate and
+a hand-rolled reconnect loop, in exchange for an upstream channel nothing
+uses.
+
+**The payload says what changed, never the data.** Two events -
+`notification` ("a row was filed in your inbox") and `jobs` ("the set of
+unassigned jobs changed") - and a client that receives one refetches through
+the same authenticated endpoint it always used. So the stream never becomes
+a second path to the data itself, and therefore never a second place for an
+authorization mistake. It also means a missed event costs one poll interval
+rather than a wrong screen.
+
+**Two channels, because the audiences differ.** `user:<id>` is "something
+arrived for you", published from `notificationsService.notify()` - the one
+funnel every module's inbox writes go through, which is what makes this
+true of delivery, rideshare, Anando and anything added later without each
+remembering to. `role:<ROLE>` is "the shared board changed", published by
+`publishJobBoardChange()` to the agents who could take the job *and* to
+ADMIN, none of whom owns it.
+
+**The cookie is accepted on this one route, and that is a security
+decision.** EventSource takes a URL and nothing else - no headers, by
+specification - so the web client is authenticated by the `ocass-token`
+cookie the app already sets at login. That fallback is deliberately not
+added to `requireAuth`: a cookie rides cross-site requests too, so
+accepting it app-wide would make every state-changing endpoint
+CSRF-reachable without a token check. This route reads nothing and writes
+nothing, so the same forged request achieves nothing. The token is never
+read from the query string - morgan logs every URL, and a JWT in an access
+log is a session sitting in a log file. Flutter sends the normal
+Authorization header (dio can set headers on a streamed request).
+
+**Three things that decide whether it works in production**, all in
+`realtime.controller.js`: a comment-frame heartbeat every 25s, because
+anything between the app and this process (Render's router, a carrier's
+NAT) closes a connection that goes quiet for 30-60s; `Cache-Control:
+no-cache, no-transform` plus `X-Accel-Buffering: no`, because a proxy that
+buffers a stream looks exactly like a working one until the moment
+something happens; and a `retry:` hint, so a backend restart doesn't
+produce a reconnect stampede.
+
+**It is per-process, and the polls stay.** `realtime.bus.js` is an
+EventEmitter in the backend process: with two or more instances behind a
+load balancer, a client on instance B never sees an event published on
+instance A. That is right for this deploy (render.yaml provisions one web
+service and sets no scaling) and it degrades rather than lying, because
+every client keeps its poll as a backstop - slowed to 2-3 minutes while the
+stream is connected, back to 15-30s the moment it isn't, re-armed
+immediately rather than at the next tick. The day this runs more than one
+instance, the replacement is a shared broker (Redis pub/sub, or Postgres
+LISTEN/NOTIFY through a raw `pg` client, since Prisma's engine doesn't
+expose it) behind the same three functions. There is also no replay: a
+client that reconnects refetches once (`onReconnected` / the `ready`
+handler) rather than replaying what it missed.
+
+**The delivery tracking page keeps its 5s poll** and is not on the stream's
+critical path, because what it is watching is the rider's moving position -
+and position pings are deliberately not notified (see "Delivery & ride
+dispatch"). Status changes reach it live like everything else; the marker
+still moves on the poll.
+
+On Flutter the differences are all about being a phone: the streaming
+request gets its own Dio with **no `receiveTimeout`** (the shared client's
+15s would kill a connection that is meant to stay open, and the server's
+heartbeat is what proves liveness instead), the reconnect backoff is
+hand-rolled because dio does nothing for us there, and `app.dart` stops the
+stream on `AppLifecycleState.paused` and restarts it on resume - a paused
+app holding a socket spends battery on events nobody will see, and resuming
+is the one moment the user is definitely looking, so that is also when it
+catches up.
+
+**Writing Playwright tests against this**: `waitUntil: "networkidle"` never
+settles on an authenticated page, because an open SSE connection is a
+permanently pending request. Use `domcontentloaded` and wait for the thing
+you actually care about.
+
+Verified against a real Postgres and a real browser: the bell in the top
+banner going 0 -> 1 in 205ms on the customer's own request and 1 -> 2 in
+220ms when an agent accepted it from another session, with zero
+unread-count polls in the following 20s; the agent's badge appearing in
+113ms against a 15s poll interval; 2 heartbeats over 70s idle through the
+Next.js proxy with the connection still delivering 15ms after a write; 3
+clients producing 6 listeners and 0 again once they went away
+(`GET /api/realtime/stats`, ADMIN-only); and the Dart client receiving a
+`jobs` event 101ms after another account's write, with stop/start producing
+a real reconnect (`flutter test`, against the running backend).
 
 ## Internationalization
 

@@ -37,11 +37,16 @@ import '../core/api_client.dart';
 /// chime.
 class AvailableJobsProvider extends ChangeNotifier {
   static const _pollInterval = Duration(seconds: 15);
+  // While the live stream is connected a job posted anywhere reaches this
+  // in milliseconds, so the poll is only a backstop against a missed event
+  // (the bus is per-process with no replay - see realtime.bus.js).
+  static const _livePollInterval = Duration(minutes: 2);
   static const _muteKey = 'ocass_job_alert_muted';
 
   int? _count;
   String? _role;
   bool _muted = false;
+  bool _live = false;
   Timer? _timer;
 
   /// Null until the first successful poll - which is why the badge checks
@@ -93,7 +98,19 @@ class AvailableJobsProvider extends ChangeNotifier {
     _count = null;
     _timer?.cancel();
     refresh();
-    _timer = Timer.periodic(_pollInterval, (_) => refresh());
+    _timer = Timer.periodic(_live ? _livePollInterval : _pollInterval, (_) => refresh());
+  }
+
+  /// Called by the live stream's connect/disconnect (app.dart) - re-arms
+  /// the timer now rather than at the next tick, so losing the stream
+  /// restores the 15s cadence at once.
+  void setLive(bool live) {
+    if (_live == live) return;
+    _live = live;
+    if (_timer != null) {
+      _timer!.cancel();
+      _timer = Timer.periodic(_live ? _livePollInterval : _pollInterval, (_) => refresh());
+    }
   }
 
   void stop() {

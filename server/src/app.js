@@ -17,6 +17,7 @@ const walletRoutes = require("./modules/wallet/wallet.routes");
 const vendorRoutes = require("./modules/vendor/vendor.routes");
 const anandoRoutes = require("./modules/anando/anando.routes");
 const notificationsRoutes = require("./modules/notifications/notifications.routes");
+const realtimeRoutes = require("./modules/realtime/realtime.routes");
 const adminRoutes = require("./modules/admin/admin.routes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { requireModuleEnabled } = require("./middleware/moduleGate");
@@ -72,6 +73,10 @@ app.use("/api/wallet", requireModuleEnabled("wallet"), walletRoutes);
 app.use("/api/vendor", requireModuleEnabled("vendor"), vendorRoutes);
 app.use("/api/anando", requireModuleEnabled("anando"), anandoRoutes);
 app.use("/api/notifications", notificationsRoutes);
+// Not behind requireModuleEnabled: the stream carries events for whichever
+// modules are on, and turning one off must not take the live channel down
+// with it.
+app.use("/api/realtime", realtimeRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use(notFound);

@@ -2,6 +2,7 @@ const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const deliveryNotify = require("./delivery.notify");
+const { publishJobBoardChange } = require("../realtime/jobBoard");
 const { hasCoordinates } = require("../../utils/geo");
 const { roadDistanceKm } = require("../../utils/distanceMatrix");
 const { getModuleFeeConfig, clampFee } = require("../../utils/feeConfig");
@@ -171,6 +172,9 @@ async function createRequest(req, res, next) {
       },
     });
     deliveryNotify.notifyCreated(request);
+    // Every agent's board just gained a row - and their home badge a job -
+    // so tell them now rather than up to a poll interval from now.
+    publishJobBoardChange("delivery", "created");
     res.status(201).json({ request });
   } catch (err) {
     next(err);
@@ -191,6 +195,7 @@ async function cancelRequest(req, res, next) {
       data: { status: "CANCELLED" },
     });
     deliveryNotify.notifyCancelled(request);
+    publishJobBoardChange("delivery", "cancelled");
     res.json({ request });
   } catch (err) {
     next(err);
@@ -304,6 +309,10 @@ async function acceptRequest(req, res, next) {
     // req.user is the accepting agent (requireAuth re-reads it every
     // request), so the customer's message can name them without a lookup.
     deliveryNotify.notifyAccepted(request, req.user);
+    // Taken: every *other* agent's board loses this row. The accepting
+    // agent's own client already knows - it made the call - but it costs
+    // nothing to be told twice and the refetch is idempotent.
+    publishJobBoardChange("delivery", "taken");
     res.json({ request });
   } catch (err) {
     next(err);

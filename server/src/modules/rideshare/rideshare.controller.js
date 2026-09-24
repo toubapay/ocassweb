@@ -2,6 +2,7 @@ const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
 const rideNotify = require("./rideshare.notify");
+const { publishJobBoardChange } = require("../realtime/jobBoard");
 const { hasCoordinates } = require("../../utils/geo");
 const { roadDistanceKm } = require("../../utils/distanceMatrix");
 const { getModuleFeeConfig, clampFee } = require("../../utils/feeConfig");
@@ -81,6 +82,7 @@ async function createRide(req, res, next) {
       data: { ...data, userId: req.user.id, priceEstimate: await estimatePrice(data, feeConfig) },
     });
     rideNotify.notifyCreated(ride);
+    publishJobBoardChange("ride", "created");
     res.status(201).json({ ride });
   } catch (err) {
     next(err);
@@ -101,6 +103,7 @@ async function cancelRide(req, res, next) {
       data: { status: "CANCELLED" },
     });
     rideNotify.notifyCancelled(ride);
+    publishJobBoardChange("ride", "cancelled");
     res.json({ ride });
   } catch (err) {
     next(err);
@@ -177,6 +180,7 @@ async function acceptRide(req, res, next) {
     }
     const ride = await prisma.rideRequest.findUnique({ where: { id: req.params.id } });
     rideNotify.notifyAccepted(ride, req.user);
+    publishJobBoardChange("ride", "taken");
     res.json({ ride });
   } catch (err) {
     next(err);

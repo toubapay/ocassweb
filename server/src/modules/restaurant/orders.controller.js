@@ -6,6 +6,7 @@ const { getModuleFeeConfig } = require("../../utils/feeConfig");
 const { getServiceFeeConfig, computeFeeAndTax } = require("../../utils/serviceFee");
 const { payoutOwnerForOrder } = require("./restaurant.service");
 const deliveryNotify = require("../delivery/delivery.notify");
+const { publishJobBoardChange } = require("../realtime/jobBoard");
 
 const createOrderSchema = z.object({
   items: z
@@ -278,6 +279,9 @@ async function dispatchForDelivery(order, ownerPhone) {
   // a restaurant order's delivery would be the one delivery in the app that
   // starts silently, and its inbox would jump straight to "picked up".
   deliveryNotify.notifyCreated(deliveryRequest);
+  // A restaurant order handed to the couriers lands on the same board as a
+  // standalone package delivery, so it announces itself the same way.
+  publishJobBoardChange("delivery", "created");
 
   return prisma.restaurantOrder.update({
     where: { id: order.id },

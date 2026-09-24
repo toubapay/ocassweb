@@ -38,6 +38,7 @@ import ProductCard from "../src/components/ecommerce/ProductCard";
 import useAuth from "../src/hooks/useAuth";
 import { fetchProducts, fetchCategories } from "../src/api/ecommerce";
 import { fetchUnreadCount } from "../src/api/notifications";
+import { useLiveStatus } from "../src/components/live/LiveUpdatesProvider";
 
 const CATEGORY_ICONS = {
   footwear: { icon: CheckroomRoundedIcon, color: "#0FAE58", bg: "#E7F7EE" },
@@ -57,9 +58,11 @@ export default function Home() {
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const { data } = useQuery("home-products", () => fetchProducts({ pageSize: 6 }));
   const { data: categories } = useQuery("categories", fetchCategories);
+  const { connected: liveConnected } = useLiveStatus();
+  // See TopBar.js: the live stream carries this, the poll is the backstop.
   const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
     enabled: isAuthenticated,
-    refetchInterval: 30000,
+    refetchInterval: liveConnected ? 180000 : 30000,
   });
   const firstName = user?.name?.split(" ")[0];
 
