@@ -10,9 +10,9 @@
 # could be executed or verified against a live deploy. It's written from
 # Render's documented Blueprint spec (https://render.com/docs/blueprint-spec).
 #
-# Reuses the same Dockerfile / server/Dockerfile written for the Cloud Run
-# guide (see DEPLOY_GCP.md) - Render builds a Dockerfile the same way
-# Cloud Run and Railway do, no separate buildpack config needed.
+# Reuses the same Dockerfile / server/Dockerfile - Render builds a
+# Dockerfile the same way most container-based platforms do, no separate
+# buildpack config needed.
 #
 # `plan` is deliberately omitted on every resource below rather than
 # hardcoded - Render applies its own current default plan for each

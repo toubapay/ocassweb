@@ -14,7 +14,9 @@ import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Divider from "@mui/material/Divider";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { fetchAdminModules, updateAdminModule } from "../../api/admin";
+import { AdminCard } from "./AdminUiKit";
 
 // Only modules with real fee math wired up server-side get an editor here
 // (see estimatePrice in delivery.controller.js / rideshare.controller.js,
@@ -211,41 +213,58 @@ export default function AdminModulesTab() {
 
   return (
     <Box>
-      {(modules || []).map((mod) => (
-        <Box
-          key={mod.key}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            py: 1.5,
-            px: 2,
-            mb: 1,
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 2,
-          }}
-        >
-          <Box>
-            <Typography sx={{ fontWeight: 700 }}>{mod.label}</Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {mod.key}
-            </Typography>
+      <AdminCard sx={{ overflow: "hidden" }}>
+        {(modules || []).map((mod, idx) => (
+          <Box
+            key={mod.key}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              py: 1.5,
+              px: 2.5,
+              borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+              opacity: mod.enabled ? 1 : 0.55,
+              "&:hover": { bgcolor: "#FAFBFC" },
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 2,
+                  bgcolor: "primary.light",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <TuneRoundedIcon sx={{ color: "primary.dark", fontSize: 19 }} />
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{mod.label}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {mod.key}
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {FEE_EDITORS[mod.key] && (
+                <Button size="small" variant="outlined" onClick={() => setFeeModule(mod)}>
+                  {t("admin.modules.fees")}
+                </Button>
+              )}
+              <Switch
+                checked={mod.enabled}
+                disabled={toggleMutation.isLoading}
+                onChange={(e) => toggleMutation.mutate({ key: mod.key, enabled: e.target.checked })}
+              />
+            </Box>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            {FEE_EDITORS[mod.key] && (
-              <Button size="small" variant="outlined" onClick={() => setFeeModule(mod)}>
-                {t("admin.modules.fees")}
-              </Button>
-            )}
-            <Switch
-              checked={mod.enabled}
-              disabled={toggleMutation.isLoading}
-              onChange={(e) => toggleMutation.mutate({ key: mod.key, enabled: e.target.checked })}
-            />
-          </Box>
-        </Box>
-      ))}
+        ))}
+      </AdminCard>
 
       {feeModule && <FeeDialog module={feeModule} onClose={() => setFeeModule(null)} />}
     </Box>

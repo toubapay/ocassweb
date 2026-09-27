@@ -1,4 +1,9 @@
 import 'package:dio/dio.dart';
+// Narrowed to VoidCallback, the only thing this file needs from
+// foundation: the unrestricted import also brings in an annotation called
+// Category, which collides with this app's own models/category.dart and
+// makes every Category reference below ambiguous.
+import 'package:flutter/foundation.dart' show VoidCallback;
 
 import 'constants.dart';
 import 'secure_storage.dart';
@@ -22,6 +27,10 @@ import '../models/wallet.dart';
 import '../models/ride_posting.dart';
 import '../models/app_notification.dart';
 import '../models/store.dart';
+import '../models/flash_sale.dart';
+import '../models/showcase_slide.dart';
+import '../models/home_banner.dart';
+import '../models/payment_status.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -34,6 +43,10 @@ class ApiClient {
       baseUrl: apiBaseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
+      // Lets payments.controller.js pick a PayDunya return_url that deep
+      // links back into this app instead of the web app's /payments/return
+      // page - see paydunya.service.js's createInvoice.
+      headers: {'X-Client-Platform': 'mobile'},
     ));
 
     _dio.interceptors.add(InterceptorsWrapper(
@@ -45,8 +58,18 @@ class ApiClient {
         handler.next(options);
       },
       onError: (DioException error, handler) async {
-        if (error.response?.statusCode == 401) {
+        // A 401 with no stored token just means an unauthenticated call
+        // hit a protected endpoint on purpose - nothing to correct. A 401
+        // WITH a token means the token itself was rejected (expired/
+        // invalid); clearing storage alone used to leave AuthProvider's
+        // in-memory `user`/`isAuthenticated` untouched, so the UI kept
+        // rendering as logged-in for the rest of the session - every
+        // subsequent write would silently 401 again with no indication
+        // the user needed to log back in. Mirrors the redux dispatch used
+        // for the same purpose on web (see src/api/client.js).
+        if (error.response?.statusCode == 401 && await TokenStorage.read() != null) {
           await TokenStorage.clear();
+          onUnauthorized?.call();
         }
         handler.next(error);
       },
@@ -55,6 +78,11 @@ class ApiClient {
 
   static final ApiClient instance = ApiClient._internal();
   late final Dio _dio;
+
+  /// Set once during app startup (see app.dart) to the active
+  /// AuthProvider's logout method - lets this context-free singleton
+  /// correct in-memory auth state on a 401 without needing a BuildContext.
+  static VoidCallback? onUnauthorized;
 
   Map<String, dynamic> _data(Response res) => res.data as Map<String, dynamic>;
 
@@ -98,6 +126,7 @@ class ApiClient {
     String? category,
     String? store,
     String? search,
+    bool? featured,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -105,6 +134,7 @@ class ApiClient {
       if (category != null) 'category': category,
       if (store != null) 'store': store,
       if (search != null) 'search': search,
+      if (featured != null) 'featured': featured.toString(),
       'page': page,
       'pageSize': pageSize,
     });
@@ -116,11 +146,60 @@ class ApiClient {
     return Product.fromJson(_data(res)['product'] as Map<String, dynamic>);
   }
 
+  /// The currently-live flash sale campaign for `placement` ("home" or
+  /// "ecommerce"), or null when none is live right now.
+  Future<FlashSale?> fetchActiveFlashSale(String placement) async {
+    final res = await _dio.get('/ecommerce/flash-sales/active', queryParameters: {
+      'placement': placement,
+    });
+    final flashSale = _data(res)['flashSale'];
+    return flashSale == null ? null : FlashSale.fromJson(flashSale as Map<String, dynamic>);
+  }
+
   Future<List<CartItem>> fetchCart() async {
     final res = await _dio.get('/ecommerce/cart');
     return (_data(res)['items'] as List<dynamic>)
         .map((i) => CartItem.fromJson(i as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Slides for the Boutique home page's rotating banner - see
+  /// AdminShowcaseTab.js on web for how admins manage these.
+  Future<List<ShowcaseSlide>> fetchShowcaseSlides() async {
+    final res = await _dio.get('/ecommerce/showcase-slides');
+    return (_data(res)['slides'] as List<dynamic>)
+        .map((s) => ShowcaseSlide.fromJson(s as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Store?> fetchStoreBySlug(String slug) async {
+    try {
+      final res = await _dio.get('/vendor/stores/$slug');
+      return Store.fromJson(_data(res)['store'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// Active stores, optionally restricted to admin-curated featured ones
+  /// (see the "Featured" toggle in AdminVendorsTab.js on web).
+  Future<List<Store>> fetchStores({bool? featured}) async {
+    final res = await _dio.get('/vendor/stores', queryParameters: {
+      if (featured != null) 'featured': featured.toString(),
+    });
+    return (_data(res)['stores'] as List<dynamic>)
+        .map((s) => Store.fromJson(s as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// The main Home Screen's single admin-editable promo card - null when
+  /// the admin has turned it off (see AdminHomeBannerTab.js on web). Not
+  /// gated behind any module, always reachable.
+  Future<HomeBanner?> fetchHomeBanner() async {
+    final res = await _dio.get('/home/banner');
+    final banner = _data(res)['banner'];
+    return banner == null ? null : HomeBanner.fromJson(banner as Map<String, dynamic>);
   }
 
   Future<CartItem> addToCart(String productId, {int quantity = 1}) async {
@@ -186,6 +265,15 @@ class ApiClient {
   Future<String?> topUpWallet(double amount) async {
     final res = await _dio.post('/wallet/topup', data: {'amount': amount});
     return _data(res)['paymentUrl'] as String?;
+  }
+
+  /// Re-confirms a PayDunya invoice's real status with the backend (which
+  /// in turn re-confirms with PayDunya's API) - polled by
+  /// PaymentReturnScreen after the deep link back from checkout, same
+  /// distrust-the-redirect-alone rule as pages/payments/return.js on web.
+  Future<PaymentStatus> fetchPaymentStatus(String token) async {
+    final res = await _dio.get('/payments/paydunya/status/$token');
+    return PaymentStatus.fromJson(_data(res)['payment'] as Map<String, dynamic>);
   }
 
   Future<List<WishlistItem>> fetchWishlist() async {
@@ -447,6 +535,25 @@ class ApiClient {
     return Restaurant.fromJson(_data(res)['restaurant'] as Map<String, dynamic>);
   }
 
+  /// Admin-managed menu-item categories, scoped to the restaurant module -
+  /// see moduleKey on the Category model in schema.prisma and
+  /// AdminCategoriesTab.js on web for management.
+  Future<List<Category>> fetchRestaurantCategories() async {
+    final res = await _dio.get('/restaurants/categories');
+    return (_data(res)['categories'] as List<dynamic>)
+        .map((c) => Category.fromJson(c as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Slides for the restaurant detail page's showcase carousel, just after
+  /// the menu - see AdminShowcaseTab.js on web for management.
+  Future<List<ShowcaseSlide>> fetchRestaurantShowcaseSlides() async {
+    final res = await _dio.get('/restaurants/showcase-slides');
+    return (_data(res)['slides'] as List<dynamic>)
+        .map((s) => ShowcaseSlide.fromJson(s as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<List<RestaurantOrder>> fetchRestaurantOrders() async {
     final res = await _dio.get('/restaurants/orders');
     return (_data(res)['orders'] as List<dynamic>)
@@ -528,14 +635,14 @@ class ApiClient {
     String? description,
     required double price,
     String? imageUrl,
-    String? category,
+    String? categoryId,
   }) async {
     final res = await _dio.post('/restaurants/owner/menu-items', data: {
       'name': name,
       if (description != null && description.isNotEmpty) 'description': description,
       'price': price,
       if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
-      if (category != null && category.isNotEmpty) 'category': category,
+      if (categoryId != null && categoryId.isNotEmpty) 'categoryId': categoryId,
     });
     return MenuItem.fromJson(_data(res)['menuItem'] as Map<String, dynamic>);
   }
@@ -546,7 +653,7 @@ class ApiClient {
     String? description,
     double? price,
     String? imageUrl,
-    String? category,
+    String? categoryId,
     bool? isActive,
   }) async {
     final res = await _dio.patch('/restaurants/owner/menu-items/$id', data: {
@@ -554,7 +661,7 @@ class ApiClient {
       if (description != null) 'description': description,
       if (price != null) 'price': price,
       if (imageUrl != null) 'imageUrl': imageUrl,
-      if (category != null) 'category': category,
+      if (categoryId != null) 'categoryId': categoryId.isEmpty ? null : categoryId,
       if (isActive != null) 'isActive': isActive,
     });
     return MenuItem.fromJson(_data(res)['menuItem'] as Map<String, dynamic>);
@@ -590,6 +697,12 @@ class ApiClient {
         .toList();
   }
 
+  /// Single ride, for the customer's tracking screen to poll.
+  Future<RideRequest> fetchRide(String id) async {
+    final res = await _dio.get('/rideshare/rides/$id');
+    return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
   Future<RideRequest> createRideRequest({
     required String pickupAddress,
     required String dropoffAddress,
@@ -614,6 +727,30 @@ class ApiClient {
   Future<RideRequest> cancelRide(String id) async {
     final res = await _dio.patch('/rideshare/rides/$id/cancel');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
+  }
+
+  /// Live distance + price preview, mirroring GET /rideshare/fee-quote's
+  /// web usage - called once both pickup and dropoff have real
+  /// coordinates, re-fetched per vehicle type since price depends on it.
+  Future<({double distanceKm, double priceEstimate})> fetchRideshareFeeQuote({
+    required double pickupLat,
+    required double pickupLng,
+    required double dropoffLat,
+    required double dropoffLng,
+    String vehicleType = 'ECONOMY',
+  }) async {
+    final res = await _dio.get('/rideshare/fee-quote', queryParameters: {
+      'pickupLat': pickupLat,
+      'pickupLng': pickupLng,
+      'dropoffLat': dropoffLat,
+      'dropoffLng': dropoffLng,
+      'vehicleType': vehicleType,
+    });
+    final data = _data(res);
+    return (
+      distanceKm: (data['distanceKm'] as num).toDouble(),
+      priceEstimate: (data['priceEstimate'] as num).toDouble(),
+    );
   }
 
   // ---------------- Rider dispatch ----------------
@@ -652,6 +789,12 @@ class ApiClient {
     final res = await _dio.post('/rideshare/jobs/$id/complete');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
   }
+
+  /// Rider's live GPS ping while a ride is ACCEPTED/IN_PROGRESS, mirroring
+  /// PATCH /delivery/jobs/:id/location's web usage - powers the customer's
+  /// tracking map.
+  Future<void> updateRideshareRiderLocation(String id, {required double lat, required double lng}) =>
+      _dio.patch('/rideshare/jobs/$id/location', data: {'lat': lat, 'lng': lng});
 
   // ---------------- Mobile top-up / bill payment ----------------
 
@@ -793,6 +936,29 @@ class ApiClient {
     return RidePosting.fromJson(_data(res)['posting'] as Map<String, dynamic>);
   }
 
+  /// Advisory distance-based price suggestion for the posting form's
+  /// "Suggest price" action, mirroring GET /anando/fee-quote's web usage -
+  /// suggestedPrice is null when distance can't be computed (e.g. Maps key
+  /// unset), in which case callers should just leave the field untouched.
+  Future<({double? distanceKm, double? suggestedPrice})> fetchAnandoFeeQuote({
+    required double originLat,
+    required double originLng,
+    required double destinationLat,
+    required double destinationLng,
+  }) async {
+    final res = await _dio.get('/anando/fee-quote', queryParameters: {
+      'originLat': originLat,
+      'originLng': originLng,
+      'destinationLat': destinationLat,
+      'destinationLng': destinationLng,
+    });
+    final data = _data(res);
+    return (
+      distanceKm: (data['distanceKm'] as num?)?.toDouble(),
+      suggestedPrice: (data['suggestedPrice'] as num?)?.toDouble(),
+    );
+  }
+
   Future<void> cancelPosting(String id) => _dio.patch('/anando/postings/$id/cancel');
 
   Future<RidePosting> departPosting(String id) async {
@@ -800,14 +966,32 @@ class ApiClient {
     return RidePosting.fromJson(_data(res)['posting'] as Map<String, dynamic>);
   }
 
+  /// Single posting, for a booked passenger's tracking screen to poll.
+  Future<RidePosting> fetchPosting(String id) async {
+    final res = await _dio.get('/anando/postings/$id');
+    return RidePosting.fromJson(_data(res)['posting'] as Map<String, dynamic>);
+  }
+
+  /// Driver's live GPS ping once DEPARTED, mirroring PATCH
+  /// /delivery/jobs/:id/location's web usage - powers each booked
+  /// passenger's tracking map.
+  Future<void> updateAnandoDriverLocation(String id, {required double lat, required double lng}) =>
+      _dio.patch('/anando/postings/$id/location', data: {'lat': lat, 'lng': lng});
+
   /// Throws a [DioException] with the server's 409 message ("Not enough
   /// seats available") if another passenger claimed the remaining seats
   /// first - the caller should surface `error.response.data.message`.
-  Future<void> bookSeat(String postingId, {required int seatsBooked, required String paymentMethod}) =>
-      _dio.post('/anando/postings/$postingId/book', data: {
-        'seatsBooked': seatsBooked,
-        'paymentMethod': paymentMethod,
-      });
+  /// Returns the PayDunya checkout URL when [paymentMethod] is 'PAYDUNYA'
+  /// and the posting has a price (null for CASH/WALLET, which settle
+  /// synchronously server-side) - mirrors createOrder/topUpWallet's
+  /// "null means no redirect needed" contract.
+  Future<String?> bookSeat(String postingId, {required int seatsBooked, required String paymentMethod}) async {
+    final res = await _dio.post('/anando/postings/$postingId/book', data: {
+      'seatsBooked': seatsBooked,
+      'paymentMethod': paymentMethod,
+    });
+    return _data(res)['paymentUrl'] as String?;
+  }
 
   Future<void> cancelBooking(String id) => _dio.patch('/anando/bookings/$id/cancel');
 
@@ -939,6 +1123,11 @@ class ApiClient {
     return (_data(res)['orders'] as List<dynamic>)
         .map((o) => Order.fromJson(o as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<Order> updateVendorOrderStatus(String id, String status) async {
+    final res = await _dio.patch('/vendor/orders/$id/status', data: {'status': status});
+    return Order.fromJson(_data(res)['order'] as Map<String, dynamic>);
   }
 }
 

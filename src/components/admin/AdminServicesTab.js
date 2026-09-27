@@ -21,6 +21,7 @@ import {
   createAdminInsurancePlan,
   updateAdminInsurancePlan,
 } from "../../api/admin";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
 
 function MobileServicesSection() {
   const { t } = useTranslation();
@@ -62,11 +63,9 @@ function MobileServicesSection() {
 
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.services.mobileTitle")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.services.mobileTitle")} />
 
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, display: "flex", gap: 1.5, flexWrap: "wrap" }}>
         <TextField
           size="small"
           label={t("admin.services.name")}
@@ -91,40 +90,40 @@ function MobileServicesSection() {
         <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
           {t("admin.services.add")}
         </Button>
-      </Box>
+      </AdminCard>
 
-      {isLoading ? (
-        <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
-      ) : (
-        (services || []).map((s) => (
-          <Box
-            key={s.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontWeight: 700 }}>{s.name}</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {s.type}
-                {s.phonePrefixes?.length ? ` · ${s.phonePrefixes.join(", ")}` : ""}
-              </Typography>
+      <AdminCard sx={{ overflow: "hidden" }}>
+        {isLoading ? (
+          <Typography sx={{ color: "text.secondary", p: 3 }}>{t("common.loading")}</Typography>
+        ) : (
+          (services || []).map((s, idx) => (
+            <Box
+              key={s.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{s.name}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {s.type}
+                  {s.phonePrefixes?.length ? ` · ${s.phonePrefixes.join(", ")}` : ""}
+                </Typography>
+              </Box>
+              <Switch
+                checked={s.isActive}
+                onChange={(e) => toggleMutation.mutate({ id: s.id, isActive: e.target.checked })}
+              />
             </Box>
-            <Switch
-              checked={s.isActive}
-              onChange={(e) => toggleMutation.mutate({ id: s.id, isActive: e.target.checked })}
-            />
-          </Box>
-        ))
-      )}
+          ))
+        )}
+      </AdminCard>
     </Box>
   );
 }
@@ -189,9 +188,7 @@ function MobileForfaitsSection() {
 
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.services.forfaitsTitle")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.services.forfaitsTitle")} />
 
       <Select
         size="small"
@@ -218,7 +215,7 @@ function MobileForfaitsSection() {
 
       {serviceId && (
         <>
-          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
+          <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, display: "flex", gap: 1.5, flexWrap: "wrap" }}>
             <TextField size="small" label={t("admin.services.category")} value={category} onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 140 }} />
             <TextField size="small" label={t("admin.services.name")} value={name} onChange={(e) => setName(e.target.value)} sx={{ minWidth: 140 }} />
             <TextField
@@ -264,41 +261,41 @@ function MobileForfaitsSection() {
             <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
               {t("admin.services.add")}
             </Button>
-          </Box>
+          </AdminCard>
 
-          {isLoading ? (
-            <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
-          ) : (
-            (forfaits || []).map((f) => (
-              <Box
-                key={f.id}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  py: 1,
-                  px: 2,
-                  mb: 1,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 2,
-                }}
-              >
-                <Box>
-                  <Typography sx={{ fontWeight: 700 }}>
-                    {f.category} · {f.name} · {f.price} CFA
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {[f.callMinutesLabel, f.internetLabel, f.validityLabel].filter(Boolean).join(" · ")}
-                  </Typography>
+          <AdminCard sx={{ overflow: "hidden" }}>
+            {isLoading ? (
+              <Typography sx={{ color: "text.secondary", p: 3 }}>{t("common.loading")}</Typography>
+            ) : (
+              (forfaits || []).map((f, idx) => (
+                <Box
+                  key={f.id}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    py: 1.5,
+                    px: 2.5,
+                    borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                    "&:hover": { bgcolor: "#FAFBFC" },
+                  }}
+                >
+                  <Box>
+                    <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>
+                      {f.category} · {f.name} · {f.price} CFA
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      {[f.callMinutesLabel, f.internetLabel, f.validityLabel].filter(Boolean).join(" · ")}
+                    </Typography>
+                  </Box>
+                  <Switch
+                    checked={f.isActive}
+                    onChange={(e) => toggleMutation.mutate({ id: f.id, isActive: e.target.checked })}
+                  />
                 </Box>
-                <Switch
-                  checked={f.isActive}
-                  onChange={(e) => toggleMutation.mutate({ id: f.id, isActive: e.target.checked })}
-                />
-              </Box>
-            ))
-          )}
+              ))
+            )}
+          </AdminCard>
         </>
       )}
     </Box>
@@ -344,11 +341,9 @@ function InsurancePlansSection() {
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.services.insuranceTitle")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.services.insuranceTitle")} />
 
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, display: "flex", gap: 1.5, flexWrap: "wrap" }}>
         <TextField size="small" label={t("admin.services.name")} value={name} onChange={(e) => setName(e.target.value)} sx={{ minWidth: 160 }} />
         <Select size="small" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 130 }}>
           {["HEALTH", "AUTO", "HOME", "TRAVEL", "LIFE"].map((c) => (
@@ -377,30 +372,30 @@ function InsurancePlansSection() {
         <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
           {t("admin.services.add")}
         </Button>
-      </Box>
+      </AdminCard>
 
-      {isLoading ? (
-        <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
-      ) : (
-        (plans || []).map((p) => (
-          <Box
-            key={p.id}
-            sx={{
-              py: 1,
-              px: 2,
-              mb: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
-            <Typography sx={{ fontWeight: 700 }}>{p.name}</Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {p.category} · {p.provider} · {p.premiumMonthly} CFA/mo
-            </Typography>
-          </Box>
-        ))
-      )}
+      <AdminCard sx={{ overflow: "hidden" }}>
+        {isLoading ? (
+          <Typography sx={{ color: "text.secondary", p: 3 }}>{t("common.loading")}</Typography>
+        ) : (
+          (plans || []).map((p, idx) => (
+            <Box
+              key={p.id}
+              sx={{
+                py: 1.5,
+                px: 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{p.name}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                {p.category} · {p.provider} · {p.premiumMonthly} CFA/mo
+              </Typography>
+            </Box>
+          ))
+        )}
+      </AdminCard>
     </Box>
   );
 }

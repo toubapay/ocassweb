@@ -48,6 +48,16 @@ model User {
   // rejects any request from an inactive user with 403, independent of
   // whether their token is still otherwise valid.
   active       Boolean  @default(true)
+  // Admin-set override of this user's earner-share percent on whatever
+  // they're paid out for - vendorSharePercent (vendor.service.js),
+  // ownerSharePercent (restaurant.service.js), agentSharePercent
+  // (delivery.controller.js), riderSharePercent (rideshare.controller.js),
+  // or driverSharePercent (anando.service.js) - each of those falls back
+  // to the module-wide ModuleConfig default (see getModuleFeeConfig) when
+  // this is null. One field regardless of role since a user only ever
+  // earns from one context in practice, and the four *SharePercent
+  // meanings never combine on the same payout.
+  commissionSharePercent Decimal? @db.Decimal(5, 2)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -112,39 +122,59 @@ model Address {
 
 model Category {
   id       String     @id @default(uuid())
+  // Which module's browsing/grouping this category belongs to - "ecommerce"
+  // (Product.categoryId) or "restaurant" (MenuItem.categoryId) today, more
+  // as other modules adopt categories (see MODULE_OPTIONS in
+  // adminModules.js for the canonical key strings). Categories are never
+  // shared across modules; the admin panel's category tab filters by this.
+  moduleKey String    @default("ecommerce")
   name     String
-  slug     String     @unique
+  slug     String
   icon     String?
+  // Real photo shown on the discover page / home-screen category shortcuts
+  // (e.g. pages/ecommerce/index.js's quick-nav row) - `icon` above stays a
+  // separate symbolic name for the icon-registry fallback used when no
+  // photo is set, same "photo overrides a symbolic fallback" split as
+  // DeliveryPackageType's icon+colorKey vs any future photo field.
+  imageUrl String?
   parentId String?
   // Admin takedown switch (see AdminCategoriesTab.js) - hides the category
   // from public browsing/the vendor product-form dropdown without deleting
-  // it, since existing Product rows reference it by id. Any vendor can
-  // also create a category (POST /vendor/categories, always active) - this
-  // is the only way to deactivate one, deliberately admin-only.
+  // it, since existing Product rows reference it by id. Admin-managed only
+  // (there is no vendor/restaurant-owner self-serve category creation).
   isActive Boolean    @default(true)
   parent   Category?  @relation("CategoryToSubcategory", fields: [parentId], references: [id])
   children Category[] @relation("CategoryToSubcategory")
   products Product[]
+  menuItems MenuItem[]
+
+  // Slugs only need to be unique within their own module, not globally -
+  // "drinks" can exist as both an ecommerce category and a restaurant menu
+  // category.
+  @@unique([moduleKey, slug])
 }
 
 model Store {
-  id       String    @id @default(uuid())
-  name     String
-  slug     String    @unique
-  logoUrl  String?
-  address  String?
-  lat      Float?
-  lng      Float?
-  rating   Float     @default(0)
+  id         String    @id @default(uuid())
+  name       String
+  slug       String    @unique
+  logoUrl    String?
+  address    String?
+  lat        Float?
+  lng        Float?
+  rating     Float     @default(0)
   // Admin suspension switch (see AdminVendorsTab.js): suspended stores'
   // products drop out of every public product listing and the storefront
   // shows an "unavailable" state, without deleting the vendor's data.
-  isActive Boolean   @default(true)
+  isActive   Boolean   @default(true)
+  // Admin pick shown in the "Featured shops" section on the main Home
+  // Screen (see AdminVendorsTab.js) - independent of isActive.
+  isFeatured Boolean   @default(false)
   // Nullable + unique: null for admin/seed-managed stores (no self-service
   // owner), unique among non-null values so a vendor can own at most one
   // store (Postgres unique constraints allow any number of NULLs).
-  ownerId  String?   @unique
-  products Product[]
+  ownerId    String?   @unique
+  products   Product[]
 
   owner User? @relation("StoreOwner", fields: [ownerId], references: [id])
 }
@@ -168,6 +198,10 @@ model Product {
   // Public listing/detail endpoints filter this out; the vendor's own
   // product list does not.
   isActive        Boolean  @default(true)
+  // Admin-curated "Featured products" row on the Boutique home page (see
+  // AdminShowcaseTab.js) - independent of discountPercent-driven flash
+  // sale/discount sorting, a plain admin pick.
+  isFeatured      Boolean  @default(false)
   createdAt       DateTime @default(now())
 
   store      Store       @relation(fields: [storeId], references: [id])
@@ -176,6 +210,7 @@ model Product {
   orderItems OrderItem[]
   wishlist   Wishlist[]
   reviews    Review[]
+  flashSales FlashSale[] @relation("FlashSaleProducts")
 
   @@index([categoryId])
   @@index([storeId])
@@ -224,11 +259,19 @@ model Order {
   // never optimistically on order creation.
   paid              Boolean     @default(false)
   paymentId         String?     @unique
+  // Set once a vendor marks a single-store order ready and a
+  // DeliveryRequest is auto-created for it, same "hand off to the delivery
+  // module" pattern as RestaurantOrder.deliveryRequestId below - see
+  // dispatchForDelivery in vendor/vendor.controller.js. A multi-vendor
+  // order (items from more than one store) never gets one, since a single
+  // delivery pickup can only be from one physical location.
+  deliveryRequestId String?     @unique
   createdAt         DateTime    @default(now())
 
-  user            User        @relation(fields: [userId], references: [id])
-  deliveryAddress Address?    @relation(fields: [deliveryAddressId], references: [id])
-  payment         Payment?    @relation(fields: [paymentId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  deliveryAddress Address?         @relation(fields: [deliveryAddressId], references: [id])
+  payment         Payment?         @relation(fields: [paymentId], references: [id])
+  deliveryRequest DeliveryRequest? @relation(fields: [deliveryRequestId], references: [id])
   items           OrderItem[]
 }
 
@@ -308,7 +351,7 @@ enum DeliveryStatus {
 }
 
 model DeliveryRequest {
-  id              String              @id @default(uuid())
+  id              String         @id @default(uuid())
   userId          String
   // Contact details for whoever's handing off / receiving the package -
   // may differ from the requesting account (e.g. sending a package on
@@ -322,7 +365,7 @@ model DeliveryRequest {
   // admin catalog without a FK ever blocking it (deletion is instead
   // blocked at the application layer while any request still uses the
   // key - see deleteDeliveryPackageTypeAdmin).
-  packageType     String              @default("PACKAGE")
+  packageType     String         @default("PACKAGE")
   // Sender-entered, purely informational (like packageType/packageNote) -
   // no pricing logic reads this yet.
   packageWeightKg Float?
@@ -335,13 +378,13 @@ model DeliveryRequest {
   dropoffLat      Float?
   dropoffLng      Float?
   packageNote     String?
-  priceEstimate   Decimal?            @db.Decimal(10, 2)
+  priceEstimate   Decimal?       @db.Decimal(10, 2)
   // Distance used to compute priceEstimate (road distance via Google's
   // Distance Matrix API when configured, else Haversine - see
   // server/src/utils/distanceMatrix.js). Null when priceEstimate fell back
   // to the no-coordinates flat-ish random estimate.
   distanceKm      Float?
-  status          DeliveryStatus      @default(REQUESTED)
+  status          DeliveryStatus @default(REQUESTED)
   assignedAgentId String?
   // Agent's last-reported GPS position while this job is ACCEPTED/PICKED_UP
   // (see PATCH /delivery/jobs/:id/location) - powers the customer-facing
@@ -350,7 +393,7 @@ model DeliveryRequest {
   agentLat        Float?
   agentLng        Float?
   agentLocationAt DateTime?
-  createdAt       DateTime            @default(now())
+  createdAt       DateTime       @default(now())
 
   user            User             @relation("DeliveryRequester", fields: [userId], references: [id], onDelete: Cascade)
   assignedAgent   User?            @relation("DeliveryAgent", fields: [assignedAgentId], references: [id])
@@ -358,6 +401,9 @@ model DeliveryRequest {
   // restaurant order's DeliveryRequest be traced back to it (see
   // markDelivered's status cascade in delivery.controller.js).
   restaurantOrder RestaurantOrder?
+  // Same back-relation for Order.deliveryRequestId (ecommerce, single-vendor
+  // orders only - see dispatchForDelivery in vendor/vendor.controller.js).
+  order           Order?
 
   @@index([assignedAgentId])
 }
@@ -553,13 +599,19 @@ model MenuItem {
   description  String?
   price        Decimal @db.Decimal(10, 2)
   imageUrl     String?
+  // Legacy free-text category, from before admin-managed restaurant
+  // categories existed - kept only as a fallback label for old rows that
+  // predate categoryId below and were never re-categorized. New/edited
+  // items should always set categoryId instead.
   category     String?
+  categoryId   String?
   // Soft delete, mirrors Product.isActive - existing order line items
   // reference a menu item by id, so removing one from the menu flips
   // this off instead of deleting the row.
   isActive     Boolean @default(true)
 
   restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryRef Category?            @relation(fields: [categoryId], references: [id])
   orderItems RestaurantOrderItem[]
 }
 
@@ -644,6 +696,13 @@ model RideRequest {
   priceEstimate   Decimal?    @db.Decimal(10, 2)
   status          RideStatus  @default(REQUESTED)
   assignedRiderId String?
+  // Rider's live GPS ping while the trip is ACCEPTED/IN_PROGRESS (see PATCH
+  // /rideshare/jobs/:id/location) - powers the customer-facing live
+  // tracking map, same pattern as DeliveryRequest.agentLat below. Stays at
+  // its last value after COMPLETED rather than being cleared.
+  riderLat        Float?
+  riderLng        Float?
+  riderLocationAt DateTime?
   createdAt       DateTime    @default(now())
 
   user          User  @relation("RideRequester", fields: [userId], references: [id], onDelete: Cascade)
@@ -894,6 +953,13 @@ model RidePosting {
   pricePerSeat       Decimal?          @db.Decimal(10, 2)
   note               String?
   status             RidePostingStatus @default(OPEN)
+  // Driver's live GPS ping once DEPARTED (see PATCH
+  // /anando/postings/:id/location) - powers each booked passenger's live
+  // tracking map, same pattern as DeliveryRequest.agentLat below. Stays at
+  // its last value afterward rather than being cleared.
+  driverLat          Float?
+  driverLng          Float?
+  driverLocationAt   DateTime?
   createdAt          DateTime          @default(now())
 
   driver   User          @relation("RidePostingDriver", fields: [driverId], references: [id], onDelete: Cascade)
@@ -974,6 +1040,23 @@ model ModuleConfig {
   // pricing today (see estimatePrice in each controller) - other modules
   // don't have configurable fee params yet, so this stays null for them.
   feeConfig Json?
+  updatedAt DateTime @updatedAt
+}
+
+// The single admin-editable promo card on the main Home Screen (see
+// AdminHomeBannerTab.js and GET /api/home/banner) - originally a
+// hardcoded "free delivery on your first order" card. Exactly one row,
+// seeded by migration and always present, keyed the same singleton-by-
+// key way as ModuleConfig - admin.controller.js only ever fetches/updates
+// it by the fixed key "main", never creates or deletes.
+model HomeBanner {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  title     String
+  subtitle  String?
+  imageUrl  String?
+  linkUrl   String?
+  isActive  Boolean  @default(true)
   updatedAt DateTime @updatedAt
 }
 
@@ -1063,4 +1146,71 @@ model Provider {
   updatedAt DateTime @updatedAt
 
   @@index([category, isActive])
+}
+
+// Admin-configured ecommerce flash sale campaigns (see pages/ecommerce/index.js
+// and pages/index.js's flash sale sections) - drives the countdown and the
+// product set shown, replacing the old hardcoded "always-on, resets at
+// midnight" banner. A campaign is "live" only while the current time falls
+// inside its recurring window (see server/src/utils/flashSaleSchedule.js);
+// outside that window it's simply not shown, rather than displaying a
+// "starts in..." teaser. Scoped to the ecommerce module only - Restaurant
+// menu items have no discount concept to run a flash sale off of.
+enum FlashSaleRecurrence {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum FlashSaleSelectionMode {
+  AUTO
+  MANUAL
+}
+
+model FlashSale {
+  id              String                 @id @default(uuid())
+  title           String
+  selectionMode   FlashSaleSelectionMode @default(AUTO)
+  recurrenceType  FlashSaleRecurrence    @default(DAILY)
+  // "HH:mm" 24h, interpreted on the server's UTC clock - Senegal is UTC+0
+  // year-round (no DST), so this doubles as Africa/Dakar wall-clock time
+  // with no conversion needed.
+  startTime       String
+  endTime         String
+  // WEEKLY only: 0=Sunday..6=Saturday. MONTHLY only: 1-31 (a 31 on a
+  // shorter month simply never occurs that month - no clamping).
+  dayOfWeek       Int?
+  dayOfMonth      Int?
+  onHomeScreen    Boolean                @default(false)
+  onEcommerceHome Boolean                @default(true)
+  isActive        Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  // MANUAL mode only - ignored (may be empty) for AUTO, which instead
+  // queries top-discounted products live at request time.
+  products Product[] @relation("FlashSaleProducts")
+}
+
+// Admin-managed rotating banner on the Boutique (ecommerce) home page (see
+// AdminShowcaseTab.js / pages/ecommerce/index.js's ProductShowcaseCarousel)
+// - distinct from HeroBanner.js's hardcoded app-wide promo carousel, this
+// one is backend-driven and typically points at real products/categories.
+model ShowcaseSlide {
+  id        String   @id @default(uuid())
+  // Same per-module scoping as Category.moduleKey above - which home
+  // screen's carousel this slide appears in ("ecommerce" for the Boutique
+  // home, "restaurant" for a restaurant's menu page, etc).
+  moduleKey String   @default("ecommerce")
+  title     String
+  subtitle  String?
+  imageUrl  String
+  // Relative in-app path (e.g. "/ecommerce/product/some-slug" or
+  // "/ecommerce/electronics") - not validated as an absolute URL since it
+  // isn't one; left null the slide simply isn't clickable.
+  linkUrl   String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

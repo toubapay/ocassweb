@@ -2,10 +2,67 @@ const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const { MODULE_KEYS } = require("../../constants/modules");
 const { uniqueSlug } = require("../../utils/slugify");
+const { getModuleFeeConfig } = require("../../utils/feeConfig");
 
 // ---------------- Users ----------------
 
 const USER_ROLES = ["CUSTOMER", "VENDOR", "RESTAURANT_OWNER", "RIDER", "DELIVERY_AGENT", "ADMIN"];
+
+// Which module/share-percent a user's commissionSharePercent override
+// applies to, keyed by their primary role - used only to show the
+// platform-wide default it would otherwise fall back to (see
+// User.commissionSharePercent's comment in schema.prisma for why this is
+// one field covering every *SharePercent). Anando driving isn't role-
+// gated (any user can post a ride), so it has no entry here - the detail
+// page notes it separately rather than picking one context per role.
+const ROLE_COMMISSION_CONTEXT = {
+  VENDOR: { moduleKey: "vendor", shareField: "vendorSharePercent", default: 85 },
+  RESTAURANT_OWNER: { moduleKey: "restaurant", shareField: "ownerSharePercent", default: 85 },
+  DELIVERY_AGENT: { moduleKey: "delivery", shareField: "agentSharePercent", default: 80 },
+  RIDER: { moduleKey: "rideshare", shareField: "riderSharePercent", default: 80 },
+};
+const ANANDO_DEFAULT_DRIVER_SHARE = 85;
+
+const userDetailSelect = {
+  id: true,
+  phone: true,
+  name: true,
+  email: true,
+  role: true,
+  active: true,
+  createdAt: true,
+  commissionSharePercent: true,
+  store: { select: { id: true, name: true, isActive: true } },
+  restaurant: { select: { id: true, name: true, isActive: true } },
+  _count: { select: { assignedDeliveries: true, assignedRides: true, ridePostings: true, orders: true } },
+};
+
+async function getUser(req, res, next) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id }, select: userDetailSelect });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const context = ROLE_COMMISSION_CONTEXT[user.role];
+    const [roleDefault, anandoConfig] = await Promise.all([
+      context
+        ? getModuleFeeConfig(context.moduleKey, { [context.shareField]: context.default }).then(
+            (c) => c[context.shareField]
+          )
+        : Promise.resolve(null),
+      getModuleFeeConfig("anando", { driverSharePercent: ANANDO_DEFAULT_DRIVER_SHARE }),
+    ]);
+
+    res.json({
+      user: {
+        ...user,
+        defaultCommissionSharePercent: roleDefault,
+        defaultAnandoDriverSharePercent: anandoConfig.driverSharePercent,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
 
 async function listUsers(req, res, next) {
   try {
@@ -54,6 +111,9 @@ async function listUsers(req, res, next) {
 const updateUserSchema = z.object({
   role: z.enum(USER_ROLES).optional(),
   active: z.boolean().optional(),
+  // Null clears the override back to the module's platform-wide default;
+  // omit the field entirely to leave it untouched.
+  commissionSharePercent: z.number().min(0).max(100).nullable().optional(),
 });
 
 async function updateUser(req, res, next) {
@@ -73,6 +133,7 @@ async function updateUser(req, res, next) {
         role: true,
         active: true,
         createdAt: true,
+        commissionSharePercent: true,
       },
     });
     res.json({ user });
@@ -294,7 +355,8 @@ async function listVendorStores(req, res, next) {
 }
 
 const updateVendorStoreSchema = z.object({
-  isActive: z.boolean(),
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 async function updateVendorStore(req, res, next) {
@@ -431,24 +493,32 @@ async function deleteZone(req, res, next) {
   }
 }
 
-// ---------------- Categories (ecommerce product catalog) ----------------
-// Any vendor can also create a category (POST /vendor/categories, always
-// active, no parent restriction) - this section is what lets an admin
-// additionally edit one (rename, re-parent, change icon) or take it down.
-// No delete: existing Product rows reference a category by id, so isActive
-// is the retire/hide lever, same as every other catalog entity in the app.
+// ---------------- Categories (per-module: ecommerce, restaurant, ...) ----------------
+// Admin-managed grouping used by product/menu-item browsing - see
+// moduleKey on the Category model in schema.prisma. Categories are never
+// shared across modules; every list/create call is scoped to one moduleKey
+// (default "ecommerce" for backward compatibility with the web admin's
+// original ecommerce-only category tab). No delete: existing Product/
+// MenuItem rows reference a category by id, so isActive is the retire/hide
+// lever, same as every other catalog entity in the app.
+
+const CATEGORY_MODULE_KEYS = ["ecommerce", "restaurant"];
 
 const categorySchema = z.object({
+  moduleKey: z.enum(CATEGORY_MODULE_KEYS).optional(),
   name: z.string().min(2),
   parentId: z.string().uuid().optional().nullable(),
   icon: z.string().optional(),
+  imageUrl: z.string().url().optional().or(z.literal("")),
   isActive: z.boolean().optional(),
 });
 
 async function listCategoriesAdmin(req, res, next) {
   try {
+    const moduleKey = req.query.moduleKey || "ecommerce";
     const categories = await prisma.category.findMany({
-      include: { parent: { select: { id: true, name: true } }, _count: { select: { products: true } } },
+      where: { moduleKey },
+      include: { parent: { select: { id: true, name: true } }, _count: { select: { products: true, menuItems: true } } },
       orderBy: [{ parentId: "asc" }, { name: "asc" }],
     });
     res.json({ categories });
@@ -460,16 +530,26 @@ async function listCategoriesAdmin(req, res, next) {
 async function createCategoryAdmin(req, res, next) {
   try {
     const data = categorySchema.parse(req.body);
+    const moduleKey = data.moduleKey || "ecommerce";
     if (data.parentId) {
       const parent = await prisma.category.findUnique({ where: { id: data.parentId } });
-      if (!parent) return res.status(400).json({ message: "Unknown parent category" });
+      if (!parent || parent.moduleKey !== moduleKey) {
+        return res.status(400).json({ message: "Unknown parent category" });
+      }
     }
     const slug = await uniqueSlug(
       data.name,
-      (s) => prisma.category.findUnique({ where: { slug: s } }).then(Boolean)
+      (s) => prisma.category.findUnique({ where: { moduleKey_slug: { moduleKey, slug: s } } }).then(Boolean)
     );
     const category = await prisma.category.create({
-      data: { name: data.name, slug, parentId: data.parentId || null, icon: data.icon || null },
+      data: {
+        moduleKey,
+        name: data.name,
+        slug,
+        parentId: data.parentId || null,
+        icon: data.icon || null,
+        imageUrl: data.imageUrl || null,
+      },
     });
     res.status(201).json({ category });
   } catch (err) {
@@ -479,7 +559,8 @@ async function createCategoryAdmin(req, res, next) {
 
 async function updateCategoryAdmin(req, res, next) {
   try {
-    const data = categorySchema.partial().parse(req.body);
+    const { moduleKey, ...rest } = categorySchema.partial().parse(req.body);
+    const data = rest;
     if (data.parentId) {
       if (data.parentId === req.params.id) {
         return res.status(400).json({ message: "A category can't be its own parent" });
@@ -493,6 +574,7 @@ async function updateCategoryAdmin(req, res, next) {
         ...data,
         ...(data.parentId !== undefined ? { parentId: data.parentId || null } : {}),
         ...(data.icon !== undefined ? { icon: data.icon || null } : {}),
+        ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl || null } : {}),
       },
     });
     res.json({ category });
@@ -871,6 +953,238 @@ async function listAutoInsurancePolicies(req, res, next) {
   }
 }
 
+// ---------------- Showcase slides (per-module: ecommerce, restaurant, ...) ----------------
+// Each module's home-page rotating banner (see moduleKey on ShowcaseSlide in
+// schema.prisma, showcaseSlides.controller.js for the public read, and
+// AdminShowcaseTab.js on web). No schedule concept, unlike FlashSale -
+// isActive alone decides whether a slide shows. Default moduleKey
+// "ecommerce" for backward compatibility with the web admin's original
+// ecommerce-only showcase tab.
+
+const showcaseSlideSchema = z.object({
+  moduleKey: z.enum(CATEGORY_MODULE_KEYS).optional(),
+  title: z.string().min(1),
+  subtitle: z.string().optional(),
+  imageUrl: z.string().url(),
+  linkUrl: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+
+async function listShowcaseSlidesAdmin(req, res, next) {
+  try {
+    const moduleKey = req.query.moduleKey || "ecommerce";
+    const slides = await prisma.showcaseSlide.findMany({ where: { moduleKey }, orderBy: { sortOrder: "asc" } });
+    res.json({ slides });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createShowcaseSlideAdmin(req, res, next) {
+  try {
+    const data = showcaseSlideSchema.parse(req.body);
+    const slide = await prisma.showcaseSlide.create({ data: { ...data, moduleKey: data.moduleKey || "ecommerce" } });
+    res.status(201).json({ slide });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateShowcaseSlideAdmin(req, res, next) {
+  try {
+    const { moduleKey, ...data } = showcaseSlideSchema.partial().parse(req.body);
+    const slide = await prisma.showcaseSlide.update({ where: { id: req.params.id }, data });
+    res.json({ slide });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteShowcaseSlideAdmin(req, res, next) {
+  try {
+    await prisma.showcaseSlide.delete({ where: { id: req.params.id } });
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------- Home banner ----------------
+// The single promo card on the main Home Screen (originally a hardcoded
+// "free delivery on your first order" card, now admin-editable image +
+// title + subtitle) - see AdminHomeBannerTab.js and GET /api/home/banner
+// for the public read. Exactly one row, seeded by migration and always
+// present (same singleton-by-key pattern as ModuleConfig) - no create/
+// delete, just fetch + update.
+const HOME_BANNER_KEY = "main";
+
+const updateHomeBannerSchema = z.object({
+  title: z.string().min(1).optional(),
+  subtitle: z.string().optional(),
+  imageUrl: z.string().url().optional().or(z.literal("")),
+  linkUrl: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+async function getHomeBannerAdmin(req, res, next) {
+  try {
+    const banner = await prisma.homeBanner.findUnique({ where: { key: HOME_BANNER_KEY } });
+    res.json({ banner });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateHomeBannerAdmin(req, res, next) {
+  try {
+    const data = updateHomeBannerSchema.parse(req.body);
+    const banner = await prisma.homeBanner.update({
+      where: { key: HOME_BANNER_KEY },
+      data: {
+        ...data,
+        ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl || null } : {}),
+      },
+    });
+    res.json({ banner });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------- Featured products (ecommerce module only) ----------------
+// Admin has no general product-management surface (vendors own that, see
+// vendor.controller.js's updateProduct - gated to the vendor themselves,
+// not usable by admin) - this is the one product field admin can flip,
+// purely to curate the "Featured products" row (see AdminShowcaseTab.js
+// and GET /ecommerce/products?featured=true). The admin UI searches for
+// products via the existing public products endpoint (same pattern
+// AdminFlashSalesTab's manual-mode picker already uses) rather than a
+// separate admin search endpoint.
+
+const productFeaturedSchema = z.object({
+  isFeatured: z.boolean(),
+});
+
+async function updateProductFeaturedAdmin(req, res, next) {
+  try {
+    const data = productFeaturedSchema.parse(req.body);
+    const product = await prisma.product.update({
+      where: { id: req.params.id },
+      data,
+      include: { category: true, store: true },
+    });
+    res.json({ product });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------- Flash sales (ecommerce module only) ----------------
+// See FlashSale in schema.prisma and flashSaleSchedule.js for how the
+// recurring schedule is evaluated. `productIds` here is only meaningful
+// for selectionMode "MANUAL" - AUTO campaigns ignore it and the public
+// endpoint (flashSales.controller.js) queries top-discounted products
+// live instead.
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const flashSaleSchema = z.object({
+  title: z.string().min(2),
+  selectionMode: z.enum(["AUTO", "MANUAL"]).optional(),
+  recurrenceType: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).optional(),
+  startTime: z.string().regex(TIME_RE, "Expected HH:mm"),
+  endTime: z.string().regex(TIME_RE, "Expected HH:mm"),
+  dayOfWeek: z.number().int().min(0).max(6).optional().nullable(),
+  dayOfMonth: z.number().int().min(1).max(31).optional().nullable(),
+  onHomeScreen: z.boolean().optional(),
+  onEcommerceHome: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  productIds: z.array(z.string()).optional(),
+});
+
+const FLASH_SALE_INCLUDE = {
+  products: { select: { id: true, name: true, images: true, discountPercent: true, price: true } },
+};
+
+async function listFlashSalesAdmin(req, res, next) {
+  try {
+    const flashSales = await prisma.flashSale.findMany({
+      orderBy: { createdAt: "desc" },
+      include: FLASH_SALE_INCLUDE,
+    });
+    res.json({ flashSales });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createFlashSaleAdmin(req, res, next) {
+  try {
+    const data = flashSaleSchema.parse(req.body);
+    if (data.endTime <= data.startTime) {
+      return res.status(400).json({ message: "endTime must be after startTime" });
+    }
+    const recurrenceType = data.recurrenceType || "DAILY";
+    if (recurrenceType === "WEEKLY" && data.dayOfWeek == null) {
+      return res.status(400).json({ message: "dayOfWeek is required for weekly recurrence" });
+    }
+    if (recurrenceType === "MONTHLY" && data.dayOfMonth == null) {
+      return res.status(400).json({ message: "dayOfMonth is required for monthly recurrence" });
+    }
+    const { productIds, ...rest } = data;
+    const flashSale = await prisma.flashSale.create({
+      data: {
+        ...rest,
+        recurrenceType,
+        selectionMode: data.selectionMode || "AUTO",
+        ...(productIds?.length ? { products: { connect: productIds.map((id) => ({ id })) } } : {}),
+      },
+      include: FLASH_SALE_INCLUDE,
+    });
+    res.status(201).json({ flashSale });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateFlashSaleAdmin(req, res, next) {
+  try {
+    const data = flashSaleSchema.partial().parse(req.body);
+    if (data.startTime && data.endTime && data.endTime <= data.startTime) {
+      return res.status(400).json({ message: "endTime must be after startTime" });
+    }
+    const recurrenceType = data.recurrenceType;
+    if (recurrenceType === "WEEKLY" && data.dayOfWeek == null) {
+      return res.status(400).json({ message: "dayOfWeek is required for weekly recurrence" });
+    }
+    if (recurrenceType === "MONTHLY" && data.dayOfMonth == null) {
+      return res.status(400).json({ message: "dayOfMonth is required for monthly recurrence" });
+    }
+    const { productIds, ...rest } = data;
+    const flashSale = await prisma.flashSale.update({
+      where: { id: req.params.id },
+      data: {
+        ...rest,
+        ...(productIds !== undefined ? { products: { set: productIds.map((id) => ({ id })) } } : {}),
+      },
+      include: FLASH_SALE_INCLUDE,
+    });
+    res.json({ flashSale });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteFlashSaleAdmin(req, res, next) {
+  try {
+    await prisma.flashSale.delete({ where: { id: req.params.id } });
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---------------- Dashboard stats ----------------
 
 async function getStats(req, res, next) {
@@ -909,6 +1223,7 @@ async function getStats(req, res, next) {
 
 module.exports = {
   listUsers,
+  getUser,
   updateUser,
   listModules,
   updateModule,
@@ -943,5 +1258,16 @@ module.exports = {
   createInsurancePlan,
   updateInsurancePlan,
   listAutoInsurancePolicies,
+  listShowcaseSlidesAdmin,
+  createShowcaseSlideAdmin,
+  updateShowcaseSlideAdmin,
+  deleteShowcaseSlideAdmin,
+  getHomeBannerAdmin,
+  updateHomeBannerAdmin,
+  updateProductFeaturedAdmin,
+  listFlashSalesAdmin,
+  createFlashSaleAdmin,
+  updateFlashSaleAdmin,
+  deleteFlashSaleAdmin,
   getStats,
 };

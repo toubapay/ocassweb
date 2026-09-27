@@ -6,13 +6,17 @@ import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/restaurant.dart';
+import '../../models/showcase_slide.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/product_showcase_carousel.dart';
 import '../../widgets/top_bar.dart';
 
 /// Matches pages/restaurant/[slug].js: a per-restaurant quantity cart with
 /// no persistent server-side cart - the whole item list is submitted as one
-/// order at once.
+/// order at once. Menu items are grouped by their admin-managed category
+/// (categoryRef, restaurant-scoped - see AdminCategoriesTab.js on web), and
+/// a "Vitrine" showcase carousel is shown right after the menu.
 class RestaurantDetailScreen extends StatefulWidget {
   final String slug;
   const RestaurantDetailScreen({super.key, required this.slug});
@@ -21,8 +25,28 @@ class RestaurantDetailScreen extends StatefulWidget {
   State<RestaurantDetailScreen> createState() => _RestaurantDetailScreenState();
 }
 
+/// Groups already-sorted (categoryRef.name asc, name asc) menu items into
+/// sections, keeping uncategorized items in an unlabeled section first.
+List<MapEntry<String?, List<MenuItem>>> _groupByCategory(List<MenuItem> menuItems) {
+  final groups = <MapEntry<String?, List<MenuItem>>>[];
+  String? currentKey;
+  List<MenuItem>? currentItems;
+  for (final item in menuItems) {
+    final key = item.categoryRef?.id;
+    final name = item.categoryRef?.name;
+    if (currentItems == null || currentKey != key) {
+      currentKey = key;
+      currentItems = <MenuItem>[];
+      groups.add(MapEntry(name, currentItems));
+    }
+    currentItems.add(item);
+  }
+  return groups;
+}
+
 class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   late final Future<Restaurant> _future;
+  late final Future<List<ShowcaseSlide>> _showcaseFuture;
   final Map<String, int> _quantities = {};
   bool _placing = false;
 
@@ -30,6 +54,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   void initState() {
     super.initState();
     _future = apiClient.fetchRestaurant(widget.slug);
+    _showcaseFuture = apiClient.fetchRestaurantShowcaseSlides();
   }
 
   void _setQuantity(String menuItemId, int quantity) {
@@ -97,72 +122,85 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                   Text('${restaurant.cuisine ?? ''} · ${restaurant.address ?? ''}',
                       style: const TextStyle(color: AppColors.textSecondary)),
                   const SizedBox(height: 16),
-                  ...restaurant.menuItems.map((item) {
-                    final qty = _quantities[item.id] ?? 0;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.divider), borderRadius: BorderRadius.circular(14)),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: SizedBox(
-                              width: 56,
-                              height: 56,
-                              child: item.imageUrl != null
-                                  ? Image.network(item.imageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(color: AppColors.background))
-                                  : Container(color: AppColors.background),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(item.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                                Text(formatCfa(item.price),
-                                    style: const TextStyle(fontWeight: FontWeight.w800)),
-                              ],
-                            ),
-                          ),
-                          if (qty == 0)
-                            OutlinedButton(
-                              onPressed: () => _setQuantity(item.id, 1),
-                              child: Text(context.t('restaurant.detail.add')),
-                            )
-                          else
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.divider),
-                                borderRadius: BorderRadius.circular(10),
+                  for (final group in _groupByCategory(restaurant.menuItems)) ...[
+                    if (group.key != null) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(group.key!, style: const TextStyle(fontWeight: FontWeight.w800)),
+                      ),
+                    ],
+                    ...group.value.map((item) {
+                      final qty = _quantities[item.id] ?? 0;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.divider), borderRadius: BorderRadius.circular(14)),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                width: 56,
+                                height: 56,
+                                child: item.imageUrl != null
+                                    ? Image.network(item.imageUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(color: AppColors.background))
+                                    : Container(color: AppColors.background),
                               ),
-                              child: Row(
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  IconButton(
-                                    iconSize: 18,
-                                    icon: const Icon(Icons.remove_rounded),
-                                    onPressed: () => _setQuantity(item.id, qty - 1),
-                                  ),
-                                  Text('$qty', style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  IconButton(
-                                    iconSize: 18,
-                                    icon: const Icon(Icons.add_rounded),
-                                    onPressed: () => _setQuantity(item.id, qty + 1),
-                                  ),
+                                  Text(item.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  Text(formatCfa(item.price),
+                                      style: const TextStyle(fontWeight: FontWeight.w800)),
                                 ],
                               ),
                             ),
-                        ],
-                      ),
-                    );
-                  }),
+                            if (qty == 0)
+                              OutlinedButton(
+                                onPressed: () => _setQuantity(item.id, 1),
+                                child: Text(context.t('restaurant.detail.add')),
+                              )
+                            else
+                              Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: AppColors.divider),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    IconButton(
+                                      iconSize: 18,
+                                      icon: const Icon(Icons.remove_rounded),
+                                      onPressed: () => _setQuantity(item.id, qty - 1),
+                                    ),
+                                    Text('$qty', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                    IconButton(
+                                      iconSize: 18,
+                                      icon: const Icon(Icons.add_rounded),
+                                      onPressed: () => _setQuantity(item.id, qty + 1),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                  FutureBuilder<List<ShowcaseSlide>>(
+                    future: _showcaseFuture,
+                    builder: (context, showcaseSnapshot) =>
+                        ProductShowcaseCarousel(slides: showcaseSnapshot.data ?? const []),
+                  ),
                 ],
               ),
               if (itemCount > 0)

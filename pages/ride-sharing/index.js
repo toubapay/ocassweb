@@ -11,8 +11,10 @@ import IconButton from "@mui/material/IconButton";
 import MyLocationRoundedIcon from "@mui/icons-material/MyLocationRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
+import LiveTrackingMap from "../../src/components/maps/LiveTrackingMap";
+import DeliveryDistancePriceCard from "../../src/components/delivery/DeliveryDistancePriceCard";
 import useAuth from "../../src/hooks/useAuth";
-import { fetchMyRides, createRideRequest, cancelRide } from "../../src/api/modules";
+import { fetchMyRides, createRideRequest, cancelRide, fetchRideshareFeeQuote } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
 
 const VEHICLES = ["MOTO", "ECONOMY", "COMFORT"];
@@ -29,6 +31,23 @@ export default function RideSharing() {
   const [vehicleType, setVehicleType] = useState("ECONOMY");
 
   const { data: rides } = useQuery("my-rides", fetchMyRides, { enabled: isAuthenticated });
+
+  // Live distance + price preview, called as soon as both pickup and
+  // dropoff have real coordinates - mirrors delivery's fee-quote preview
+  // (pages/delivery/index.js), re-fetched per vehicle type since price
+  // depends on it.
+  const { data: feeQuote } = useQuery(
+    ["rideshare-fee-quote", pickupCoords, dropoffCoords, vehicleType],
+    () =>
+      fetchRideshareFeeQuote({
+        pickupLat: pickupCoords.lat,
+        pickupLng: pickupCoords.lng,
+        dropoffLat: dropoffCoords.lat,
+        dropoffLng: dropoffCoords.lng,
+        vehicleType,
+      }),
+    { enabled: Boolean(pickupCoords && dropoffCoords) }
+  );
 
   // Alternative to picking a real Places suggestion in the pickup field
   // below (AddressAutocompleteField.js) - the device's actual GPS position
@@ -153,6 +172,17 @@ export default function RideSharing() {
           ))}
         </Box>
 
+        {pickupCoords && dropoffCoords && (
+          <Box sx={{ mb: 2.5 }}>
+            <LiveTrackingMap pickup={pickupCoords} dropoff={dropoffCoords} height={200} />
+            {feeQuote && (
+              <Box sx={{ mt: 1 }}>
+                <DeliveryDistancePriceCard distanceKm={feeQuote.distanceKm} priceEstimate={feeQuote.priceEstimate} />
+              </Box>
+            )}
+          </Box>
+        )}
+
         <Button
           variant="contained"
           fullWidth
@@ -172,7 +202,11 @@ export default function RideSharing() {
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
             {rides.map((r) => (
-              <Box key={r.id} sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1.5 }}>
+              <Box
+                key={r.id}
+                onClick={() => router.push(`/ride-sharing/track/${r.id}`)}
+                sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1.5, cursor: "pointer" }}
+              >
                 <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {r.pickupAddress} → {r.dropoffAddress}
@@ -188,7 +222,10 @@ export default function RideSharing() {
                       size="small"
                       color="error"
                       disabled={cancelMutation.isLoading}
-                      onClick={() => cancelMutation.mutate(r.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelMutation.mutate(r.id);
+                      }}
                       sx={{ fontWeight: 700, minWidth: 0, p: 0 }}
                     >
                       {t("rideSharing.cancel")}

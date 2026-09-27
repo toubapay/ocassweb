@@ -20,11 +20,11 @@ const Map<String, Color> _statusColors = {
 };
 
 /// Mirrors pages/ecommerce/orders/[id].js - a single order's full detail
-/// (items, delivery address, fee/tax/total breakdown). No status track
-/// like the restaurant/delivery detail screens: ecommerce Order status
-/// only ever reaches CONFIRMED today (no vendor fulfillment-progress
-/// endpoint exists yet), so a multi-step tracker here would imply
-/// progress the backend can't actually report.
+/// (items, delivery address, fee/tax/total breakdown), plus the same
+/// "Track" button restaurant orders get once a single-vendor order is
+/// dispatched to a real DeliveryRequest (see dispatchForDelivery in
+/// vendor/vendor.controller.js) - kept reachable for the life of the
+/// order, not just while OUT_FOR_DELIVERY.
 class OrderDetailScreen extends StatefulWidget {
   final String orderId;
   const OrderDetailScreen({super.key, required this.orderId});
@@ -137,6 +137,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             Text(
               order.deliveryAddressLabel != null ? '${order.deliveryAddressLabel} - $address' : address,
               style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ],
+          if (order.deliveryRequestId != null) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/delivery/track/${order.deliveryRequestId}'),
+                icon: const Icon(Icons.location_on_rounded),
+                label: Text(context.t('ecommerce.orders.track')),
+              ),
             ),
           ],
           const SizedBox(height: 16),

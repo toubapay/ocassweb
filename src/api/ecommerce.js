@@ -9,6 +9,17 @@ export const fetchProducts = (params = {}) =>
 export const fetchProduct = (slug) =>
   apiClient.get(`/ecommerce/products/${slug}`).then((res) => res.data.product);
 
+// Currently-live flash sale (if any) for a placement - "home" (main Home
+// Screen) or "ecommerce" (discover page). Never errors on "none live";
+// resolves to null instead.
+export const fetchActiveFlashSale = (placement) =>
+  apiClient
+    .get("/ecommerce/flash-sales/active", { params: { placement } })
+    .then((res) => res.data.flashSale);
+
+export const fetchShowcaseSlides = () =>
+  apiClient.get("/ecommerce/showcase-slides").then((res) => res.data.slides);
+
 export const fetchCart = () =>
   apiClient.get("/ecommerce/cart").then((res) => res.data.items);
 

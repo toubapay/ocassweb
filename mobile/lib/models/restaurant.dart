@@ -1,3 +1,5 @@
+import 'category.dart';
+
 double _parseDecimal(dynamic value) => double.parse(value.toString());
 
 class MenuItem {
@@ -6,7 +8,12 @@ class MenuItem {
   final String? description;
   final double price;
   final String? imageUrl;
+  // Legacy free-text category, from before admin-managed restaurant
+  // categories existed - kept only as a fallback label for old rows that
+  // predate categoryId/categoryRef below. New/edited items use categoryId.
   final String? category;
+  final String? categoryId;
+  final Category? categoryRef;
   final bool isActive;
 
   MenuItem({
@@ -16,6 +23,8 @@ class MenuItem {
     required this.price,
     this.imageUrl,
     this.category,
+    this.categoryId,
+    this.categoryRef,
     this.isActive = true,
   });
 
@@ -26,6 +35,10 @@ class MenuItem {
         price: _parseDecimal(json['price']),
         imageUrl: json['imageUrl'] as String?,
         category: json['category'] as String?,
+        categoryId: json['categoryId'] as String?,
+        categoryRef: json['categoryRef'] != null
+            ? Category.fromJson(json['categoryRef'] as Map<String, dynamic>)
+            : null,
         isActive: json['isActive'] as bool? ?? true,
       );
 }

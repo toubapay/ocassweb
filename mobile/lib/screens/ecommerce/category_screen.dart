@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
 import '../../l10n/app_localizations.dart';
@@ -161,31 +162,34 @@ class _CategoryScreenState extends State<CategoryScreen> with SingleTickerProvid
         return ListView(
           padding: const EdgeInsets.all(16),
           children: stores.values.map((store) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.divider),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundImage: store.logoUrl != null ? NetworkImage(store.logoUrl!) : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(store.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        Text('${store.rating.toStringAsFixed(1)} ★',
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                      ],
+            return GestureDetector(
+              onTap: () => context.push('/store/${store.slug}'),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.divider),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundImage: store.logoUrl != null ? NetworkImage(store.logoUrl!) : null,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(store.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          Text('${store.rating.toStringAsFixed(1)} ★',
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }).toList(),

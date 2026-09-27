@@ -2,6 +2,7 @@ const { Router } = require("express");
 const { requireAuth, requireStoreOwner } = require("../../middleware/auth");
 const {
   getStoreBySlug,
+  listStores,
   getMyStore,
   createStore,
   updateStore,
@@ -10,12 +11,15 @@ const {
   updateProduct,
   deactivateProduct,
   listMyOrders,
+  updateOrderStatus,
 } = require("./vendor.controller");
 
 const router = Router();
 
 // Public - before the auth gate below, for shoppers browsing a vendor's
-// storefront (see pages/store/[slug].js).
+// storefront (see pages/store/[slug].js) or the main Home Screen's
+// "Featured shops" section.
+router.get("/stores", listStores);
 router.get("/stores/:slug", getStoreBySlug);
 
 router.use(requireAuth);
@@ -38,5 +42,6 @@ router.patch("/products/:id", updateProduct);
 router.delete("/products/:id", deactivateProduct);
 
 router.get("/orders", listMyOrders);
+router.patch("/orders/:id/status", updateOrderStatus);
 
 module.exports = router;

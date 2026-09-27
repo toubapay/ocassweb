@@ -32,6 +32,20 @@ export default function AddressAutocompleteField({
   const autocompleteRef = useRef(null);
   const status = useGoogleMaps();
 
+  // The `place_changed` listener below is attached once (recreating the
+  // underlying Google Autocomplete widget on every render would be
+  // wasteful/flickery), but callers - typically `onTextChange={(v) =>
+  // setForm({ ...form, field: v })}` - pass a fresh closure every render
+  // that captures that render's `form`. Routing the listener through refs
+  // updated on every render, rather than closing over the props directly,
+  // means it always calls the *latest* closure instead of the one from
+  // whichever render first set the listener up - otherwise, selecting a
+  // suggestion resets every other field back to its value at mount time.
+  const onTextChangeRef = useRef(onTextChange);
+  const onPlaceSelectedRef = useRef(onPlaceSelected);
+  onTextChangeRef.current = onTextChange;
+  onPlaceSelectedRef.current = onPlaceSelected;
+
   useEffect(() => {
     if (status !== "ready" || !inputRef.current || autocompleteRef.current) return;
     const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
@@ -44,11 +58,11 @@ export default function AddressAutocompleteField({
       const location = place.geometry?.location;
       if (!location) return; // user hit Enter on free text with no match
       const address = place.formatted_address || place.name || "";
-      onTextChange(address);
-      onPlaceSelected({ address, lat: location.lat(), lng: location.lng() });
+      onTextChangeRef.current(address);
+      onPlaceSelectedRef.current({ address, lat: location.lat(), lng: location.lng() });
     });
     autocompleteRef.current = autocomplete;
-  }, [status, onTextChange, onPlaceSelected]);
+  }, [status]);
 
   return (
     <TextField

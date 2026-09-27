@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/mobile_fee_quote.dart';
 import '../../models/mobile_service.dart';
 import '../../models/mobile_transaction.dart';
 import '../../providers/auth_provider.dart';
@@ -98,6 +99,11 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
       return;
     }
     _requireLogin(() async {
+      final confirmed = await _showBillConfirmSheet(
+        serviceId: _billServiceId!,
+        amount: _billAmount!,
+      );
+      if (confirmed != true || !mounted) return;
       setState(() => _submittingBill = true);
       try {
         final tx = await apiClient.createBillPayment(
@@ -122,6 +128,107 @@ class _TopupScreenState extends State<TopupScreen> with SingleTickerProviderStat
         if (mounted) setState(() => _submittingBill = false);
       }
     });
+  }
+
+  /// Fetches the real fee/TVA-inclusive quote before showing the total, so
+  /// this sheet never displays a number different from what actually gets
+  /// charged - mirrors topup_airtime_amount_screen.dart's _showConfirmSheet.
+  Future<bool?> _showBillConfirmSheet({required String serviceId, required double amount}) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) => FutureBuilder<MobileFeeQuote>(
+        future: apiClient.fetchMobileFeeQuote(serviceId: serviceId, amount: amount),
+        builder: (context, snapshot) {
+          final quote = snapshot.data;
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(sheetContext.t('topup.bill.confirmTitle'),
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                    IconButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(false),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(sheetContext.t('topup.bill.accountNumber'),
+                        style: const TextStyle(color: AppColors.textSecondary)),
+                    Text(_accountController.text.trim(),
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+                if (quote != null && (quote.feeAmount > 0 || quote.taxAmount > 0)) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(sheetContext.t('topup.bill.subtotal'),
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      Text(formatCfa(quote.subtotal), style: const TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                  if (quote.feeAmount > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(sheetContext.t('topup.airtime.fee'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                        Text(formatCfa(quote.feeAmount), style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ],
+                  if (quote.taxAmount > 0) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(sheetContext.t('admin.serviceFees.tva'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                        Text(formatCfa(quote.taxAmount), style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(sheetContext.t('topup.bill.total'),
+                        style: const TextStyle(color: AppColors.textSecondary)),
+                    Text(
+                      quote == null ? sheetContext.t('common.loading') : formatCfa(quote.total),
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: quote == null ? null : () => Navigator.of(sheetContext).pop(true),
+                    child: Text(sheetContext.t('topup.bill.confirm')),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override

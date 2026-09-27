@@ -6,6 +6,7 @@
     "save": "Enregistrer",
     "logIn": "Se connecter",
     "logInToContinue": "Connectez-vous pour continuer",
+    "sessionExpired": "Votre session a expiré - reconnectez-vous",
     "backToCart": "Retour au panier",
     "startShopping": "Commencer les achats",
     "note": "Remarque",
@@ -85,8 +86,7 @@
     "greeting": "{{name}}, voici pour vous",
     "exploreOcass": "Explorer Ocass",
     "popularRightNow": "Populaire en ce moment",
-    "freeDeliveryTitle": "Livraison gratuite pour votre première commande",
-    "freeDeliverySubtitle": "Offre appliquée automatiquement lors du paiement.",
+    "featuredShops": "Boutiques en vedette",
     "jobsBadge": {
       "deliveryTitle_one": "1 livraison disponible",
       "deliveryTitle_other": "{{count}} livraisons disponibles",
@@ -202,6 +202,8 @@
       "seeMore": "Voir plus",
       "flashSale": "Ventes Flash",
       "endsIn": "Termine dans",
+      "featuredProducts": "Produits vedettes",
+      "latestProducts": "Derniers produits",
       "banners": {
         "sale": {
           "title": "Les meilleures offres du jour",
@@ -270,7 +272,8 @@
         "DELIVERED": "Livrée",
         "CANCELLED": "Annulée"
       },
-      "subtotal": "Sous-total : {{amount}}"
+      "subtotal": "Sous-total : {{amount}}",
+      "track": "Suivre"
     },
     "wishlist": {
       "title": "Liste de souhaits",
@@ -375,7 +378,7 @@
     "coverageUpTo": "Couverture jusqu'à {{amount}}",
     "subscribe": "Souscrire",
     "loginToSubscribe": "Connectez-vous pour souscrire",
-    "subscribed": "Souscrit ! Votre police est en attente d'activation.",
+    "subscribed": "Souscrit ! Votre police est maintenant active.",
     "couldNotSubscribe": "Impossible de souscrire",
     "policyCancelled": "Police annulée",
     "couldNotCancel": "Impossible d'annuler la police",
@@ -551,6 +554,7 @@
       "itemDescription": "Description",
       "itemCategory": "Catégorie",
       "itemCategoryPlaceholder": "ex. Entrées, Plats, Boissons",
+      "noCategory": "Aucune catégorie",
       "itemImageUrl": "URL de l'image",
       "orders": "Commandes",
       "noOrders": "Aucune commande pour l'instant.",
@@ -614,6 +618,14 @@
     "useMyLocation": "Utiliser ma position",
     "locationSet": "Position de départ définie",
     "locationError": "Impossible d'obtenir votre position",
+    "tracking": {
+      "title": "Suivre la course",
+      "notFound": "Course introuvable",
+      "waitingForRider": "Recherche d'un chauffeur…",
+      "riderAssigned": "{{name}} est en route",
+      "distanceAway": "à {{km}} km de la dépose",
+      "callRider": "Appeler le chauffeur"
+    },
     "driver": {
       "title": "Chauffeur",
       "availableTab": "Disponibles",
@@ -684,7 +696,11 @@
       "enterAccountNumber": "Entrez votre numéro de compte/compteur",
       "enterAmount": "Entrez un montant",
       "success": "Paiement réussi · {{reference}}",
-      "failed": "Échec du paiement"
+      "failed": "Échec du paiement",
+      "confirmTitle": "Confirmer le paiement de la facture",
+      "subtotal": "Sous-total",
+      "total": "Total",
+      "confirm": "Confirmer"
     },
     "recentTransactions": "Transactions récentes",
     "loginToContinue": "Connectez-vous pour continuer",
@@ -769,15 +785,21 @@
     "productUpdated": "Produit mis à jour",
     "productDeactivated": "Produit retiré de votre boutique",
     "couldNotSaveProduct": "Impossible d'enregistrer le produit",
-    "images": "URL des images",
-    "imagesHelp": "Une ou plusieurs URL d'images, séparées par des virgules",
+    "images": "Images",
+    "imageUrlPlaceholder": "Collez une URL d'image",
+    "addImageUrl": "Ajouter",
+    "uploadImage": "Importer une photo",
+    "imageTooLarge": "Cette image est trop volumineuse (15 Mo max)",
+    "notAnImage": "Ce fichier n'est pas une image",
     "noOrders": "Aucune commande pour le moment",
     "orderNumber": "Commande n°{{id}}",
     "orderStatus": {
       "PENDING": "En attente",
       "CONFIRMED": "Confirmée",
       "DELIVERED": "Livrée",
-      "CANCELLED": "Annulée"
+      "CANCELLED": "Annulée",
+      "PREPARING": "En préparation",
+      "OUT_FOR_DELIVERY": "En cours de livraison"
     },
     "register": {
       "title": "Vendre sur Ocass",
@@ -804,6 +826,19 @@
       "logIn": "Se connecter",
       "newBusiness": "Nouvelle entreprise ? Inscrivez-vous",
       "notAVendorYet": "Ce compte n'est pas encore configuré comme vendeur."
+    },
+    "manage": {
+      "deliveryStatus": "Livraison : {{status}}",
+      "cancel": "Annuler",
+      "startPreparing": "Commencer la préparation",
+      "readyForDelivery": "Prête pour la livraison",
+      "couldNotUpdateStatus": "Impossible de mettre à jour le statut de la commande",
+      "multiVendorNote": "Cette commande contient des articles d'autres vendeurs et ne peut pas être gérée ici",
+      "statusSet": {
+        "PREPARING": "Commande marquée en préparation",
+        "OUT_FOR_DELIVERY": "Commande remise pour livraison",
+        "CANCELLED": "Commande annulée"
+      }
     }
   },
   "anando": {
@@ -870,7 +905,15 @@
     "couldNotBook": "Impossible de réserver cette place",
     "bookingCancelled": "Réservation annulée",
     "enterAddresses": "Indiquez votre point de départ et votre destination",
-    "chooseDeparture": "Choisissez une heure de départ, ou marquez ce trajet comme immédiat"
+    "chooseDeparture": "Choisissez une heure de départ, ou marquez ce trajet comme immédiat",
+    "tracking": {
+      "title": "Suivre le trajet",
+      "notFound": "Trajet introuvable",
+      "waitingForDeparture": "En attente du départ du conducteur…",
+      "driverEnRoute": "{{name}} est en route",
+      "distanceAway": "à {{km}} km de la destination",
+      "callDriver": "Appeler le conducteur"
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -897,6 +940,7 @@
       "subtitle": "Partagées entre tous les vendeurs - n'importe qui peut aussi en ajouter une depuis sa page produits. Désactiver une catégorie la masque de la navigation et du menu déroulant du formulaire produit sans la supprimer.",
       "name": "Nom",
       "icon": "Icône",
+      "imageUrl": "URL de l'image",
       "noParent": "Aucune (catégorie principale)",
       "add": "Ajouter",
       "editCategory": "Modifier la catégorie",
@@ -926,6 +970,84 @@
       "deleteFailed": "Impossible de supprimer le type de colis",
       "confirmDelete": "Supprimer « {{name}} » ? Cette action est irréversible."
     },
+    "flashSales": {
+      "title": "Ventes flash",
+      "subtitle": "Planifiez des campagnes de ventes flash récurrentes et choisissez où elles apparaissent. Une campagne n'est affichée que pendant sa fenêtre planifiée.",
+      "newCampaign": "Nouvelle campagne",
+      "name": "Nom de la campagne",
+      "recurrence": "Répétition",
+      "recurrenceDaily": "Quotidienne",
+      "recurrenceWeekly": "Hebdomadaire",
+      "recurrenceMonthly": "Mensuelle",
+      "dayOfWeek": "Jour de la semaine",
+      "dayOfMonth": "Jour du mois",
+      "dayOfMonthShort": "jour {{day}}",
+      "days": {
+        "sun": "Dimanche",
+        "mon": "Lundi",
+        "tue": "Mardi",
+        "wed": "Mercredi",
+        "thu": "Jeudi",
+        "fri": "Vendredi",
+        "sat": "Samedi"
+      },
+      "startTime": "Heure de début",
+      "endTime": "Heure de fin",
+      "selectionMode": "Produits",
+      "selectionModeAuto": "Auto (meilleures remises)",
+      "selectionModeManual": "Sélection manuelle",
+      "selectionModeAutoHelp": "Affiche automatiquement les produits actifs les plus remisés - aucune sélection nécessaire.",
+      "selectionModeManualHelp": "Seuls les produits sélectionnés ci-dessous sont affichés, dans l'ordre choisi.",
+      "pickProducts": "Choisir des produits",
+      "pickProductsPlaceholder": "Rechercher des produits par nom",
+      "onHomeScreen": "Afficher sur l'écran d'accueil principal",
+      "onEcommerceHome": "Afficher sur la page découverte Boutique",
+      "active": "Active",
+      "add": "Ajouter",
+      "editCampaign": "Modifier la campagne",
+      "productCount_one": "{{count}} produit",
+      "productCount_other": "{{count}} produits",
+      "created": "Campagne créée",
+      "updated": "Campagne mise à jour",
+      "nameRequired": "Entrez un nom de campagne",
+      "endAfterStart": "L'heure de fin doit être après l'heure de début",
+      "saveFailed": "Impossible d'enregistrer la campagne"
+    },
+    "showcase": {
+      "slidesTitle": "Diaporama vitrine",
+      "slidesSubtitle": "Une bannière rotative sur la page d'accueil Boutique. Chaque diapositive est une photo avec un lien optionnel, par exemple vers un produit ou une catégorie.",
+      "newSlide": "Nouvelle diapositive",
+      "title": "Titre",
+      "subtitle": "Sous-titre",
+      "imageUrl": "URL de l'image",
+      "linkUrl": "Lien (optionnel)",
+      "sortOrder": "Ordre d'affichage",
+      "active": "Active",
+      "add": "Ajouter",
+      "editSlide": "Modifier la diapositive",
+      "created": "Diapositive créée",
+      "updated": "Diapositive mise à jour",
+      "slideFieldsRequired": "Un titre et une image sont requis",
+      "saveFailed": "Impossible d'enregistrer la diapositive",
+      "featuredProductsTitle": "Produits vedettes",
+      "featuredProductsSubtitle": "Produits sélectionnés manuellement, affichés dans la rangée « Produits vedettes » de la page d'accueil Boutique.",
+      "searchProducts": "Ajouter un produit",
+      "searchProductsPlaceholder": "Rechercher des produits par nom",
+      "noFeaturedProducts": "Aucun produit vedette pour le moment"
+    },
+    "homeBanner": {
+      "title": "Bannière de l'accueil",
+      "subtitle": "La carte promotionnelle unique affichée en haut de l'écran d'accueil principal.",
+      "shown": "Affichée",
+      "hidden": "Masquée",
+      "bannerTitle": "Titre",
+      "bannerSubtitle": "Sous-titre",
+      "imageUrl": "URL de l'image",
+      "linkUrl": "Lien (optionnel)",
+      "titleRequired": "Un titre est requis",
+      "saved": "Bannière enregistrée",
+      "saveFailed": "Impossible d'enregistrer la bannière"
+    },
     "tabs": {
       "dashboard": "Tableau de bord",
       "users": "Utilisateurs",
@@ -933,6 +1055,9 @@
       "deliveryPackageTypes": "Types de colis",
       "vendors": "Vendeurs",
       "categories": "Catégories",
+      "flashSales": "Ventes flash",
+      "showcase": "Vitrine",
+      "homeBanner": "Bannière d'accueil",
       "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Fournisseurs",
@@ -986,7 +1111,9 @@
       "activeRides": "Courses actives",
       "totalStores": "Boutiques vendeurs",
       "totalRidePostings": "Trajets Anando ouverts",
-      "usersByRole": "Utilisateurs par rôle"
+      "usersByRole": "Utilisateurs par rôle",
+      "subtitle": "Aperçu en direct de votre plateforme",
+      "total": "Total"
     },
     "users": {
       "searchPlaceholder": "Rechercher nom, téléphone ou e-mail",
@@ -995,8 +1122,28 @@
       "phone": "Téléphone",
       "role": "Rôle",
       "active": "Actif",
+      "suspended": "Suspendu",
       "updated": "Utilisateur mis à jour",
-      "updateFailed": "Impossible de mettre à jour l'utilisateur"
+      "updateFailed": "Impossible de mettre à jour l'utilisateur",
+      "statusAndRole": "Statut & rôle",
+      "ownsStore": "Possède la boutique : {{name}} ({{status}})",
+      "ownsRestaurant": "Possède le restaurant : {{name}} ({{status}})",
+      "activitySummary": "{{orders}} commandes · {{deliveries}} livraisons · {{rides}} courses · {{postings}} trajets Anando",
+      "commissionTitle": "Commission",
+      "commissionExplainer": "Remplace la commission de la plateforme sur ce pour quoi cet utilisateur est payé - ventes vendeur, commandes restaurant, livraisons, courses ou réservations Anando - au lieu du taux par défaut de ce module.",
+      "commissionContext": {
+        "VENDOR": "chaque vente vendeur",
+        "RESTAURANT_OWNER": "chaque commande restaurant",
+        "DELIVERY_AGENT": "chaque livraison terminée",
+        "RIDER": "chaque course terminée"
+      },
+      "commissionDefaultForRole": "Taux par défaut pour {{context}} : {{percent}}%",
+      "commissionDefaultAnando": "La part chauffeur Anando est actuellement de {{percent}}% par défaut",
+      "commissionUseDefault": "Utiliser le taux par défaut",
+      "commissionUseCustom": "Pourcentage personnalisé",
+      "commissionInvalid": "Entrez une commission entre 0 et 100",
+      "commissionUpdated": "Commission mise à jour",
+      "saveCommission": "Enregistrer la commission"
     },
     "modules": {
       "fees": "Frais",
@@ -1012,6 +1159,7 @@
       "owner": "Propriétaire",
       "products": "Produits",
       "active": "Actif",
+      "featured": "En vedette",
       "none": "Aucune boutique vendeur trouvée",
       "updated": "Boutique mise à jour",
       "updateFailed": "Impossible de mettre à jour la boutique"
@@ -1103,7 +1251,16 @@
       "saved": "Paramètres de frais et taxe enregistrés",
       "saveFailed": "Impossible d'enregistrer les frais et la taxe"
     },
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "nav": {
+      "overview": "Aperçu",
+      "commerce": "Commerce",
+      "logistics": "Logistique",
+      "finance": "Finance",
+      "platform": "Plateforme"
+    },
+    "backToSite": "Retour au site",
+    "administrator": "Administrateur"
   },
   "store": {
     "title": "Boutique",

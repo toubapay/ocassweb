@@ -352,7 +352,13 @@ async function markDelivered(req, res, next) {
     let earned = null;
     if (existing.priceEstimate) {
       const feeConfig = await getModuleFeeConfig("delivery", DEFAULT_FEE_CONFIG);
-      earned = Number(existing.priceEstimate) * (feeConfig.agentSharePercent / 100);
+      // Per-agent override (see User.commissionSharePercent) beats the
+      // module-wide default when the admin has set one for this agent.
+      const agentShare =
+        req.user.commissionSharePercent != null
+          ? Number(req.user.commissionSharePercent) / 100
+          : feeConfig.agentSharePercent / 100;
+      earned = Number(existing.priceEstimate) * agentShare;
       await walletService.credit({
         userId: req.user.id,
         amount: earned,
@@ -363,11 +369,17 @@ async function markDelivered(req, res, next) {
       });
     }
     // If this delivery job came from a restaurant order (see
-    // dispatchForDelivery in restaurant/orders.controller.js), the agent
-    // confirming the handoff here is also what makes that order DELIVERED -
-    // it's never set any other way, so "delivered" always reflects a real
-    // completed dropoff, not just the restaurant marking it ready.
+    // dispatchForDelivery in restaurant/orders.controller.js) or a
+    // single-vendor ecommerce order (see dispatchForDelivery in
+    // vendor/vendor.controller.js), the agent confirming the handoff here
+    // is also what makes that order DELIVERED - it's never set any other
+    // way, so "delivered" always reflects a real completed dropoff, not
+    // just the seller marking it ready.
     await prisma.restaurantOrder.updateMany({
+      where: { deliveryRequestId: request.id },
+      data: { status: "DELIVERED" },
+    });
+    await prisma.order.updateMany({
       where: { deliveryRequestId: request.id },
       data: { status: "DELIVERED" },
     });

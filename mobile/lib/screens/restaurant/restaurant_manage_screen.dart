@@ -48,7 +48,11 @@ class _RestaurantManageScreenState extends State<RestaurantManageScreen> {
   }
 
   Future<void> _load() async {
-    if (!mounted || context.read<AuthProvider>().user?.restaurant == null) return;
+    if (!mounted) return;
+    if (context.read<AuthProvider>().user?.restaurant == null) {
+      setState(() => _loading = false);
+      return;
+    }
     setState(() => _loading = true);
     try {
       final restaurant = await apiClient.fetchMyRestaurant();

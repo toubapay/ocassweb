@@ -214,6 +214,12 @@ class _InsuranceAutoScreenState extends State<InsuranceAutoScreen> {
     await _scanPhoto(file);
   }
 
+  Future<void> _pickFromGallery() async {
+    final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (file == null) return;
+    await _scanPhoto(file);
+  }
+
   /// Prefills only the identity fields that never feed the AAS quote
   /// (immatriculation/chassis/marque/modele/dateMiseCirculation, and the
   /// subscriber's name if blank) - never the priced fields, matching the
@@ -801,6 +807,15 @@ class _InsuranceAutoScreenState extends State<InsuranceAutoScreen> {
                     width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.camera_alt_rounded),
             label: Text(context.t('insurance.auto.takePhoto')),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _scanning ? null : _pickFromGallery,
+            icon: const Icon(Icons.photo_library_outlined),
+            label: Text(context.t('insurance.auto.chooseFromGallery')),
           ),
         ),
         const SizedBox(height: 12),

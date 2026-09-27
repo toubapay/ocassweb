@@ -9,6 +9,9 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import CardGiftcardRoundedIcon from "@mui/icons-material/CardGiftcardRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
+import Avatar from "@mui/material/Avatar";
 import CheckroomRoundedIcon from "@mui/icons-material/CheckroomRounded";
 import DevicesOtherRoundedIcon from "@mui/icons-material/DevicesOtherRounded";
 import LocalGroceryStoreRoundedIcon from "@mui/icons-material/LocalGroceryStoreRounded";
@@ -35,9 +38,12 @@ import HeaderWave from "../src/components/home/HeaderWave";
 import ShortcutCard from "../src/components/home/ShortcutCard";
 import AvailableJobsBadge from "../src/components/home/AvailableJobsBadge";
 import ProductCard from "../src/components/ecommerce/ProductCard";
+import FlashSaleCountdown from "../src/components/ecommerce/FlashSaleCountdown";
 import useAuth from "../src/hooks/useAuth";
-import { fetchProducts, fetchCategories } from "../src/api/ecommerce";
+import { fetchProducts, fetchCategories, fetchActiveFlashSale } from "../src/api/ecommerce";
+import { fetchStores } from "../src/api/vendor";
 import { fetchUnreadCount } from "../src/api/notifications";
+import { fetchHomeBanner } from "../src/api/home";
 import { useLiveStatus } from "../src/components/live/LiveUpdatesProvider";
 
 const CATEGORY_ICONS = {
@@ -58,6 +64,13 @@ export default function Home() {
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const { data } = useQuery("home-products", () => fetchProducts({ pageSize: 6 }));
   const { data: categories } = useQuery("categories", fetchCategories);
+  const { data: flashSale } = useQuery(
+    ["flash-sale", "home"],
+    () => fetchActiveFlashSale("home"),
+    { refetchInterval: 60000 }
+  );
+  const { data: featuredStores } = useQuery("featured-stores", () => fetchStores({ featured: true }));
+  const { data: homeBanner } = useQuery("home-banner", fetchHomeBanner);
   const { connected: liveConnected } = useLiveStatus();
   // See TopBar.js: the live stream carries this, the poll is the backstop.
   const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
@@ -168,6 +181,7 @@ export default function Home() {
             <ShortcutCard
               key={cat.id}
               icon={conf.icon}
+              imageUrl={cat.imageUrl}
               color={conf.color}
               bg={conf.bg}
               label={t(`categories.${cat.slug}`, { defaultValue: cat.name })}
@@ -190,58 +204,163 @@ export default function Home() {
         </Box>
       </Box>
 
-      <Box sx={{ px: 2.5, pb: 3 }}>
-        <Box
-          sx={{
-            position: "relative",
-            background: "linear-gradient(135deg, #E7F7EE 0%, #FFF6E5 100%)",
-            borderRadius: 4,
-            p: 2.5,
-            pr: 11,
-            overflow: "visible",
-          }}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            {t("home.freeDeliveryTitle")}
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            {t("home.freeDeliverySubtitle")}
-          </Typography>
-
-          <Box
-            sx={{
-              position: "absolute",
-              right: 18,
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: 71,
-              height: 71,
-              borderRadius: "50%",
-              bgcolor: "primary.main",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 6px 16px rgba(15,174,88,0.35)",
-            }}
-          >
-            <CardGiftcardRoundedIcon sx={{ color: "#fff", fontSize: 34 }} />
+      {/* Flash sale - only rendered while an admin-configured FlashSale
+          campaign (see AdminFlashSalesTab) targeting the main Home Screen
+          is inside its recurring schedule window. Same campaigns/API as
+          the ecommerce discover page's own flash section (placement
+          differs), so a campaign can appear on either, both, or neither. */}
+      {flashSale && (
+        <Box sx={{ px: 2.5, pb: 3 }}>
+          <Box sx={{ borderRadius: 3, overflow: "hidden" }}>
+            <Box
+              sx={{
+                bgcolor: "#1A1A1A",
+                color: "#fff",
+                px: 2,
+                py: 1.25,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <BoltRoundedIcon sx={{ color: "#FACC15" }} fontSize="small" />
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                  {flashSale.title}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  {t("ecommerce.home.endsIn")}
+                </Typography>
+                <FlashSaleCountdown endsAt={flashSale.endsAt} />
+              </Box>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1.5, overflowX: "auto", pt: 1.5, pb: 1 }}>
+              {flashSale.products.map((product) => (
+                <Box key={product.id} sx={{ minWidth: 150, maxWidth: 150 }}>
+                  <ProductCard product={product} />
+                </Box>
+              ))}
+            </Box>
           </Box>
+        </Box>
+      )}
 
-          <IconButton
-            size="small"
+      {/* Admin-curated stores (see AdminVendorsTab.js's "Featured"
+          toggle) - independent of any module, spotlighting whole
+          storefronts rather than individual products. */}
+      {featuredStores && featuredStores.length > 0 && (
+        <Box sx={{ px: 2.5, pb: 3 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1.5 }}>
+            {t("home.featuredShops")}
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1.5, overflowX: "auto", pb: 1 }}>
+            {featuredStores.map((store) => (
+              <Box
+                key={store.id}
+                onClick={() => router.push(`/store/${store.slug}`)}
+                sx={{
+                  minWidth: 108,
+                  maxWidth: 108,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 0.75,
+                  cursor: "pointer",
+                }}
+              >
+                <Avatar
+                  src={store.logoUrl || undefined}
+                  variant="rounded"
+                  sx={{ width: 88, height: 88, borderRadius: 3.5, bgcolor: "#F2EEFE", color: "#8B5CF6" }}
+                >
+                  <StorefrontRoundedIcon sx={{ fontSize: 34 }} />
+                </Avatar>
+                <Typography
+                  variant="caption"
+                  sx={{ fontWeight: 700, textAlign: "center", lineHeight: 1.2 }}
+                  noWrap
+                >
+                  {store.name}
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+                  <StarRoundedIcon sx={{ fontSize: 14, color: "#FFB020" }} />
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {store.rating.toFixed(1)}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      )}
+
+      {homeBanner && (
+        <Box sx={{ px: 2.5, pb: 3 }}>
+          <Box
+            onClick={() => homeBanner.linkUrl && router.push(homeBanner.linkUrl)}
             sx={{
-              position: "absolute",
-              bottom: 10,
-              right: 10,
-              bgcolor: "#fff",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-              "&:hover": { bgcolor: "#fff" },
+              position: "relative",
+              background: "linear-gradient(135deg, #E7F7EE 0%, #FFF6E5 100%)",
+              borderRadius: 4,
+              p: 2.5,
+              pr: 11,
+              overflow: "visible",
+              cursor: homeBanner.linkUrl ? "pointer" : "default",
             }}
           >
-            <ArrowForwardRoundedIcon fontSize="small" sx={{ color: "primary.main" }} />
-          </IconButton>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+              {homeBanner.title}
+            </Typography>
+            {homeBanner.subtitle && (
+              <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+                {homeBanner.subtitle}
+              </Typography>
+            )}
+
+            <Box
+              sx={{
+                position: "absolute",
+                right: 18,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 71,
+                height: 71,
+                borderRadius: "50%",
+                bgcolor: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 6px 16px rgba(15,174,88,0.35)",
+                overflow: "hidden",
+              }}
+            >
+              {homeBanner.imageUrl ? (
+                <Box component="img" src={homeBanner.imageUrl} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <CardGiftcardRoundedIcon sx={{ color: "#fff", fontSize: 34 }} />
+              )}
+            </Box>
+
+            {homeBanner.linkUrl && (
+              <IconButton
+                size="small"
+                sx={{
+                  position: "absolute",
+                  bottom: 10,
+                  right: 10,
+                  bgcolor: "#fff",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                  "&:hover": { bgcolor: "#fff" },
+                }}
+              >
+                <ArrowForwardRoundedIcon fontSize="small" sx={{ color: "primary.main" }} />
+              </IconButton>
+            )}
+          </Box>
         </Box>
-      </Box>
+      )}
 
       <DeliveryAddressDialog open={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} />
     </Box>

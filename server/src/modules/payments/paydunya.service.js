@@ -48,10 +48,17 @@ function authHeaders() {
  * @param {number} params.amount - total amount in XOF (whole units, no decimals)
  * @param {string} params.description
  * @param {Record<string, string>} [params.customData] - echoed back on confirm/IPN
+ * @param {"web"|"mobile"} [params.platform] - which client initiated this
+ *   payment, so the customer lands back in the right place: the web app's
+ *   /payments/return page, or (via a custom URL scheme the OS hands back to
+ *   the Flutter app - see mobile/lib/app.dart's AppLinks listener) the
+ *   native app's equivalent screen.
  */
-async function createInvoice({ amount, description, customData = {} }) {
+async function createInvoice({ amount, description, customData = {}, platform = "web" }) {
   const frontendUrl = process.env.APP_FRONTEND_URL || "http://localhost:3000";
   const backendUrl = process.env.APP_BASE_URL || "http://localhost:5000";
+  const cancelUrl = platform === "mobile" ? "ocass://payments/cancel" : `${frontendUrl}/payments/cancel`;
+  const returnUrl = platform === "mobile" ? "ocass://payments/return" : `${frontendUrl}/payments/return`;
 
   const res = await fetch(`${baseUrl()}/checkout-invoice/create`, {
     method: "POST",
@@ -65,8 +72,8 @@ async function createInvoice({ amount, description, customData = {} }) {
         name: "Ocass",
       },
       actions: {
-        cancel_url: `${frontendUrl}/payments/cancel`,
-        return_url: `${frontendUrl}/payments/return`,
+        cancel_url: cancelUrl,
+        return_url: returnUrl,
         callback_url: `${backendUrl}/api/payments/paydunya/ipn`,
       },
       custom_data: customData,

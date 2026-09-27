@@ -16,6 +16,9 @@ import MapRoundedIcon from "@mui/icons-material/MapRounded";
 import CloudRoundedIcon from "@mui/icons-material/CloudRounded";
 import MiscellaneousServicesRoundedIcon from "@mui/icons-material/MiscellaneousServicesRounded";
 import ShieldRoundedIcon from "@mui/icons-material/ShieldRounded";
+import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
+import ViewCarouselRoundedIcon from "@mui/icons-material/ViewCarouselRounded";
+import CardGiftcardRoundedIcon from "@mui/icons-material/CardGiftcardRounded";
 import AdminLayout from "../../src/components/admin/AdminLayout";
 import useAuth from "../../src/hooks/useAuth";
 import AdminStatsTab from "../../src/components/admin/AdminStatsTab";
@@ -30,43 +33,113 @@ import AdminZonesTab from "../../src/components/admin/AdminZonesTab";
 import AdminProvidersTab from "../../src/components/admin/AdminProvidersTab";
 import AdminServicesTab from "../../src/components/admin/AdminServicesTab";
 import AdminInsuranceTab from "../../src/components/admin/AdminInsuranceTab";
+import AdminFlashSalesTab from "../../src/components/admin/AdminFlashSalesTab";
+import AdminShowcaseTab from "../../src/components/admin/AdminShowcaseTab";
+import AdminHomeBannerTab from "../../src/components/admin/AdminHomeBannerTab";
 
 // Single source of truth for the sidebar nav and the content area below -
 // each tab's id doubles as its ?tab= query value, so a section is a real,
 // bookmarkable/shareable URL instead of only reachable by clicking through.
 const TABS = [
-  { id: "dashboard", labelKey: "admin.tabs.dashboard", icon: DashboardRoundedIcon, Component: AdminStatsTab },
-  { id: "users", labelKey: "admin.tabs.users", icon: PeopleRoundedIcon, Component: AdminUsersTab },
-  { id: "modules", labelKey: "admin.tabs.modules", icon: TuneRoundedIcon, Component: AdminModulesTab },
+  {
+    id: "dashboard",
+    labelKey: "admin.tabs.dashboard",
+    icon: DashboardRoundedIcon,
+    Component: AdminStatsTab,
+    group: "overview",
+  },
+  {
+    id: "users",
+    labelKey: "admin.tabs.users",
+    icon: PeopleRoundedIcon,
+    Component: AdminUsersTab,
+    group: "overview",
+  },
+  {
+    id: "homeBanner",
+    labelKey: "admin.tabs.homeBanner",
+    icon: CardGiftcardRoundedIcon,
+    Component: AdminHomeBannerTab,
+    group: "overview",
+  },
+  {
+    id: "vendors",
+    labelKey: "admin.tabs.vendors",
+    icon: StorefrontRoundedIcon,
+    Component: AdminVendorsTab,
+    group: "commerce",
+  },
+  {
+    id: "categories",
+    labelKey: "admin.tabs.categories",
+    icon: CategoryRoundedIcon,
+    Component: AdminCategoriesTab,
+    group: "commerce",
+  },
+  {
+    id: "flashSales",
+    labelKey: "admin.tabs.flashSales",
+    icon: BoltRoundedIcon,
+    Component: AdminFlashSalesTab,
+    group: "commerce",
+  },
+  {
+    id: "showcase",
+    labelKey: "admin.tabs.showcase",
+    icon: ViewCarouselRoundedIcon,
+    Component: AdminShowcaseTab,
+    group: "commerce",
+  },
+  {
+    id: "restaurants",
+    labelKey: "admin.tabs.restaurants",
+    icon: RestaurantRoundedIcon,
+    Component: AdminRestaurantsTab,
+    group: "commerce",
+  },
   {
     id: "deliveryPackageTypes",
     labelKey: "admin.tabs.deliveryPackageTypes",
     icon: Inventory2RoundedIcon,
     Component: AdminDeliveryPackageTypesTab,
+    group: "logistics",
+  },
+  { id: "zones", labelKey: "admin.tabs.zones", icon: MapRoundedIcon, Component: AdminZonesTab, group: "logistics" },
+  {
+    id: "modules",
+    labelKey: "admin.tabs.modules",
+    icon: TuneRoundedIcon,
+    Component: AdminModulesTab,
+    group: "finance",
   },
   {
     id: "serviceFees",
     labelKey: "admin.tabs.serviceFees",
     icon: PercentRoundedIcon,
     Component: AdminServiceFeesTab,
+    group: "finance",
   },
-  { id: "vendors", labelKey: "admin.tabs.vendors", icon: StorefrontRoundedIcon, Component: AdminVendorsTab },
-  { id: "categories", labelKey: "admin.tabs.categories", icon: CategoryRoundedIcon, Component: AdminCategoriesTab },
   {
-    id: "restaurants",
-    labelKey: "admin.tabs.restaurants",
-    icon: RestaurantRoundedIcon,
-    Component: AdminRestaurantsTab,
+    id: "providers",
+    labelKey: "admin.tabs.providers",
+    icon: CloudRoundedIcon,
+    Component: AdminProvidersTab,
+    group: "platform",
   },
-  { id: "zones", labelKey: "admin.tabs.zones", icon: MapRoundedIcon, Component: AdminZonesTab },
-  { id: "providers", labelKey: "admin.tabs.providers", icon: CloudRoundedIcon, Component: AdminProvidersTab },
   {
     id: "services",
     labelKey: "admin.tabs.services",
     icon: MiscellaneousServicesRoundedIcon,
     Component: AdminServicesTab,
+    group: "platform",
   },
-  { id: "insurance", labelKey: "admin.tabs.insurance", icon: ShieldRoundedIcon, Component: AdminInsuranceTab },
+  {
+    id: "insurance",
+    labelKey: "admin.tabs.insurance",
+    icon: ShieldRoundedIcon,
+    Component: AdminInsuranceTab,
+    group: "platform",
+  },
 ];
 
 export default function AdminPanel() {

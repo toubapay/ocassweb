@@ -27,7 +27,11 @@ const DEFAULT_FEE_CONFIG = {
 async function payoutVendorsForOrder(orderId) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { items: { include: { product: { include: { store: true } } } } },
+    include: {
+      items: {
+        include: { product: { include: { store: { include: { owner: { select: { commissionSharePercent: true } } } } } } },
+      },
+    },
   });
   if (!order) return;
 
@@ -42,7 +46,7 @@ async function payoutVendorsForOrder(orderId) {
   }
 
   const feeConfig = await getModuleFeeConfig("vendor", DEFAULT_FEE_CONFIG);
-  const vendorShare = feeConfig.vendorSharePercent / 100;
+  const defaultVendorShare = feeConfig.vendorSharePercent / 100;
 
   for (const { store, total } of byStore.values()) {
     const purposeId = `${orderId}:${store.id}`;
@@ -50,6 +54,13 @@ async function payoutVendorsForOrder(orderId) {
       where: { purpose: "VENDOR_SALE", purposeId },
     });
     if (alreadyPaid) continue;
+
+    // Per-owner override (see User.commissionSharePercent) beats the
+    // module-wide default when the admin has set one for this vendor.
+    const vendorShare =
+      store.owner?.commissionSharePercent != null
+        ? Number(store.owner.commissionSharePercent) / 100
+        : defaultVendorShare;
 
     await walletService.credit({
       userId: store.ownerId,

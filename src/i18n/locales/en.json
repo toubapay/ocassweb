@@ -6,6 +6,7 @@
     "save": "Save",
     "logIn": "Log in",
     "logInToContinue": "Log in to continue",
+    "sessionExpired": "Your session expired - please log in again",
     "backToCart": "Back to cart",
     "startShopping": "Start shopping",
     "note": "Note",
@@ -85,8 +86,7 @@
     "greeting": "{{name}}, these are for you",
     "exploreOcass": "Explore Ocass",
     "popularRightNow": "Popular right now",
-    "freeDeliveryTitle": "Free delivery on your first order",
-    "freeDeliverySubtitle": "Offer applied automatically at checkout.",
+    "featuredShops": "Featured shops",
     "jobsBadge": {
       "deliveryTitle_one": "1 delivery available",
       "deliveryTitle_other": "{{count}} deliveries available",
@@ -202,6 +202,8 @@
       "seeMore": "See more",
       "flashSale": "Flash Sale",
       "endsIn": "Ends in",
+      "featuredProducts": "Featured products",
+      "latestProducts": "Latest products",
       "banners": {
         "sale": {
           "title": "Today's best deals",
@@ -270,7 +272,8 @@
         "DELIVERED": "Delivered",
         "CANCELLED": "Cancelled"
       },
-      "subtotal": "Subtotal: {{amount}}"
+      "subtotal": "Subtotal: {{amount}}",
+      "track": "Track"
     },
     "wishlist": {
       "title": "Wishlist",
@@ -375,7 +378,7 @@
     "coverageUpTo": "Coverage up to {{amount}}",
     "subscribe": "Subscribe",
     "loginToSubscribe": "Log in to subscribe",
-    "subscribed": "Subscribed! Your policy is pending activation.",
+    "subscribed": "Subscribed! Your policy is now active.",
     "couldNotSubscribe": "Could not subscribe",
     "policyCancelled": "Policy cancelled",
     "couldNotCancel": "Could not cancel policy",
@@ -551,6 +554,7 @@
       "itemDescription": "Description",
       "itemCategory": "Category",
       "itemCategoryPlaceholder": "e.g. Starters, Mains, Drinks",
+      "noCategory": "No category",
       "itemImageUrl": "Image URL",
       "orders": "Orders",
       "noOrders": "No orders yet.",
@@ -614,6 +618,14 @@
     "useMyLocation": "Use my location",
     "locationSet": "Pickup location set",
     "locationError": "Could not get your location",
+    "tracking": {
+      "title": "Track ride",
+      "notFound": "Ride not found",
+      "waitingForRider": "Looking for a rider…",
+      "riderAssigned": "{{name}} is on the way",
+      "distanceAway": "{{km}} km from the dropoff",
+      "callRider": "Call rider"
+    },
     "driver": {
       "title": "Driver",
       "availableTab": "Available",
@@ -684,7 +696,11 @@
       "enterAccountNumber": "Enter your account/meter number",
       "enterAmount": "Enter an amount",
       "success": "Payment successful · {{reference}}",
-      "failed": "Payment failed"
+      "failed": "Payment failed",
+      "confirmTitle": "Confirm Bill Payment",
+      "subtotal": "Subtotal",
+      "total": "Total",
+      "confirm": "Confirm"
     },
     "recentTransactions": "Recent transactions",
     "loginToContinue": "Log in to continue",
@@ -769,15 +785,21 @@
     "productUpdated": "Product updated",
     "productDeactivated": "Product removed from your storefront",
     "couldNotSaveProduct": "Could not save product",
-    "images": "Image URLs",
-    "imagesHelp": "One or more image URLs, separated by commas",
+    "images": "Images",
+    "imageUrlPlaceholder": "Paste an image URL",
+    "addImageUrl": "Add",
+    "uploadImage": "Upload photo",
+    "imageTooLarge": "That image is too large (max 15MB)",
+    "notAnImage": "That file isn't an image",
     "noOrders": "No orders yet",
     "orderNumber": "Order #{{id}}",
     "orderStatus": {
       "PENDING": "Pending",
       "CONFIRMED": "Confirmed",
       "DELIVERED": "Delivered",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "PREPARING": "Preparing",
+      "OUT_FOR_DELIVERY": "Out for delivery"
     },
     "register": {
       "title": "Sell on Ocass",
@@ -804,6 +826,19 @@
       "logIn": "Log in",
       "newBusiness": "New business? Register here",
       "notAVendorYet": "This account isn't set up as a vendor yet."
+    },
+    "manage": {
+      "deliveryStatus": "Delivery: {{status}}",
+      "cancel": "Cancel",
+      "startPreparing": "Start preparing",
+      "readyForDelivery": "Ready for delivery",
+      "couldNotUpdateStatus": "Could not update order status",
+      "multiVendorNote": "This order includes items from other sellers and can't be managed here",
+      "statusSet": {
+        "PREPARING": "Order marked as preparing",
+        "OUT_FOR_DELIVERY": "Order handed off for delivery",
+        "CANCELLED": "Order cancelled"
+      }
     }
   },
   "anando": {
@@ -870,7 +905,15 @@
     "couldNotBook": "Could not book this seat",
     "bookingCancelled": "Booking cancelled",
     "enterAddresses": "Enter where you're leaving from and going to",
-    "chooseDeparture": "Choose a departure time, or mark this ride as instant"
+    "chooseDeparture": "Choose a departure time, or mark this ride as instant",
+    "tracking": {
+      "title": "Track ride",
+      "notFound": "Ride not found",
+      "waitingForDeparture": "Waiting for the driver to depart…",
+      "driverEnRoute": "{{name}} is on the way",
+      "distanceAway": "{{km}} km from the destination",
+      "callDriver": "Call driver"
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -897,6 +940,7 @@
       "subtitle": "Shared across all vendors - anyone can add one from their product page too. Deactivating hides it from browsing and the product-form dropdown without deleting it.",
       "name": "Name",
       "icon": "Icon",
+      "imageUrl": "Image URL",
       "noParent": "None (top-level category)",
       "add": "Add",
       "editCategory": "Edit category",
@@ -926,6 +970,84 @@
       "deleteFailed": "Could not delete package type",
       "confirmDelete": "Delete \"{{name}}\"? This can't be undone."
     },
+    "flashSales": {
+      "title": "Flash sales",
+      "subtitle": "Schedule recurring flash sale campaigns and choose where they appear. A campaign is only shown while it's inside its scheduled window.",
+      "newCampaign": "New campaign",
+      "name": "Campaign name",
+      "recurrence": "Repeats",
+      "recurrenceDaily": "Daily",
+      "recurrenceWeekly": "Weekly",
+      "recurrenceMonthly": "Monthly",
+      "dayOfWeek": "Day of week",
+      "dayOfMonth": "Day of month",
+      "dayOfMonthShort": "day {{day}}",
+      "days": {
+        "sun": "Sunday",
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday"
+      },
+      "startTime": "Start time",
+      "endTime": "End time",
+      "selectionMode": "Products",
+      "selectionModeAuto": "Auto (top discounts)",
+      "selectionModeManual": "Hand-picked",
+      "selectionModeAutoHelp": "Shows the most-discounted active products automatically - no picking needed.",
+      "selectionModeManualHelp": "Only the products you pick below are shown, in the order picked.",
+      "pickProducts": "Pick products",
+      "pickProductsPlaceholder": "Search products by name",
+      "onHomeScreen": "Show on main Home Screen",
+      "onEcommerceHome": "Show on Ecommerce discover page",
+      "active": "Active",
+      "add": "Add",
+      "editCampaign": "Edit campaign",
+      "productCount_one": "{{count}} product",
+      "productCount_other": "{{count}} products",
+      "created": "Campaign created",
+      "updated": "Campaign updated",
+      "nameRequired": "Enter a campaign name",
+      "endAfterStart": "End time must be after start time",
+      "saveFailed": "Could not save campaign"
+    },
+    "showcase": {
+      "slidesTitle": "Showcase slides",
+      "slidesSubtitle": "A rotating banner on the Boutique home page. Each slide is a photo with an optional link, e.g. to a product or category.",
+      "newSlide": "New slide",
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "imageUrl": "Image URL",
+      "linkUrl": "Link (optional)",
+      "sortOrder": "Sort order",
+      "active": "Active",
+      "add": "Add",
+      "editSlide": "Edit slide",
+      "created": "Slide created",
+      "updated": "Slide updated",
+      "slideFieldsRequired": "A title and image are required",
+      "saveFailed": "Could not save slide",
+      "featuredProductsTitle": "Featured products",
+      "featuredProductsSubtitle": "Hand-picked products shown in the \"Featured products\" row on the Boutique home page.",
+      "searchProducts": "Add a product",
+      "searchProductsPlaceholder": "Search products by name",
+      "noFeaturedProducts": "No featured products yet"
+    },
+    "homeBanner": {
+      "title": "Home Screen banner",
+      "subtitle": "The single promo card shown near the top of the main Home Screen.",
+      "shown": "Shown",
+      "hidden": "Hidden",
+      "bannerTitle": "Title",
+      "bannerSubtitle": "Subtitle",
+      "imageUrl": "Image URL",
+      "linkUrl": "Link (optional)",
+      "titleRequired": "A title is required",
+      "saved": "Banner saved",
+      "saveFailed": "Could not save banner"
+    },
     "tabs": {
       "dashboard": "Dashboard",
       "users": "Users",
@@ -933,6 +1055,9 @@
       "deliveryPackageTypes": "Package types",
       "vendors": "Vendors",
       "categories": "Categories",
+      "flashSales": "Flash sales",
+      "showcase": "Showcase",
+      "homeBanner": "Home banner",
       "restaurants": "Restaurants",
       "zones": "Zones",
       "providers": "Providers",
@@ -986,7 +1111,9 @@
       "activeRides": "Active rides",
       "totalStores": "Vendor stores",
       "totalRidePostings": "Open Anando postings",
-      "usersByRole": "Users by role"
+      "usersByRole": "Users by role",
+      "subtitle": "Live snapshot of your platform",
+      "total": "Total"
     },
     "users": {
       "searchPlaceholder": "Search name, phone, or email",
@@ -995,8 +1122,28 @@
       "phone": "Phone",
       "role": "Role",
       "active": "Active",
+      "suspended": "Suspended",
       "updated": "User updated",
-      "updateFailed": "Could not update user"
+      "updateFailed": "Could not update user",
+      "statusAndRole": "Status & role",
+      "ownsStore": "Owns store: {{name}} ({{status}})",
+      "ownsRestaurant": "Owns restaurant: {{name}} ({{status}})",
+      "activitySummary": "{{orders}} orders · {{deliveries}} deliveries · {{rides}} rides · {{postings}} Anando postings",
+      "commissionTitle": "Commission",
+      "commissionExplainer": "Overrides the platform-wide commission for whatever this user is paid for - vendor sales, restaurant orders, deliveries, rides, or Anando bookings - instead of the default for that module.",
+      "commissionContext": {
+        "VENDOR": "each vendor sale",
+        "RESTAURANT_OWNER": "each restaurant order",
+        "DELIVERY_AGENT": "each completed delivery",
+        "RIDER": "each completed ride"
+      },
+      "commissionDefaultForRole": "Platform default for {{context}}: {{percent}}%",
+      "commissionDefaultAnando": "Anando driver share currently defaults to {{percent}}%",
+      "commissionUseDefault": "Use platform default",
+      "commissionUseCustom": "Custom percentage",
+      "commissionInvalid": "Enter a commission between 0 and 100",
+      "commissionUpdated": "Commission updated",
+      "saveCommission": "Save commission"
     },
     "modules": {
       "fees": "Fees",
@@ -1012,6 +1159,7 @@
       "owner": "Owner",
       "products": "Products",
       "active": "Active",
+      "featured": "Featured",
       "none": "No vendor stores found",
       "updated": "Store updated",
       "updateFailed": "Could not update store"
@@ -1103,7 +1251,16 @@
       "saved": "Fee & tax settings saved",
       "saveFailed": "Could not save fee & tax settings"
     },
-    "logout": "Log out"
+    "logout": "Log out",
+    "nav": {
+      "overview": "Overview",
+      "commerce": "Commerce",
+      "logistics": "Logistics",
+      "finance": "Finance",
+      "platform": "Platform"
+    },
+    "backToSite": "Back to site",
+    "administrator": "Administrator"
   },
   "store": {
     "title": "Store",

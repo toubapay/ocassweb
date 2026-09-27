@@ -21,7 +21,7 @@ const DEFAULT_FEE_CONFIG = {
 async function payoutOwnerForOrder(orderId) {
   const order = await prisma.restaurantOrder.findUnique({
     where: { id: orderId },
-    include: { restaurant: true },
+    include: { restaurant: { include: { owner: { select: { commissionSharePercent: true } } } } },
   });
   if (!order || !order.restaurant.ownerId) return;
 
@@ -32,7 +32,12 @@ async function payoutOwnerForOrder(orderId) {
   if (alreadyPaid) return;
 
   const feeConfig = await getModuleFeeConfig("restaurant", DEFAULT_FEE_CONFIG);
-  const ownerShare = feeConfig.ownerSharePercent / 100;
+  // Per-owner override (see User.commissionSharePercent) beats the
+  // module-wide default when the admin has set one for this owner.
+  const ownerShare =
+    order.restaurant.owner?.commissionSharePercent != null
+      ? Number(order.restaurant.owner.commissionSharePercent) / 100
+      : feeConfig.ownerSharePercent / 100;
 
   await walletService.credit({
     userId: order.restaurant.ownerId,

@@ -65,13 +65,19 @@ async function suggestPrice({ originLat, originLng, destinationLat, destinationL
 async function payoutDriverForBooking(bookingId) {
   const booking = await prisma.rideBooking.findUnique({
     where: { id: bookingId },
-    include: { posting: true },
+    include: { posting: { include: { driver: { select: { commissionSharePercent: true } } } } },
   });
   if (!booking || !booking.posting.pricePerSeat) return;
 
   const feeConfig = await getAnandoFeeConfig();
+  // Per-driver override (see User.commissionSharePercent) beats the
+  // module-wide default when the admin has set one for this driver.
+  const driverShare =
+    booking.posting.driver?.commissionSharePercent != null
+      ? Number(booking.posting.driver.commissionSharePercent) / 100
+      : feeConfig.driverSharePercent / 100;
   const total = Number(booking.posting.pricePerSeat) * booking.seatsBooked;
-  const amount = Math.round(total * (feeConfig.driverSharePercent / 100) * 100) / 100;
+  const amount = Math.round(total * driverShare * 100) / 100;
   if (amount <= 0) return;
 
   await walletService.credit({

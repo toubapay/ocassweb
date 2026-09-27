@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
@@ -35,8 +35,40 @@ import {
   departPosting,
   bookSeat,
   cancelBooking,
+  updateAnandoDriverLocation,
 } from "../../src/api/anando";
 import { formatCfa } from "../../src/utils/currency";
+
+const LOCATION_PING_MS = 10000;
+
+/**
+ * Reports this driver's current position for every DEPARTED posting of
+ * theirs, on an interval - powers each booked passenger's live tracking
+ * map, same pattern as delivery/agent.js's useLiveLocationBroadcast.
+ */
+function useLiveLocationBroadcast(departedPostingIds) {
+  const idsRef = useRef(departedPostingIds);
+  idsRef.current = departedPostingIds;
+
+  useEffect(() => {
+    if (departedPostingIds.length === 0 || !navigator.geolocation) return undefined;
+    const ping = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          idsRef.current.forEach((id) => {
+            updateAnandoDriverLocation(id, { lat, lng }).catch(() => {});
+          });
+        },
+        () => {}
+      );
+    };
+    ping();
+    const interval = setInterval(ping, LOCATION_PING_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departedPostingIds.join(",")]);
+}
 
 const emptyForm = {
   originAddress: "",
@@ -75,16 +107,22 @@ export default function Anando() {
     fetchAvailablePostings,
     { enabled: isAuthenticated && tab === 0 }
   );
+  // Fetched regardless of active tab (not gated on tab === 1) so the
+  // location-broadcast effect below keeps running for a DEPARTED posting
+  // even while the driver has switched to another tab.
   const { data: myPostings, isLoading: loadingMine } = useQuery(
     "anando-my-postings",
     fetchMyPostings,
-    { enabled: isAuthenticated && tab === 1 }
+    { enabled: isAuthenticated, refetchInterval: LOCATION_PING_MS }
   );
   const { data: myBookings, isLoading: loadingBookings } = useQuery(
     "anando-my-bookings",
     fetchMyBookings,
     { enabled: isAuthenticated && tab === 2 }
   );
+
+  const departedPostingIds = (myPostings || []).filter((p) => p.status === "DEPARTED").map((p) => p.id);
+  useLiveLocationBroadcast(departedPostingIds);
 
   const invalidateAll = () => {
     queryClient.invalidateQueries("anando-available");
@@ -362,7 +400,11 @@ export default function Anando() {
             </Typography>
           )}
           {(myBookings || []).map((b) => (
-            <Box key={b.id} sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1.75 }}>
+            <Box
+              key={b.id}
+              onClick={() => router.push(`/anando/track/${b.postingId}`)}
+              sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1.75, cursor: "pointer" }}
+            >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
                   {b.posting.originAddress} → {b.posting.destinationAddress}
@@ -388,7 +430,10 @@ export default function Anando() {
                   color="error"
                   sx={{ mt: 1 }}
                   disabled={cancelBookingMutation.isLoading}
-                  onClick={() => cancelBookingMutation.mutate(b.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelBookingMutation.mutate(b.id);
+                  }}
                 >
                   {t("anando.cancel")}
                 </Button>

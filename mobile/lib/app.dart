@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'core/api_client.dart';
 import 'core/live_updates.dart';
 import 'theme/app_theme.dart';
 import 'router/app_router.dart';
@@ -9,6 +13,7 @@ import 'providers/cart_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'providers/module_order_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/location_provider.dart';
 import 'providers/notifications_provider.dart';
 import 'providers/available_jobs_provider.dart';
 
@@ -25,15 +30,25 @@ class _OcassAppState extends State<OcassApp> with WidgetsBindingObserver {
   final WishlistProvider _wishlistProvider = WishlistProvider();
   final ModuleOrderProvider _moduleOrderProvider = ModuleOrderProvider();
   final LocaleProvider _localeProvider = LocaleProvider();
+  final LocationProvider _locationProvider = LocationProvider();
   final NotificationsProvider _notificationsProvider = NotificationsProvider();
   final AvailableJobsProvider _availableJobsProvider = AvailableJobsProvider();
   final LiveStatus _liveStatus = LiveStatus();
+  final AppLinks _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSubscription;
   late final LiveUpdates _live;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Lets ApiClient (a plain, context-free singleton) correct
+    // AuthProvider's in-memory state when a 401 reveals the stored token
+    // was actually invalid/expired - see api_client.dart's onError.
+    // Set on the class, not the `apiClient` instance: onUnauthorized is a
+    // static field (see api_client.dart), and Dart rejects reaching a
+    // static member through an instance.
+    ApiClient.onUnauthorized = _authProvider.logout;
     _live = LiveUpdates(
       onEvent: _onLiveEvent,
       onConnectionChange: (connected) {
@@ -55,6 +70,7 @@ class _OcassAppState extends State<OcassApp> with WidgetsBindingObserver {
     );
     _moduleOrderProvider.load();
     _localeProvider.load();
+    _locationProvider.load();
     _availableJobsProvider.loadMutePreference();
     // The available-jobs poll follows the role, not just the session: a
     // user becomes a DELIVERY_AGENT/RIDER from the profile page mid-session
@@ -73,6 +89,18 @@ class _OcassAppState extends State<OcassApp> with WidgetsBindingObserver {
       }
       _syncSession();
     });
+    // Catches PayDunya's return_url/cancel_url redirect (ocass://payments/...)
+    // once the OS hands control back to this app - see paydunya.service.js's
+    // mobile return_url and app_router.dart's /payments/return + /cancel
+    // routes. uriLinkStream re-emits the link that launched the app cold as
+    // well as any received while it's already running.
+    _linkSubscription = _appLinks.uriLinkStream.listen(_handlePaymentDeepLink);
+  }
+
+  void _handlePaymentDeepLink(Uri uri) {
+    if (uri.scheme != 'ocass' || uri.host != 'payments') return;
+    final query = uri.hasQuery ? '?${uri.query}' : '';
+    appRouter.go('/payments${uri.path}$query');
   }
 
   String? _liveRole;
@@ -130,6 +158,7 @@ class _OcassAppState extends State<OcassApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _authProvider.removeListener(_syncSession);
+    _linkSubscription?.cancel();
     _live.dispose();
     super.dispose();
   }
@@ -143,6 +172,7 @@ class _OcassAppState extends State<OcassApp> with WidgetsBindingObserver {
         ChangeNotifierProvider<WishlistProvider>.value(value: _wishlistProvider),
         ChangeNotifierProvider<ModuleOrderProvider>.value(value: _moduleOrderProvider),
         ChangeNotifierProvider<LocaleProvider>.value(value: _localeProvider),
+        ChangeNotifierProvider<LocationProvider>.value(value: _locationProvider),
         ChangeNotifierProvider<NotificationsProvider>.value(value: _notificationsProvider),
         ChangeNotifierProvider<AvailableJobsProvider>.value(value: _availableJobsProvider),
         ChangeNotifierProvider<LiveStatus>.value(value: _liveStatus),

@@ -30,6 +30,9 @@ class _AnandoPostScreenState extends State<AnandoPostScreen> {
   DateTime? _departureAt;
   int _seats = 1;
   bool _submitting = false;
+  bool _suggestingPrice = false;
+
+  bool get _canSuggestPrice => _originCoords != null && _destinationCoords != null;
 
   @override
   void dispose() {
@@ -65,6 +68,32 @@ class _AnandoPostScreenState extends State<AnandoPostScreen> {
     setState(() {
       _departureAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });
+  }
+
+  /// Advisory only - the driver can still edit or clear the field after
+  /// this fills it in. Uses admin's per-km/fixed tariff config, same
+  /// formula as delivery/ride-sharing's live quote (see
+  /// pages/anando/index.js's suggestPriceMutation on web).
+  Future<void> _suggestPrice() async {
+    setState(() => _suggestingPrice = true);
+    try {
+      final quote = await apiClient.fetchAnandoFeeQuote(
+        originLat: _originCoords!.$1,
+        originLng: _originCoords!.$2,
+        destinationLat: _destinationCoords!.$1,
+        destinationLng: _destinationCoords!.$2,
+      );
+      if (!mounted) return;
+      if (quote.suggestedPrice == null) return;
+      setState(() => _priceController.text = quote.suggestedPrice!.round().toString());
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('anando.suggestedPriceApplied'))));
+    } catch (_) {
+      // Silently ignored, same as delivery's fee-quote preview - the
+      // driver can still enter a price manually either way.
+    } finally {
+      if (mounted) setState(() => _suggestingPrice = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -186,6 +215,16 @@ class _AnandoPostScreenState extends State<AnandoPostScreen> {
             controller: _priceController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(labelText: context.t('anando.pricePerSeat')),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: _canSuggestPrice && !_suggestingPrice ? _suggestPrice : null,
+              child: Text(
+                _suggestingPrice ? context.t('common.loading') : context.t('anando.suggestPrice'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           TextField(

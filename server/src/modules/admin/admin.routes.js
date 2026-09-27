@@ -2,6 +2,7 @@ const { Router } = require("express");
 const { requireAuth, requireRole } = require("../../middleware/auth");
 const {
   listUsers,
+  getUser,
   updateUser,
   listModules,
   updateModule,
@@ -36,6 +37,17 @@ const {
   createInsurancePlan,
   updateInsurancePlan,
   listAutoInsurancePolicies,
+  listShowcaseSlidesAdmin,
+  createShowcaseSlideAdmin,
+  updateShowcaseSlideAdmin,
+  deleteShowcaseSlideAdmin,
+  getHomeBannerAdmin,
+  updateHomeBannerAdmin,
+  updateProductFeaturedAdmin,
+  listFlashSalesAdmin,
+  createFlashSaleAdmin,
+  updateFlashSaleAdmin,
+  deleteFlashSaleAdmin,
   getStats,
 } = require("./admin.controller");
 
@@ -47,6 +59,7 @@ router.use(requireAuth, requireRole("ADMIN"));
 router.get("/stats", getStats);
 
 router.get("/users", listUsers);
+router.get("/users/:id", getUser);
 router.patch("/users/:id", updateUser);
 
 router.get("/modules", listModules);
@@ -93,5 +106,20 @@ router.post("/services/insurance", createInsurancePlan);
 router.patch("/services/insurance/:id", updateInsurancePlan);
 
 router.get("/insurance/auto-policies", listAutoInsurancePolicies);
+
+router.get("/showcase-slides", listShowcaseSlidesAdmin);
+router.post("/showcase-slides", createShowcaseSlideAdmin);
+router.patch("/showcase-slides/:id", updateShowcaseSlideAdmin);
+router.delete("/showcase-slides/:id", deleteShowcaseSlideAdmin);
+
+router.get("/home-banner", getHomeBannerAdmin);
+router.patch("/home-banner", updateHomeBannerAdmin);
+
+router.patch("/products/:id/featured", updateProductFeaturedAdmin);
+
+router.get("/flash-sales", listFlashSalesAdmin);
+router.post("/flash-sales", createFlashSaleAdmin);
+router.patch("/flash-sales/:id", updateFlashSaleAdmin);
+router.delete("/flash-sales/:id", deleteFlashSaleAdmin);
 
 module.exports = router;

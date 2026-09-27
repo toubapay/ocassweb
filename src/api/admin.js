@@ -7,6 +7,8 @@ export const fetchAdminStats = () =>
 // Users
 export const fetchAdminUsers = (params) =>
   apiClient.get("/admin/users", { params }).then((res) => res.data);
+export const fetchAdminUser = (id) =>
+  apiClient.get(`/admin/users/${id}`).then((res) => res.data.user);
 export const updateAdminUser = (id, payload) =>
   apiClient.patch(`/admin/users/${id}`, payload).then((res) => res.data.user);
 
@@ -46,8 +48,10 @@ export const updateAdminZone = (id, payload) =>
 export const deleteAdminZone = (id) => apiClient.delete(`/admin/zones/${id}`);
 
 // Categories
-export const fetchAdminCategories = () =>
-  apiClient.get("/admin/categories").then((res) => res.data.categories);
+export const fetchAdminCategories = (moduleKey) =>
+  apiClient
+    .get("/admin/categories", { params: moduleKey ? { moduleKey } : {} })
+    .then((res) => res.data.categories);
 export const createAdminCategory = (payload) =>
   apiClient.post("/admin/categories", payload).then((res) => res.data.category);
 export const updateAdminCategory = (id, payload) =>
@@ -104,3 +108,33 @@ export const fetchAdminAutoInsurancePolicies = (status) =>
   apiClient
     .get("/admin/insurance/auto-policies", { params: status ? { status } : undefined })
     .then((res) => res.data.policies);
+
+// Flash sales
+export const fetchAdminFlashSales = () =>
+  apiClient.get("/admin/flash-sales").then((res) => res.data.flashSales);
+export const createAdminFlashSale = (payload) =>
+  apiClient.post("/admin/flash-sales", payload).then((res) => res.data.flashSale);
+export const updateAdminFlashSale = (id, payload) =>
+  apiClient.patch(`/admin/flash-sales/${id}`, payload).then((res) => res.data.flashSale);
+export const deleteAdminFlashSale = (id) => apiClient.delete(`/admin/flash-sales/${id}`);
+
+// Showcase slides
+export const fetchAdminShowcaseSlides = (moduleKey) =>
+  apiClient
+    .get("/admin/showcase-slides", { params: moduleKey ? { moduleKey } : {} })
+    .then((res) => res.data.slides);
+export const createAdminShowcaseSlide = (payload) =>
+  apiClient.post("/admin/showcase-slides", payload).then((res) => res.data.slide);
+export const updateAdminShowcaseSlide = (id, payload) =>
+  apiClient.patch(`/admin/showcase-slides/${id}`, payload).then((res) => res.data.slide);
+export const deleteAdminShowcaseSlide = (id) => apiClient.delete(`/admin/showcase-slides/${id}`);
+
+// Home banner
+export const fetchAdminHomeBanner = () =>
+  apiClient.get("/admin/home-banner").then((res) => res.data.banner);
+export const updateAdminHomeBanner = (payload) =>
+  apiClient.patch("/admin/home-banner", payload).then((res) => res.data.banner);
+
+// Featured products
+export const updateAdminProductFeatured = (id, isFeatured) =>
+  apiClient.patch(`/admin/products/${id}/featured`, { isFeatured }).then((res) => res.data.product);

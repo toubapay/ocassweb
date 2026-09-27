@@ -1,5 +1,8 @@
 import apiClient from "./client";
 
+export const fetchStores = (params = {}) =>
+  apiClient.get("/vendor/stores", { params }).then((res) => res.data.stores);
+
 export const fetchStoreBySlug = (slug) =>
   apiClient.get(`/vendor/stores/${slug}`).then((res) => res.data.store);
 
@@ -21,3 +24,5 @@ export const deactivateProduct = (id) =>
 
 export const fetchMyVendorOrders = () =>
   apiClient.get("/vendor/orders").then((res) => res.data.orders);
+export const updateVendorOrderStatus = (id, status) =>
+  apiClient.patch(`/vendor/orders/${id}/status`, { status }).then((res) => res.data.order);

@@ -8,9 +8,11 @@ const { payoutDriverForBooking } = require("../anando/anando.service");
 /**
  * Creates a Payment record and a matching PayDunya invoice for it. Callers
  * (order/order-like creation flows) should link their own record's
- * paymentId to the returned Payment's id.
+ * paymentId to the returned Payment's id. `platform` ("web"|"mobile")
+ * decides which return_url PayDunya sends the customer back to - see
+ * paydunya.service.js's createInvoice.
  */
-async function initiatePayment({ userId, amount, purpose, purposeId, description }) {
+async function initiatePayment({ userId, amount, purpose, purposeId, description, platform }) {
   const payment = await prisma.payment.create({
     data: { userId, amount, purpose, purposeId, status: "PENDING" },
   });
@@ -20,6 +22,7 @@ async function initiatePayment({ userId, amount, purpose, purposeId, description
       amount,
       description,
       customData: { paymentId: payment.id, purpose, purposeId },
+      platform,
     });
     return prisma.payment.update({
       where: { id: payment.id },

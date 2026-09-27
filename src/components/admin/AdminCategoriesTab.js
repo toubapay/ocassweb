@@ -10,16 +10,54 @@ import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import Switch from "@mui/material/Switch";
 import IconButton from "@mui/material/IconButton";
+import Avatar from "@mui/material/Avatar";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import UploadRoundedIcon from "@mui/icons-material/UploadRounded";
 import {
   fetchAdminCategories,
   createAdminCategory,
   updateAdminCategory,
 } from "../../api/admin";
+import { compressImageFile } from "../../utils/imageFile";
+import { AdminCard, AdminSectionHeading } from "./AdminUiKit";
+import { MODULE_OPTIONS } from "../../constants/adminModules";
+
+// Only these modules have adopted admin-managed categories so far - see
+// moduleKey on the Category model in schema.prisma. Extend as more modules
+// (e.g. vendor) grow their own category browsing.
+const CATEGORY_MODULE_OPTIONS = MODULE_OPTIONS.filter((m) => ["ecommerce", "restaurant"].includes(m.key));
+
+/** Shared by the inline create row and the edit dialog below. */
+function UploadImageButton({ onUploaded }) {
+  const { t } = useTranslation();
+  const [uploading, setUploading] = useState(false);
+
+  const handleChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      onUploaded(await compressImageFile(file));
+    } catch (err) {
+      toast.error(err.message === "too-large" ? t("vendor.imageTooLarge") : t("vendor.notAnImage"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Button component="label" size="small" startIcon={<UploadRoundedIcon />} disabled={uploading}>
+      {uploading ? t("common.loading") : t("vendor.uploadImage")}
+      <input type="file" accept="image/*" hidden onChange={handleChange} />
+    </Button>
+  );
+}
 
 function EditCategoryDialog({ category, topLevelCategories, onClose }) {
   const { t } = useTranslation();
@@ -27,6 +65,7 @@ function EditCategoryDialog({ category, topLevelCategories, onClose }) {
   const [name, setName] = useState(category.name);
   const [parentId, setParentId] = useState(category.parentId || "");
   const [icon, setIcon] = useState(category.icon || "");
+  const [imageUrl, setImageUrl] = useState(category.imageUrl || "");
 
   const mutation = useMutation(
     () =>
@@ -34,6 +73,7 @@ function EditCategoryDialog({ category, topLevelCategories, onClose }) {
         name: name.trim(),
         parentId: parentId || null,
         icon: icon.trim(),
+        imageUrl: imageUrl.trim(),
       }),
     {
       onSuccess: () => {
@@ -63,6 +103,20 @@ function EditCategoryDialog({ category, topLevelCategories, onClose }) {
             ))}
         </Select>
         <TextField label={t("admin.categories.icon")} fullWidth value={icon} onChange={(e) => setIcon(e.target.value)} />
+        <TextField
+          label={t("admin.categories.imageUrl")}
+          fullWidth
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+        />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <UploadImageButton onUploaded={setImageUrl} />
+          {imageUrl.trim() && (
+            <Avatar src={imageUrl.trim()} variant="rounded" sx={{ width: 64, height: 64 }}>
+              <CategoryRoundedIcon />
+            </Avatar>
+          )}
+        </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose}>{t("common.cancel")}</Button>
@@ -77,28 +131,34 @@ function EditCategoryDialog({ category, topLevelCategories, onClose }) {
 export default function AdminCategoriesTab() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [moduleKey, setModuleKey] = useState("ecommerce");
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
   const [icon, setIcon] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [editingCategory, setEditingCategory] = useState(null);
 
-  const { data: categories, isLoading } = useQuery("admin-categories", fetchAdminCategories);
+  const { data: categories, isLoading } = useQuery(
+    ["admin-categories", moduleKey],
+    () => fetchAdminCategories(moduleKey)
+  );
   const topLevelCategories = (categories || []).filter((c) => !c.parentId);
 
   const createMutation = useMutation(createAdminCategory, {
     onSuccess: () => {
-      queryClient.invalidateQueries("admin-categories");
+      queryClient.invalidateQueries(["admin-categories", moduleKey]);
       toast.success(t("admin.categories.created"));
       setName("");
       setParentId("");
       setIcon("");
+      setImageUrl("");
     },
     onError: (err) => toast.error(err.response?.data?.message || t("admin.categories.saveFailed")),
   });
 
   const toggleMutation = useMutation(
     ({ id, isActive }) => updateAdminCategory(id, { isActive }),
-    { onSuccess: () => queryClient.invalidateQueries("admin-categories") }
+    { onSuccess: () => queryClient.invalidateQueries(["admin-categories", moduleKey]) }
   );
 
   const handleCreate = () => {
@@ -107,22 +167,34 @@ export default function AdminCategoriesTab() {
       return;
     }
     createMutation.mutate({
+      moduleKey,
       name: name.trim(),
       parentId: parentId || undefined,
       icon: icon.trim() || undefined,
+      imageUrl: imageUrl.trim() || undefined,
     });
   };
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        {t("admin.categories.title")}
-      </Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        {t("admin.categories.subtitle")}
-      </Typography>
+      <AdminSectionHeading title={t("admin.categories.title")} subtitle={t("admin.categories.subtitle")} />
 
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 3 }}>
+      <AdminCard sx={{ p: { xs: 2, sm: 2.5 }, mb: 2, display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+        <Select
+          size="small"
+          value={moduleKey}
+          onChange={(e) => {
+            setModuleKey(e.target.value);
+            setParentId("");
+          }}
+          sx={{ minWidth: 160 }}
+        >
+          {CATEGORY_MODULE_OPTIONS.map((m) => (
+            <MenuItem key={m.key} value={m.key}>
+              {m.label}
+            </MenuItem>
+          ))}
+        </Select>
         <TextField
           size="small"
           label={t("admin.categories.name")}
@@ -153,52 +225,73 @@ export default function AdminCategoriesTab() {
           onChange={(e) => setIcon(e.target.value)}
           sx={{ minWidth: 140 }}
         />
+        <TextField
+          size="small"
+          label={t("admin.categories.imageUrl")}
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          sx={{ minWidth: 180 }}
+        />
+        <UploadImageButton onUploaded={setImageUrl} />
+        {imageUrl.trim() && (
+          <Avatar src={imageUrl.trim()} variant="rounded" sx={{ width: 40, height: 40 }}>
+            <CategoryRoundedIcon fontSize="small" />
+          </Avatar>
+        )}
         <Button variant="contained" disabled={createMutation.isLoading} onClick={handleCreate}>
           {t("admin.categories.add")}
         </Button>
-      </Box>
+      </AdminCard>
 
-      {isLoading ? (
-        <Typography sx={{ color: "text.secondary" }}>{t("common.loading")}</Typography>
-      ) : (
-        (categories || []).map((c) => (
-          <Box
-            key={c.id}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              py: 1,
-              px: 2,
-              mb: 1,
-              ml: c.parentId ? 3 : 0,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-              opacity: c.isActive ? 1 : 0.55,
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontWeight: 700 }}>
-                {c.parentId ? `— ${c.name}` : c.name}
-              </Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {c.slug} · {t("admin.categories.productCount", { count: c._count?.products || 0 })}
-                {c.parent ? ` · ${t("admin.categories.under", { name: c.parent.name })}` : ""}
-              </Typography>
+      <AdminCard sx={{ overflow: "hidden" }}>
+        {isLoading ? (
+          <Typography sx={{ color: "text.secondary", p: 3 }}>{t("common.loading")}</Typography>
+        ) : (
+          (categories || []).map((c, idx) => (
+            <Box
+              key={c.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1.5,
+                px: 2.5,
+                pl: c.parentId ? 5 : 2.5,
+                borderTop: idx > 0 ? "1px solid #F1F2F5" : "none",
+                opacity: c.isActive ? 1 : 0.55,
+                "&:hover": { bgcolor: "#FAFBFC" },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Avatar src={c.imageUrl || undefined} variant="rounded" sx={{ width: 40, height: 40 }}>
+                  <CategoryRoundedIcon fontSize="small" />
+                </Avatar>
+                <Box>
+                  <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>
+                    {c.parentId ? `— ${c.name}` : c.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {c.slug} ·{" "}
+                    {t("admin.categories.productCount", {
+                      count: (c.moduleKey === "restaurant" ? c._count?.menuItems : c._count?.products) || 0,
+                    })}
+                    {c.parent ? ` · ${t("admin.categories.under", { name: c.parent.name })}` : ""}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <IconButton size="small" onClick={() => setEditingCategory(c)}>
+                  <EditRoundedIcon fontSize="small" />
+                </IconButton>
+                <Switch
+                  checked={c.isActive}
+                  onChange={(e) => toggleMutation.mutate({ id: c.id, isActive: e.target.checked })}
+                />
+              </Box>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <IconButton size="small" onClick={() => setEditingCategory(c)}>
-                <EditRoundedIcon fontSize="small" />
-              </IconButton>
-              <Switch
-                checked={c.isActive}
-                onChange={(e) => toggleMutation.mutate({ id: c.id, isActive: e.target.checked })}
-              />
-            </Box>
-          </Box>
-        ))
-      )}
+          ))
+        )}
+      </AdminCard>
 
       {editingCategory && (
         <EditCategoryDialog

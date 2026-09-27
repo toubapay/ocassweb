@@ -2,9 +2,9 @@
 
 Two Railway services (frontend, backend) in one project, plus Railway's
 managed Postgres. This reuses the same `Dockerfile` / `server/Dockerfile`
-written for the [Cloud Run guide](./DEPLOY_GCP.md) - Railway auto-detects
-and builds a Dockerfile it finds in a service's root directory, no separate
-config needed for that part.
+written for `DEPLOY_RENDER.md` - Railway auto-detects and builds a
+Dockerfile it finds in a service's root directory, no separate config
+needed for that part.
 
 **This was not run from this environment.** Railway's app/API
 (`backboard.railway.app`) and docs site are both blocked by this sandbox's
@@ -86,7 +86,7 @@ since the top-level `Dockerfile` is already there):
   ```
   This is why the backend service needed a public domain and the name
   `backend` in step 2 - Railway resolves that reference to its live URL.
-  Same mechanism as the Cloud Run guide's `BACKEND_URL`: it's read
+  Same mechanism as the Render guide's `BACKEND_URL`: it's read
   server-side by `middleware.js` (`/api/* → BACKEND_URL/api/*`), freshly
   on every request - never baked into the client bundle, and (unlike an
   approach using `next.config.js`'s `rewrites()`, which resolves once at

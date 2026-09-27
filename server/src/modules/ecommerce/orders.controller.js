@@ -42,7 +42,11 @@ const createOrderSchema = z.object({
   paymentMethod: z.enum(["paydunya", "wallet", "cash"]).default("cash"),
 });
 
-const ORDER_INCLUDE = { items: { include: { product: true } }, deliveryAddress: true };
+const ORDER_INCLUDE = {
+  items: { include: { product: true } },
+  deliveryAddress: true,
+  deliveryRequest: { select: { id: true, status: true } },
+};
 
 async function listOrders(req, res, next) {
   try {
@@ -180,6 +184,7 @@ async function createOrder(req, res, next) {
         purpose: "ECOMMERCE_ORDER",
         purposeId: order.id,
         description: `Ocass order #${order.id.slice(0, 8)}`,
+        platform: req.headers["x-client-platform"] === "mobile" ? "mobile" : "web",
       });
     } catch (paymentErr) {
       await prisma.order.delete({ where: { id: order.id } });

@@ -1,17 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/format.dart';
+import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/ride_posting.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
+const _locationPingInterval = Duration(seconds: 10);
+
 /// Mirrors pages/anando/index.js: Available / My rides / My bookings tabs
-/// for the peer-to-peer carpooling module.
+/// for the peer-to-peer carpooling module, plus a location-broadcast timer
+/// (mirrors delivery_agent_screen.dart's) that pings PATCH
+/// /anando/postings/:id/location every 10s for every DEPARTED posting of
+/// this driver's - powers each booked passenger's tracking map.
 class AnandoScreen extends StatefulWidget {
   const AnandoScreen({super.key});
 
@@ -26,6 +34,7 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
   List<RideBooking> _bookings = [];
   bool _loading = true;
   final Set<String> _busyIds = {};
+  Timer? _locationTimer;
 
   @override
   void initState() {
@@ -37,7 +46,32 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
   @override
   void dispose() {
     _tabController.dispose();
+    _locationTimer?.cancel();
     super.dispose();
+  }
+
+  List<String> get _departedPostingIds =>
+      _mine.where((p) => p.status == 'DEPARTED').map((p) => p.id).toList();
+
+  void _syncLocationTimer() {
+    final activeIds = _departedPostingIds;
+    if (activeIds.isEmpty) {
+      _locationTimer?.cancel();
+      _locationTimer = null;
+      return;
+    }
+    if (_locationTimer != null) return; // already running, will pick up the latest ids each tick
+    _pingLocation();
+    _locationTimer = Timer.periodic(_locationPingInterval, (_) => _pingLocation());
+  }
+
+  Future<void> _pingLocation() async {
+    final position = await getCurrentLatLng();
+    if (position == null) return;
+    final (lat, lng) = position;
+    for (final id in _departedPostingIds) {
+      apiClient.updateAnandoDriverLocation(id, lat: lat, lng: lng).catchError((_) {});
+    }
   }
 
   Future<void> _loadAll() async {
@@ -55,12 +89,27 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
       _bookings = results[2] as List<RideBooking>;
       _loading = false;
     });
+    _syncLocationTimer();
   }
 
   Future<void> _cancelPosting(String id) async {
     setState(() => _busyIds.add(id));
     try {
       await apiClient.cancelPosting(id);
+      await _loadAll();
+    } finally {
+      if (mounted) setState(() => _busyIds.remove(id));
+    }
+  }
+
+  Future<void> _departPosting(String id) async {
+    setState(() => _busyIds.add(id));
+    try {
+      await apiClient.departPosting(id);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.t('anando.departed'))));
+      }
       await _loadAll();
     } finally {
       if (mounted) setState(() => _busyIds.remove(id));
@@ -223,13 +272,22 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
                 ),
                 Text('${p.seatsAvailable}/${p.seatsTotal} ${context.t('anando.seatsWord')}',
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                if (p.status == 'OPEN')
+                if (p.status == 'OPEN' || p.status == 'FULL')
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: busy ? null : () => _cancelPosting(p.id),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.red),
-                      child: Text(context.t('anando.cancel')),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: busy ? null : () => _departPosting(p.id),
+                          child: Text(context.t('anando.markDeparted')),
+                        ),
+                        TextButton(
+                          onPressed: busy ? null : () => _cancelPosting(p.id),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.red),
+                          child: Text(context.t('anando.cancel')),
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -253,32 +311,36 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
           final route = b.posting != null
               ? '${b.posting!.originAddress} → ${b.posting!.destinationAddress}'
               : '—';
-          return _card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(route, style: const TextStyle(fontWeight: FontWeight.w700))),
-                    Chip(
-                        label: Text(b.status == 'CONFIRMED'
-                            ? context.t('common.confirmed')
-                            : context.t('common.cancelled')),
-                        visualDensity: VisualDensity.compact),
-                  ],
-                ),
-                Text('${b.seatsBooked} × ${context.t('anando.pay.${b.paymentMethod}')}',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                if (b.status == 'CONFIRMED')
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: busy ? null : () => _cancelBooking(b.id),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.red),
-                      child: Text(context.t('anando.cancel')),
-                    ),
+          return InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => context.push('/anando/track/${b.postingId}'),
+            child: _card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: Text(route, style: const TextStyle(fontWeight: FontWeight.w700))),
+                      Chip(
+                          label: Text(b.status == 'CONFIRMED'
+                              ? context.t('common.confirmed')
+                              : context.t('common.cancelled')),
+                          visualDensity: VisualDensity.compact),
+                    ],
                   ),
-              ],
+                  Text('${b.seatsBooked} × ${context.t('anando.pay.${b.paymentMethod}')}',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  if (b.status == 'CONFIRMED')
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: busy ? null : () => _cancelBooking(b.id),
+                        style: TextButton.styleFrom(foregroundColor: AppColors.red),
+                        child: Text(context.t('anando.cancel')),
+                      ),
+                    ),
+                ],
+              ),
             ),
           );
         }).toList(),

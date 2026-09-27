@@ -213,12 +213,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     if (!hasStore)
                       OutlinedButton(
-                        onPressed: () => context.push('/vendor/register'),
+                        onPressed: () => context.push('/vendor'),
                         child: Text(context.t('profile.becomeVendor')),
                       ),
                     if (!hasRestaurant)
                       OutlinedButton(
-                        onPressed: () => context.push('/restaurant/register'),
+                        onPressed: () => context.push('/restaurant/manage'),
                         child: Text(context.t('profile.becomeRestaurantOwner')),
                       ),
                     if (!isAgent)

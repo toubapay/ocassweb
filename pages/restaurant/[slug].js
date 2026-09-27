@@ -16,9 +16,26 @@ import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import AddressAutocompleteField from "../../src/components/maps/AddressAutocompleteField";
+import ProductShowcaseCarousel from "../../src/components/ecommerce/ProductShowcaseCarousel";
 import useAuth from "../../src/hooks/useAuth";
-import { fetchRestaurant, createRestaurantOrder } from "../../src/api/modules";
+import { fetchRestaurant, createRestaurantOrder, fetchRestaurantShowcaseSlides } from "../../src/api/modules";
 import { formatCfa } from "../../src/utils/currency";
+
+/** Groups already-sorted (categoryRef.name asc, name asc) menu items into
+ * sections, keeping uncategorized items in an unlabeled section first. */
+function groupByCategory(menuItems) {
+  const groups = [];
+  let current = null;
+  (menuItems || []).forEach((item) => {
+    const key = item.categoryRef?.id || null;
+    if (!current || current.key !== key) {
+      current = { key, name: item.categoryRef?.name || null, items: [] };
+      groups.push(current);
+    }
+    current.items.push(item);
+  });
+  return groups;
+}
 
 export default function RestaurantDetail() {
   const router = useRouter();
@@ -36,12 +53,15 @@ export default function RestaurantDetail() {
     () => fetchRestaurant(slug),
     { enabled: Boolean(slug) }
   );
+  const { data: showcaseSlides } = useQuery("restaurant-showcase-slides", fetchRestaurantShowcaseSlides);
 
   const menuItemById = useMemo(() => {
     const map = new Map();
     (restaurant?.menuItems || []).forEach((item) => map.set(item.id, item));
     return map;
   }, [restaurant]);
+
+  const menuGroups = useMemo(() => groupByCategory(restaurant?.menuItems), [restaurant]);
 
   const cartEntries = Object.entries(quantities).filter(([, qty]) => qty > 0);
   const total = cartEntries.reduce((sum, [id, qty]) => {
@@ -124,47 +144,58 @@ export default function RestaurantDetail() {
         </Box>
       </Box>
 
-      <Box sx={{ px: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
-        {(restaurant.menuItems || []).map((item) => {
-          const qty = quantities[item.id] || 0;
-          return (
-            <Box
-              key={item.id}
-              sx={{ display: "flex", gap: 1.5, alignItems: "center", border: "1px solid #EEEEEE", borderRadius: 3, p: 1.5 }}
-            >
-              <Box component="img" src={item.imageUrl} sx={{ width: 56, height: 56, borderRadius: 2, objectFit: "cover" }} />
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
-                  {item.name}
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                  {formatCfa(item.price)}
-                </Typography>
-              </Box>
-              {qty === 0 ? (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setQuantity(item.id, 1)}
-                  sx={{ fontWeight: 800 }}
+      <Box sx={{ px: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
+        {menuGroups.map((group) => (
+          <Box key={group.key || "uncategorized"} sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {group.name && (
+              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                {group.name}
+              </Typography>
+            )}
+            {group.items.map((item) => {
+              const qty = quantities[item.id] || 0;
+              return (
+                <Box
+                  key={item.id}
+                  sx={{ display: "flex", gap: 1.5, alignItems: "center", border: "1px solid #EEEEEE", borderRadius: 3, p: 1.5 }}
                 >
-                  {t("restaurant.detail.add")}
-                </Button>
-              ) : (
-                <Box sx={{ display: "flex", alignItems: "center", border: "1px solid #EEEEEE", borderRadius: 2 }}>
-                  <IconButton size="small" onClick={() => setQuantity(item.id, qty - 1)}>
-                    <RemoveRoundedIcon fontSize="small" />
-                  </IconButton>
-                  <Typography sx={{ px: 1, fontWeight: 700, fontSize: 14 }}>{qty}</Typography>
-                  <IconButton size="small" onClick={() => setQuantity(item.id, qty + 1)}>
-                    <AddRoundedIcon fontSize="small" />
-                  </IconButton>
+                  <Box component="img" src={item.imageUrl} sx={{ width: 56, height: 56, borderRadius: 2, objectFit: "cover" }} />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
+                      {item.name}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                      {formatCfa(item.price)}
+                    </Typography>
+                  </Box>
+                  {qty === 0 ? (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setQuantity(item.id, 1)}
+                      sx={{ fontWeight: 800 }}
+                    >
+                      {t("restaurant.detail.add")}
+                    </Button>
+                  ) : (
+                    <Box sx={{ display: "flex", alignItems: "center", border: "1px solid #EEEEEE", borderRadius: 2 }}>
+                      <IconButton size="small" onClick={() => setQuantity(item.id, qty - 1)}>
+                        <RemoveRoundedIcon fontSize="small" />
+                      </IconButton>
+                      <Typography sx={{ px: 1, fontWeight: 700, fontSize: 14 }}>{qty}</Typography>
+                      <IconButton size="small" onClick={() => setQuantity(item.id, qty + 1)}>
+                        <AddRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
                 </Box>
-              )}
-            </Box>
-          );
-        })}
+              );
+            })}
+          </Box>
+        ))}
       </Box>
+
+      <ProductShowcaseCarousel slides={showcaseSlides || []} />
 
       {cartEntries.length > 0 && (
         <Box

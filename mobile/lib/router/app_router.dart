@@ -13,6 +13,7 @@ import '../screens/ecommerce/checkout_screen.dart';
 import '../screens/ecommerce/orders_screen.dart';
 import '../screens/ecommerce/order_detail_screen.dart';
 import '../screens/ecommerce/wishlist_screen.dart';
+import '../screens/ecommerce/store_screen.dart';
 import '../screens/delivery/delivery_screen.dart';
 import '../screens/delivery/delivery_agent_screen.dart';
 import '../screens/delivery/delivery_track_screen.dart';
@@ -28,6 +29,7 @@ import '../screens/restaurant/restaurant_manage_items_screen.dart';
 import '../screens/restaurant/restaurant_manage_orders_screen.dart';
 import '../screens/rideshare/ride_sharing_screen.dart';
 import '../screens/rideshare/ride_sharing_driver_screen.dart';
+import '../screens/rideshare/ride_sharing_track_screen.dart';
 import '../screens/topup/topup_screen.dart';
 import '../screens/topup/topup_airtime_recipient_screen.dart';
 import '../screens/topup/topup_airtime_amount_screen.dart';
@@ -36,10 +38,13 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/anando/anando_screen.dart';
 import '../screens/anando/anando_post_screen.dart';
 import '../screens/anando/anando_book_screen.dart';
+import '../screens/anando/anando_track_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/vendor/vendor_dashboard_screen.dart';
 import '../screens/vendor/vendor_products_screen.dart';
 import '../screens/vendor/vendor_orders_screen.dart';
+import '../screens/payments/payment_return_screen.dart';
+import '../screens/payments/payment_cancelled_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -58,8 +63,20 @@ final GoRouter appRouter = GoRouter(
           ProductDetailScreen(slug: state.pathParameters['slug']!),
     ),
     GoRoute(
+      path: '/store/:slug',
+      builder: (context, state) => StoreScreen(slug: state.pathParameters['slug']!),
+    ),
+    GoRoute(
       path: '/delivery/track/:id',
       builder: (context, state) => DeliveryTrackScreen(requestId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/ride-sharing/track/:id',
+      builder: (context, state) => RideSharingTrackScreen(rideId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/anando/track/:id',
+      builder: (context, state) => AnandoTrackScreen(postingId: state.pathParameters['id']!),
     ),
     GoRoute(path: '/ecommerce/cart', builder: (context, state) => const CartScreen()),
     GoRoute(path: '/ecommerce/checkout', builder: (context, state) => const CheckoutScreen()),
@@ -82,6 +99,14 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    // Reached via the ocass://payments/return and ocass://payments/cancel
+    // deep links - see app.dart's AppLinks listener.
+    GoRoute(
+      path: '/payments/return',
+      builder: (context, state) =>
+          PaymentReturnScreen(token: state.uri.queryParameters['token']),
+    ),
+    GoRoute(path: '/payments/cancel', builder: (context, state) => const PaymentCancelledScreen()),
 
     // Everything else keeps the bottom tab bar.
     ShellRoute(

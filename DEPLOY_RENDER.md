@@ -1,13 +1,11 @@
 # Deploying Ocass to Render
 
 Two Render Web Services (frontend, backend), each built from its existing
-Dockerfile, plus Render's managed Postgres. This reuses the same
-`Dockerfile` / `server/Dockerfile` written for the
-[Cloud Run guide](./DEPLOY_GCP.md) - Render, like Cloud Run and Railway,
-builds a Dockerfile it finds in the repo without needing a separate
-buildpack config, and injects its own `PORT` env var into the container at
-runtime, overriding the `ENV PORT=8080` default baked into both
-Dockerfiles. No code changes were needed to support Render.
+`Dockerfile` / `server/Dockerfile` - Render, like most container-based
+platforms, builds a Dockerfile it finds in the repo without needing a
+separate buildpack config, and injects its own `PORT` env var into the
+container at runtime, overriding the `ENV PORT=8080` default baked into
+both Dockerfiles. No code changes were needed to support Render.
 
 **This was not run from this environment.** Render's dashboard, API
 (`api.render.com`), and docs site are all blocked by this sandbox's
@@ -20,8 +18,7 @@ below haven't.
 ## Option A: Blueprint (recommended)
 
 [`render.yaml`](./render.yaml) in the repo root declares both services and
-the database in one file - Render's infra-as-code equivalent of
-`cloudbuild.yaml` in the GCP guide.
+the database in one file - Render's infra-as-code Blueprint format.
 
 1. [dashboard.render.com/blueprints](https://dashboard.render.com/blueprints)
    → **New Blueprint Instance** → pick `toubapay/ocassweb` →
@@ -87,8 +84,8 @@ hand:
      BACKEND_URL = https://ocass-backend.onrender.com   (from step 2)
      ```
      Read server-side by `middleware.js` (`/api/* → BACKEND_URL/api/*`),
-     freshly on every request, same mechanism as the Cloud Run and Railway
-     guides - never baked into the client bundle, and (unlike using
+     freshly on every request, same mechanism as the Railway guide - never
+     baked into the client bundle, and (unlike using
      `next.config.js`'s `rewrites()`, which bakes its destination in at
      build time - this bit an earlier version of this guide, where the
      proxy silently kept using its `localhost:5000` fallback in production
