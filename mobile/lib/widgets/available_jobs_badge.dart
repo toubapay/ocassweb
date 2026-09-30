@@ -22,7 +22,9 @@ class AvailableJobsBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final jobs = context.watch<AvailableJobsProvider>();
     final count = jobs.count ?? 0;
-    if (!jobs.hasJobs) return const SizedBox.shrink();
+    // A count with no role is not renderable: the wording below would
+    // fall through to the rider variant and label deliveries as rides.
+    if (!jobs.hasJobs || jobs.role == null) return const SizedBox.shrink();
 
     final isDelivery = jobs.role == 'DELIVERY_AGENT';
     final title = context.tPlural(

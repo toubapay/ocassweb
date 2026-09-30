@@ -94,8 +94,12 @@ class AvailableJobsProvider extends ChangeNotifier {
     if (_role == role && _timer != null) return;
     _role = role;
     // A new role means a new board: forget the old count so the first
-    // poll on the new one is treated as a first value, not a rise.
+    // poll on the new one is treated as a first value, not a rise - and
+    // notify, so the badge drops the previous role's number immediately
+    // instead of showing it under the new role's wording until the first
+    // poll lands.
     _count = null;
+    notifyListeners();
     _timer?.cancel();
     refresh();
     _timer = Timer.periodic(_live ? _livePollInterval : _pollInterval, (_) => refresh());
@@ -128,6 +132,11 @@ class AvailableJobsProvider extends ChangeNotifier {
       final next = role == 'DELIVERY_AGENT'
           ? await apiClient.fetchAvailableDeliveryJobCount()
           : await apiClient.fetchAvailableRideJobCount();
+      // The session or the role may have changed while this was in
+      // flight. A count belongs to the role it was asked for: landing it
+      // anyway showed a signed-out user a badge, and showed a freshly
+      // switched rider the delivery board's number under "courses".
+      if (_role != role) return;
       final previous = _count;
       _count = next;
       notifyListeners();

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import 'api_client.dart';
 import 'constants.dart';
 import 'secure_storage.dart';
 
@@ -65,26 +66,49 @@ class LiveUpdates {
     connectTimeout: const Duration(seconds: 15),
   ));
 
-  StreamSubscription<List<int>>? _subscription;
+  StreamSubscription<String>? _subscription;
   Timer? _retryTimer;
   Duration _retry = _minRetry;
   bool _running = false;
   bool _connected = false;
+  // Bumped by every start() and stop(). A suspended _connect() cannot
+  // decide whether to carry on by reading _running: stop() followed
+  // immediately by start() - which is exactly what a role change and a
+  // pause/resume do - sets it back to true before the connect resumes, so
+  // the old connect sees "running" and opens a second connection nothing
+  // is tracking. Comparing the generation it started in is the only check
+  // that tells "still mine" from "stopped and restarted".
+  int _generation = 0;
+  // Cancelling the Dart subscription does NOT abort a streamed dio
+  // request - the socket stays open and the server goes on holding the
+  // connection (and heartbeating into it) until TCP eventually notices.
+  // Aborting needs the CancelToken the request was issued with, so stop()
+  // cancels this. Measured before the fix: a clean start/stop left the
+  // connection registered server-side, and every pause/resume or role
+  // change added another one that could never be released.
+  CancelToken? _cancelToken;
 
   bool get connected => _connected;
 
   void start() {
     if (_running) return;
     _running = true;
-    _connect();
+    _generation += 1;
+    _connect(_generation);
   }
 
   void stop() {
     _running = false;
+    _generation += 1;
     _retryTimer?.cancel();
     _retryTimer = null;
     _subscription?.cancel();
     _subscription = null;
+    // Order matters only in that both must happen: the subscription stops
+    // this process reading, the token closes the socket so the server
+    // stops holding a connection nobody is listening to.
+    _cancelToken?.cancel('live updates stopped');
+    _cancelToken = null;
     _setConnected(false);
   }
 
@@ -97,7 +121,8 @@ class LiveUpdates {
   void _scheduleRetry() {
     if (!_running) return;
     _retryTimer?.cancel();
-    _retryTimer = Timer(_retry, _connect);
+    final generation = _generation;
+    _retryTimer = Timer(_retry, () => _connect(generation));
     _retry = Duration(
       milliseconds: (_retry.inMilliseconds * 2).clamp(
         _minRetry.inMilliseconds,
@@ -106,8 +131,8 @@ class LiveUpdates {
     );
   }
 
-  Future<void> _connect() async {
-    if (!_running) return;
+  Future<void> _connect(int generation) async {
+    if (!_running || generation != _generation) return;
     final token = await TokenStorage.read();
     // Signed out: nothing to listen to, and no point retrying until
     // something calls start() again after a login.
@@ -115,23 +140,50 @@ class LiveUpdates {
       _setConnected(false);
       return;
     }
+    // stop() may have landed while that read was in flight. Every await
+    // below gets the same check: without it the connect runs to completion
+    // against a stopped client, assigns _subscription over whatever the
+    // next start() put there, and leaves a connection nothing can cancel.
+    if (!_running || generation != _generation) return;
+
+    final cancelToken = CancelToken();
+    _cancelToken = cancelToken;
 
     try {
       final response = await _dio.get<ResponseBody>(
         '/realtime/stream',
+        cancelToken: cancelToken,
         options: Options(
           responseType: ResponseType.stream,
           headers: {'Authorization': 'Bearer $token', 'Accept': 'text/event-stream'},
-          // A 401 here is an expired session, not a crash: handle it like
-          // any other end of stream (retry, backing off) rather than
-          // letting dio throw.
+          // A non-200 here is an answer, not a crash - handled below
+          // rather than thrown.
           validateStatus: (_) => true,
         ),
       );
 
+      // A 401 is a definitive answer: this token is no longer a session.
+      // Retrying it once a minute forever would keep the app looking
+      // signed in while every request fails, so it goes down the same path
+      // an ordinary 401 takes (see the interceptor in api_client.dart) and
+      // the stream stays down until a new login calls start() again.
+      if (response.statusCode == 401) {
+        stop();
+        await TokenStorage.clear();
+        ApiClient.onUnauthorized?.call();
+        return;
+      }
+
       if (response.statusCode != 200 || response.data == null) {
         _setConnected(false);
         _scheduleRetry();
+        return;
+      }
+
+      // Stopped (or restarted) while the request was in flight: close
+      // what we just opened instead of wiring it up.
+      if (!_running || generation != _generation) {
+        cancelToken.cancel('live updates stopped');
         return;
       }
 
@@ -141,11 +193,19 @@ class LiveUpdates {
 
       // SSE frames are separated by a blank line and can arrive split
       // across chunks, so bytes are buffered until a frame is whole
-      // rather than parsed per chunk.
+      // rather than parsed per chunk. Decoding is a stream transform
+      // rather than utf8.decode per chunk: a multi-byte character split
+      // across a chunk boundary is mangled by the latter, and an address
+      // in a French notification is one accent away from proving it.
       var buffer = '';
-      _subscription = response.data!.stream.listen(
+      _subscription?.cancel();
+      // bind() rather than transform(): the body arrives as
+      // Stream<Uint8List> and a Converter binds to any Stream<List<int>>.
+      _subscription = const Utf8Decoder(allowMalformed: true)
+          .bind(response.data!.stream)
+          .listen(
         (chunk) {
-          buffer += utf8.decode(chunk, allowMalformed: true);
+          buffer += chunk;
           var cut = buffer.indexOf('\n\n');
           while (cut != -1) {
             _handleFrame(buffer.substring(0, cut));
@@ -163,6 +223,15 @@ class LiveUpdates {
         },
         cancelOnError: true,
       );
+    } on DioException catch (err) {
+      // A cancel is this class closing its own connection; anything else
+      // is the network and deserves a retry.
+      if (CancelToken.isCancel(err)) {
+        _setConnected(false);
+        return;
+      }
+      _setConnected(false);
+      _scheduleRetry();
     } catch (_) {
       // Offline, DNS failure, TLS error - all the same answer.
       _setConnected(false);

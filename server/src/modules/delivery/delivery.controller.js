@@ -358,15 +358,23 @@ async function markDelivered(req, res, next) {
         req.user.commissionSharePercent != null
           ? Number(req.user.commissionSharePercent) / 100
           : feeConfig.agentSharePercent / 100;
-      earned = Number(existing.priceEstimate) * agentShare;
-      await walletService.credit({
-        userId: req.user.id,
-        amount: earned,
-        type: "EARNING",
-        purpose: "DELIVERY_REQUEST",
-        purposeId: request.id,
-        description: "Delivery earnings",
-      });
+      // Whole francs. XOF has no subunit, so an unrounded share put
+      // 672.35 in a wallet the app renders as "CFA 672.35" while the
+      // notification beside it said "672 FCFA" - one event, two numbers.
+      // Guarded because credit() rejects a non-positive amount, and a
+      // rounded share of a tiny fare can be 0: that would throw here,
+      // after the job was already marked DELIVERED.
+      earned = Math.round(Number(existing.priceEstimate) * agentShare);
+      if (earned > 0) {
+        await walletService.credit({
+          userId: req.user.id,
+          amount: earned,
+          type: "EARNING",
+          purpose: "DELIVERY_REQUEST",
+          purposeId: request.id,
+          description: "Delivery earnings",
+        });
+      }
     }
     // If this delivery job came from a restaurant order (see
     // dispatchForDelivery in restaurant/orders.controller.js) or a

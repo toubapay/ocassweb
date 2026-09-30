@@ -635,6 +635,20 @@ settles on an authenticated page, because an open SSE connection is a
 permanently pending request. Use `domcontentloaded` and wait for the thing
 you actually care about.
 
+**Closing a Dart stream takes a CancelToken, not a subscription cancel.**
+Cancelling the `StreamSubscription` stops this process reading and leaves
+the socket open, so the server goes on holding the connection and
+heartbeating into it. `LiveUpdates.stop()` therefore cancels the request's
+`CancelToken` as well - measured before that fix, a clean start/stop left
+the connection registered server-side and every pause/resume added another
+one that could never be released. For the same reason `_connect()` carries
+a **generation** number rather than reading a `_running` flag after its
+awaits: `stop()` immediately followed by `start()` - which is exactly what a
+role change and a resume do - sets that flag back to true before the
+suspended connect resumes, so it happily opens a second connection nothing
+is tracking. `GET /api/realtime/stats` (ADMIN) is how both were caught: one
+client is two listeners, its own channel and its role's.
+
 Verified against a real Postgres and a real browser: the bell in the top
 banner going 0 -> 1 in 205ms on the customer's own request and 1 -> 2 in
 220ms when an agent accepted it from another session, with zero

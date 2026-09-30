@@ -300,15 +300,19 @@ async function completeRide(req, res, next) {
         req.user.commissionSharePercent != null
           ? Number(req.user.commissionSharePercent) / 100
           : feeConfig.riderSharePercent / 100;
-      earned = Number(existing.priceEstimate) * riderShare;
-      await walletService.credit({
-        userId: req.user.id,
-        amount: earned,
-        type: "EARNING",
-        purpose: "RIDE_REQUEST",
-        purposeId: ride.id,
-        description: "Ride earnings",
-      });
+      // Whole francs, and guarded - see the same note in
+      // delivery.controller.js.
+      earned = Math.round(Number(existing.priceEstimate) * riderShare);
+      if (earned > 0) {
+        await walletService.credit({
+          userId: req.user.id,
+          amount: earned,
+          type: "EARNING",
+          purpose: "RIDE_REQUEST",
+          purposeId: ride.id,
+          description: "Ride earnings",
+        });
+      }
     }
     rideNotify.notifyCompleted(ride, earned);
     res.json({ ride });

@@ -82,6 +82,7 @@ class _OcassAppState extends State<OcassApp> with WidgetsBindingObserver {
     // role change has to reopen it.
     _authProvider.addListener(_syncSession);
     _authProvider.bootstrap().then((_) {
+      _wasAuthenticated = _authProvider.isAuthenticated;
       if (_authProvider.isAuthenticated) {
         _cartProvider.fetch();
         _wishlistProvider.fetch();
@@ -104,11 +105,28 @@ class _OcassAppState extends State<OcassApp> with WidgetsBindingObserver {
   }
 
   String? _liveRole;
+  bool _wasAuthenticated = false;
 
   void _syncSession() {
     final role = _authProvider.user?.role;
+    final isAuthenticated = _authProvider.isAuthenticated;
+    // Signing out has to clear every provider holding the last account's
+    // data, and it has to happen HERE rather than in the logout button:
+    // there are two ways out of a session and the button is only one of
+    // them. The other is a 401 handing ApiClient.onUnauthorized straight
+    // to AuthProvider.logout - which used to clear nothing, so the next
+    // person to log in on that phone saw the previous account's unread
+    // count and cart badge, and the notifications poll went on 401ing
+    // every 30s. Driving it off the AuthProvider listener means both
+    // paths, and any added later, converge.
+    if (_wasAuthenticated && !isAuthenticated) {
+      _cartProvider.clear();
+      _wishlistProvider.clear();
+      _notificationsProvider.clear();
+    }
+    _wasAuthenticated = isAuthenticated;
     _availableJobsProvider.start(role);
-    if (!_authProvider.isAuthenticated) {
+    if (!isAuthenticated) {
       _liveRole = null;
       _live.stop();
       return;
