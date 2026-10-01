@@ -32,6 +32,7 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
   List<RidePosting> _available = [];
   List<RidePosting> _mine = [];
   List<RideBooking> _bookings = [];
+  bool _loadError = false;
   bool _loading = true;
   final Set<String> _busyIds = {};
   Timer? _locationTimer;
@@ -77,19 +78,30 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
   Future<void> _loadAll() async {
     if (!mounted || !context.read<AuthProvider>().isAuthenticated) return;
     setState(() => _loading = true);
-    final results = await Future.wait([
-      apiClient.fetchAvailablePostings(),
-      apiClient.fetchMyPostings(),
-      apiClient.fetchMyBookings(),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _available = results[0] as List<RidePosting>;
-      _mine = results[1] as List<RidePosting>;
-      _bookings = results[2] as List<RideBooking>;
-      _loading = false;
-    });
-    _syncLocationTimer();
+    try {
+      final results = await Future.wait([
+        apiClient.fetchAvailablePostings(),
+        apiClient.fetchMyPostings(),
+        apiClient.fetchMyBookings(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _available = results[0] as List<RidePosting>;
+        _mine = results[1] as List<RidePosting>;
+        _bookings = results[2] as List<RideBooking>;
+        _loadError = false;
+        _loading = false;
+      });
+      _syncLocationTimer();
+    } catch (_) {
+      // One of the three failing must not leave this on a spinner
+      // forever - see the same guard in delivery_agent_screen.dart.
+      if (!mounted) return;
+      setState(() {
+        _loadError = true;
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _cancelPosting(String id) async {
@@ -170,7 +182,9 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
             ],
           ),
           Expanded(
-            child: _loading
+            child: _loadError
+                ? _loadErrorView()
+                : _loading
                 ? Center(child: Text(context.t('common.loading')))
                 : TabBarView(
                     controller: _tabController,
@@ -347,4 +361,24 @@ class _AnandoScreenState extends State<AnandoScreen> with SingleTickerProviderSt
       ),
     );
   }
+
+  /// Shown instead of a spinner that would otherwise never end - see the
+  /// guard in _loadAll.
+  Widget _loadErrorView() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_rounded, size: 40, color: AppColors.textSecondary),
+              const SizedBox(height: 12),
+              Text(context.t('common.loadFailed'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              ElevatedButton(onPressed: _loadAll, child: Text(context.t('common.retry'))),
+            ],
+          ),
+        ),
+      );
 }

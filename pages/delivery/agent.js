@@ -12,6 +12,7 @@ import Chip from "@mui/material/Chip";
 import GpsFixedRoundedIcon from "@mui/icons-material/GpsFixedRounded";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
+import { useLiveStatus } from "../../src/components/live/LiveUpdatesProvider";
 import {
   fetchAvailableDeliveryJobs,
   fetchMyDeliveryJobs,
@@ -70,6 +71,9 @@ export default function DeliveryAgentDashboard() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
+  // A new or taken job arrives on the live stream (LiveUpdatesProvider);
+  // the poll below is the backstop when it isn't connected.
+  const { connected: live } = useLiveStatus();
   const [tab, setTab] = useState(0);
 
   // Lets profile.js link straight to the job history tab (?tab=mine)
@@ -85,7 +89,7 @@ export default function DeliveryAgentDashboard() {
   const { data: available, isLoading: loadingAvailable } = useQuery(
     "delivery-jobs-available",
     fetchAvailableDeliveryJobs,
-    { enabled: isAgent, refetchInterval: 15000 }
+    { enabled: isAgent, refetchInterval: live ? 120000 : 15000 }
   );
   const { data: myJobs, isLoading: loadingMine } = useQuery(
     "delivery-jobs-mine",
@@ -99,6 +103,11 @@ export default function DeliveryAgentDashboard() {
   const invalidateJobs = () => {
     queryClient.invalidateQueries("delivery-jobs-available");
     queryClient.invalidateQueries("delivery-jobs-mine");
+    // The home screen's available-jobs badge reads the same open-job set
+    // (AvailableJobsBadge.js). Without this it would keep showing the job
+    // just accepted for up to one poll interval - and the whole promise of
+    // that badge is that it goes away when the work is taken.
+    queryClient.invalidateQueries("delivery-jobs-available-count");
   };
 
   const acceptMutation = useMutation((id) => acceptDeliveryJob(id), {

@@ -10,8 +10,14 @@ import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
 /// Mirrors pages/notifications/index.js: relative-time list, mark-all-read,
-/// tap-to-mark-read-and-navigate (Anando booking notifications deep-link
-/// to /anando, same as the web app).
+/// tap-to-mark-read-and-navigate.
+///
+/// Where a row opens depends on which SIDE of a job it belongs to.
+/// `data.role` is written by the backend (delivery.notify.js /
+/// rideshare.notify.js) precisely so this is not a guess: the customer
+/// wants the tracking page for their one delivery, the agent wants the
+/// board their jobs are on. Sending both to the same screen would strand
+/// one of them.
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -28,6 +34,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         context.read<NotificationsProvider>().fetchAll();
       }
     });
+  }
+
+  /// Null for a notification with no pointer we recognise - that row stays
+  /// a plain, unclickable entry rather than navigating somewhere arbitrary.
+  String? _target(AppNotification n) {
+    final data = n.data ?? const {};
+    final deliveryId = data['deliveryRequestId'];
+    if (deliveryId != null) {
+      return data['role'] == 'AGENT' ? '/delivery/agent' : '/delivery/track/$deliveryId';
+    }
+    if (data['rideRequestId'] != null) {
+      return data['role'] == 'RIDER' ? '/ride-sharing/driver' : '/ride-sharing';
+    }
+    if (data['postingId'] != null) return '/anando';
+    return null;
   }
 
   String _timeAgo(DateTime date) {
@@ -96,15 +117,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                 ),
               ),
-            ...notifications.map((n) => _NotificationRow(
-                  notification: n,
-                  timeAgo: _timeAgo(n.createdAt),
-                  onTap: () async {
-                    if (!n.read) await context.read<NotificationsProvider>().markRead(n.id);
-                    if (!context.mounted) return;
-                    if (n.data?['postingId'] != null) context.push('/anando');
-                  },
-                )),
+            ...notifications.map((n) {
+              final target = _target(n);
+              return _NotificationRow(
+                notification: n,
+                timeAgo: _timeAgo(n.createdAt),
+                onTap: () async {
+                  if (!n.read) await context.read<NotificationsProvider>().markRead(n.id);
+                  if (!context.mounted) return;
+                  if (target != null) context.push(target);
+                },
+              );
+            }),
           ],
         ),
       ),
@@ -129,10 +153,18 @@ class _NotificationRow extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CircleAvatar(
+            // A parcel is not a car - an inbox of mixed jobs has to be
+            // skimmable at a glance.
+            CircleAvatar(
               radius: 20,
               backgroundColor: AppColors.pinkSoft,
-              child: Icon(Icons.directions_car_filled_rounded, color: AppColors.pink, size: 20),
+              child: Icon(
+                (notification.data ?? const {})['deliveryRequestId'] != null
+                    ? Icons.two_wheeler_rounded
+                    : Icons.directions_car_filled_rounded,
+                color: AppColors.pink,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(

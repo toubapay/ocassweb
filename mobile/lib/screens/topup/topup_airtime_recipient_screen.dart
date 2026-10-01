@@ -83,7 +83,13 @@ class _TopupAirtimeRecipientScreenState extends State<TopupAirtimeRecipientScree
 
   Future<void> _loadContacts() async {
     try {
-      final granted = await FlutterContacts.requestPermission();
+      // flutter_contacts 2.5 moved permissions onto their own API and
+      // returns a PermissionStatus rather than a bool: `limited` is a real
+      // outcome on iOS (the user picked specific contacts to share), and it
+      // is a grant - those contacts do come back from getAll.
+      final status = await FlutterContacts.permissions.request(PermissionType.read);
+      final granted =
+          status == PermissionStatus.granted || status == PermissionStatus.limited;
       if (!mounted) return;
       if (!granted) {
         setState(() {
@@ -92,7 +98,12 @@ class _TopupAirtimeRecipientScreenState extends State<TopupAirtimeRecipientScree
         });
         return;
       }
-      final contacts = await FlutterContacts.getContacts(withProperties: true);
+      // Name and phone only: this screen shows a name and dials a number,
+      // and fetching every property of every contact on the device is the
+      // slow path on a phone with a large address book.
+      final contacts = await FlutterContacts.getAll(
+        properties: {ContactProperty.name, ContactProperty.phone},
+      );
       if (!mounted) return;
       setState(() => _contacts = contacts.where((c) => c.phones.isNotEmpty).toList());
     } catch (_) {
@@ -107,7 +118,9 @@ class _TopupAirtimeRecipientScreenState extends State<TopupAirtimeRecipientScree
     final q = _query.toLowerCase();
     final digits = _query.replaceAll(RegExp(r'[^0-9]'), '');
     return _contacts.where((c) {
-      if (c.displayName.toLowerCase().contains(q)) return true;
+      // displayName is nullable in flutter_contacts 2.5 - a contact saved
+      // with only a phone number has none.
+      if ((c.displayName ?? '').toLowerCase().contains(q)) return true;
       if (digits.isEmpty) return false;
       return c.phones.any((p) => p.number.replaceAll(RegExp(r'[^0-9]'), '').contains(digits));
     }).toList();
@@ -206,7 +219,7 @@ class _TopupAirtimeRecipientScreenState extends State<TopupAirtimeRecipientScree
                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 12))
           else
             ..._filteredContacts.map((c) => _RecipientRow(
-                  label: c.displayName,
+                  label: c.displayName ?? c.phones.first.number,
                   subtitle: c.phones.first.number,
                   icon: Icons.person_rounded,
                   onTap: () => _selectPhone(c.phones.first.number, label: c.displayName),

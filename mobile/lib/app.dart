@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/api_client.dart';
+import 'core/live_updates.dart';
 import 'theme/app_theme.dart';
 import 'router/app_router.dart';
 import 'providers/auth_provider.dart';
@@ -14,6 +15,7 @@ import 'providers/module_order_provider.dart';
 import 'providers/locale_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/notifications_provider.dart';
+import 'providers/available_jobs_provider.dart';
 
 class OcassApp extends StatefulWidget {
   const OcassApp({super.key});
@@ -22,7 +24,7 @@ class OcassApp extends StatefulWidget {
   State<OcassApp> createState() => _OcassAppState();
 }
 
-class _OcassAppState extends State<OcassApp> {
+class _OcassAppState extends State<OcassApp> with WidgetsBindingObserver {
   final AuthProvider _authProvider = AuthProvider();
   final CartProvider _cartProvider = CartProvider();
   final WishlistProvider _wishlistProvider = WishlistProvider();
@@ -30,25 +32,63 @@ class _OcassAppState extends State<OcassApp> {
   final LocaleProvider _localeProvider = LocaleProvider();
   final LocationProvider _locationProvider = LocationProvider();
   final NotificationsProvider _notificationsProvider = NotificationsProvider();
+  final AvailableJobsProvider _availableJobsProvider = AvailableJobsProvider();
+  final LiveStatus _liveStatus = LiveStatus();
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
+  late final LiveUpdates _live;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Lets ApiClient (a plain, context-free singleton) correct
     // AuthProvider's in-memory state when a 401 reveals the stored token
     // was actually invalid/expired - see api_client.dart's onError.
-    apiClient.onUnauthorized = _authProvider.logout;
+    // Set on the class, not the `apiClient` instance: onUnauthorized is a
+    // static field (see api_client.dart), and Dart rejects reaching a
+    // static member through an instance.
+    ApiClient.onUnauthorized = _authProvider.logout;
+    _live = LiveUpdates(
+      onEvent: _onLiveEvent,
+      onConnectionChange: (connected) {
+        _liveStatus.set(connected);
+        // The two pollers slow right down while the stream is up and go
+        // back to their normal cadence the moment it isn't - the stream is
+        // the fast path, the poll is what makes a dropped connection a
+        // delay rather than silence.
+        _notificationsProvider.setLive(connected);
+        _availableJobsProvider.setLive(connected);
+      },
+      // Nothing was queued while this app was away (the bus has no replay),
+      // so a fresh connection catches up once instead of waiting for the
+      // next change to happen.
+      onReconnected: () {
+        _notificationsProvider.fetchUnreadCount();
+        _availableJobsProvider.refresh();
+      },
+    );
     _moduleOrderProvider.load();
     _localeProvider.load();
     _locationProvider.load();
+    _availableJobsProvider.loadMutePreference();
+    // The available-jobs poll follows the role, not just the session: a
+    // user becomes a DELIVERY_AGENT/RIDER from the profile page mid-session
+    // (PATCH /auth/role), and logging out has to stop the polling. start()
+    // is idempotent for an unchanged role and stops itself for any other
+    // one, so this listener can simply hand it whatever the role is now.
+    // The live stream is bound to the session the same way: the server
+    // decides at connect time which role channel a connection hears, so a
+    // role change has to reopen it.
+    _authProvider.addListener(_syncSession);
     _authProvider.bootstrap().then((_) {
+      _wasAuthenticated = _authProvider.isAuthenticated;
       if (_authProvider.isAuthenticated) {
         _cartProvider.fetch();
         _wishlistProvider.fetch();
         _notificationsProvider.startPolling();
       }
+      _syncSession();
     });
     // Catches PayDunya's return_url/cancel_url redirect (ocass://payments/...)
     // once the OS hands control back to this app - see paydunya.service.js's
@@ -64,9 +104,80 @@ class _OcassAppState extends State<OcassApp> {
     appRouter.go('/payments${uri.path}$query');
   }
 
+  String? _liveRole;
+  bool _wasAuthenticated = false;
+
+  void _syncSession() {
+    final role = _authProvider.user?.role;
+    final isAuthenticated = _authProvider.isAuthenticated;
+    // Signing out has to clear every provider holding the last account's
+    // data, and it has to happen HERE rather than in the logout button:
+    // there are two ways out of a session and the button is only one of
+    // them. The other is a 401 handing ApiClient.onUnauthorized straight
+    // to AuthProvider.logout - which used to clear nothing, so the next
+    // person to log in on that phone saw the previous account's unread
+    // count and cart badge, and the notifications poll went on 401ing
+    // every 30s. Driving it off the AuthProvider listener means both
+    // paths, and any added later, converge.
+    if (_wasAuthenticated && !isAuthenticated) {
+      _cartProvider.clear();
+      _wishlistProvider.clear();
+      _notificationsProvider.clear();
+    }
+    _wasAuthenticated = isAuthenticated;
+    _availableJobsProvider.start(role);
+    if (!isAuthenticated) {
+      _liveRole = null;
+      _live.stop();
+      return;
+    }
+    if (_liveRole != role) {
+      _liveRole = role;
+      _live.stop();
+      _live.start();
+    }
+  }
+
+  /// The stream says what changed; the providers re-read it through the
+  /// normal endpoints. Nothing here trusts the payload as data.
+  void _onLiveEvent(LiveEvent event) {
+    switch (event.name) {
+      case 'notification':
+        // The count drives the bell in the top banner. The list itself is
+        // refetched too, so an open inbox screen grows a row rather than
+        // showing a badge for something it isn't listing.
+        _notificationsProvider.fetchUnreadCount();
+        _notificationsProvider.fetchAll();
+        break;
+      case 'jobs':
+        // A job appearing or being taken changes the home badge's count -
+        // and refresh() is what rings its alert when the number rises.
+        _availableJobsProvider.refresh();
+        break;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A paused app holding an open socket spends battery and radio on
+    // events nobody will see; a resumed one wants the truth immediately.
+    if (state == AppLifecycleState.resumed) {
+      if (_authProvider.isAuthenticated) {
+        _live.start();
+        _notificationsProvider.fetchUnreadCount();
+        _availableJobsProvider.refresh();
+      }
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _live.stop();
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _authProvider.removeListener(_syncSession);
     _linkSubscription?.cancel();
+    _live.dispose();
     super.dispose();
   }
 
@@ -81,6 +192,8 @@ class _OcassAppState extends State<OcassApp> {
         ChangeNotifierProvider<LocaleProvider>.value(value: _localeProvider),
         ChangeNotifierProvider<LocationProvider>.value(value: _locationProvider),
         ChangeNotifierProvider<NotificationsProvider>.value(value: _notificationsProvider),
+        ChangeNotifierProvider<AvailableJobsProvider>.value(value: _availableJobsProvider),
+        ChangeNotifierProvider<LiveStatus>.value(value: _liveStatus),
       ],
       child: MaterialApp.router(
         title: 'Ocass',

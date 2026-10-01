@@ -4,9 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/cart_provider.dart';
-import '../../providers/notifications_provider.dart';
-import '../../providers/wishlist_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/language_switcher.dart';
 import '../../widgets/top_bar.dart';
@@ -246,13 +243,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: Text(context.t('profile.logOut'),
                 style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.red)),
             onTap: () async {
+              // Clearing the providers is handled centrally, off the
+              // AuthProvider listener in app.dart, so that a session
+              // ending by 401 clears the same things this button does.
               await context.read<AuthProvider>().logout();
-              if (context.mounted) {
-                context.read<CartProvider>().clear();
-                context.read<WishlistProvider>().clear();
-                context.read<NotificationsProvider>().clear();
-                context.go('/');
-              }
+              if (context.mounted) context.go('/');
             },
           ),
           const LanguageSwitcher(),

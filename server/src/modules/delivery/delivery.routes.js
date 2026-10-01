@@ -8,6 +8,7 @@ const {
   getFeeQuote,
   listPackageTypes,
   listAvailable,
+  countAvailable,
   listMyJobs,
   acceptRequest,
   markPickedUp,
@@ -33,6 +34,9 @@ router.patch("/requests/:id/cancel", requireAuth, cancelRequest);
 // ones above would be a hazard if these were nested under /requests, so
 // they get their own /jobs prefix instead.
 router.get("/jobs/available", requireAuth, requireAgent, listAvailable);
+// Static, so it must be declared before /jobs/:id/* below would ever get a
+// chance to read "available" as an id. Powers the home screen's badge.
+router.get("/jobs/available/count", requireAuth, requireAgent, countAvailable);
 router.get("/jobs/mine", requireAuth, requireAgent, listMyJobs);
 router.post("/jobs/:id/accept", requireAuth, requireAgent, acceptRequest);
 router.post("/jobs/:id/picked-up", requireAuth, requireAgent, markPickedUp);

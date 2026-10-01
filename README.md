@@ -188,16 +188,18 @@ fallback in production.
   of other users each claim a seat until it's full. Pay by cash, wallet, or
   PayDunya. See "Anando" below.
 - **In-app notifications** — a generic `Notification` model with a bell +
-  unread badge (home page and most top bars); Anando is the first module
-  that creates them (new booking, seat cancelled, ride cancelled).
+  unread badge (home page and most top bars). Every delivery and every
+  ride writes to it at each stage of its lifecycle, for **both** the
+  customer and the agent/rider who took the job; Anando writes to it too
+  (new booking, seat cancelled, ride cancelled). See "Notifications" below.
 - **French / English** — the whole web app is translated (`src/i18n/`,
   `react-i18next`), French by default. A toggle on the profile page switches
   languages instantly and the choice persists (redux-persist) across
   reloads. See "Internationalization" below for how to add new strings.
 - **Mobile** — a Flutter app in `/mobile` with the same module coverage as
   the web app, including French/English i18n, the delivery/ride dispatch
-  system, the vendor marketplace, Anando, and in-app notifications (see
-  `mobile/README.md`).
+  system, the vendor marketplace, Anando, in-app notifications and the same
+  live-update stream (see `mobile/README.md`).
 
 ## Delivery & ride dispatch
 
@@ -221,6 +223,37 @@ request-and-cancel:
 **Pricing**: real Haversine (straight-line) distance-based pricing when both
 pickup and dropoff coordinates are available, falling back to the original
 simulated estimate otherwise.
+
+**"There is work waiting"**: an agent/rider gets a badge in the middle of
+the home screen with the number of open jobs, a button through to their
+board, and a chime when that number goes up
+(`src/components/home/AvailableJobsBadge.js` +
+`src/hooks/useJobAlertSound.js`; `widgets/available_jobs_badge.dart` +
+`providers/available_jobs_provider.dart` on Flutter). Four rules it holds
+to:
+
+- It reads `GET /{delivery,rideshare}/jobs/available/count`, **not** the
+  board - the badge needs one integer, and it polls it every 15s while
+  someone sits on the home screen, whereas the board's rows carry both
+  addresses, both coordinate pairs and the contact names of every open job
+  in the city.
+- That count, and the board itself, **exclude the caller's own requests**.
+  `acceptRequest`/`acceptRide` refuse those (you can't fulfil your own
+  delivery), so counting them would send an agent to a board where the one
+  job they were promised answers 400 when tapped. Both now share one
+  `availableJobsWhere()` helper so they cannot disagree.
+- It renders nothing at zero and nothing for a user with no gig role, and
+  it **disappears when the work is taken by anyone** - the count is the
+  server's answer about what is still unassigned, not a local tally.
+  Accepting from the board invalidates/refreshes the count so it clears at
+  once rather than up to a poll later.
+- **Only a rise rings**, and the chime is muteable with the choice
+  persisted. The first count on load is not news, and a beep on every poll
+  that returns the same number gets the app silenced within a minute. On
+  the web it's a two-note Web Audio chime (no asset to ship or fail to
+  load, and the service worker caches no media); on Flutter it's the
+  platform alert sound plus a vibration via `SystemSound`/`HapticFeedback`,
+  deliberately no audio package.
 
 **Not built**: an approval/verification flow for becoming an agent or rider
 (this is deliberately a self-service MVP toggle). A user with both a
@@ -472,13 +505,160 @@ instant-claim only, per the product decision behind this module).
 
 A generic `Notification` model (`server/src/modules/notifications/`,
 `GET/PATCH /api/notifications/*`) that any module can write to via
-`notificationsService.notify({ userId, type, title, body, data })` -
-Anando is the first and only caller today (new booking, booking
-cancelled, posting cancelled, PayDunya payment confirmed). Surfaced as a
-bell + unread badge on the home page and most top bars
-(`showNotifications` prop on `TopBar`), linking to `/notifications`.
-Polls for the unread count every 30s; there's no push/real-time delivery
-(no websocket or service worker wired up).
+`notificationsService.notify({ userId, type, title, body, data })`.
+Surfaced as a bell + unread badge on the home page and most top bars
+(`showNotifications` prop on `TopBar`), linking to `/notifications`. The
+count updates itself as the backend changes - see "Live updates" below -
+with a slow poll behind it as the backstop.
+
+**Delivery and rideshare write to it at every stage, for both sides of the
+job** (`delivery.notify.js`, `rideshare.notify.js`). A job has two people
+in it and they are not the same person - the customer who requested it and
+the agent/rider who accepted it off the board - so each stage has its own
+copy per side: "your parcel has been picked up" is not "next stop: drop
+off at X". Notes worth keeping:
+
+- The copy lives in its own module per domain rather than inline in the
+  controller, because **three** paths create a delivery: the customer's own
+  request, a restaurant order going OUT_FOR_DELIVERY, and a single-vendor
+  ecommerce order doing the same (`dispatchForDelivery` in
+  restaurant/vendor). All three call `notifyCreated` and
+  `publishJobBoardChange`, so a dispatched delivery doesn't skip the
+  customer's first message and open at "picked up", and no agent's board
+  gains a job in silence. A fourth create path added later has to do the
+  same - that is the one thing to remember about this module.
+- An accept message quotes **the fare** (the figure the board already
+  showed), and a completion message quotes **what was actually credited**
+  to the wallet - captured from the credit call rather than recomputed, so
+  a change to `agentSharePercent` between accepting and completing can't
+  make the notification disagree with the ledger.
+- `data.role` (`CUSTOMER` / `AGENT` / `RIDER`) is stored so tapping a row
+  opens the right screen: the customer's delivery tracking page, or the
+  agent's own job board. Sending both to the same place would strand one
+  of them.
+- There is deliberately **no** "new job available" notification fanned out
+  to every agent: that is one row per agent per request, growing with the
+  fleet, for something none of them may act on. The open-job signal is the
+  home screen's badge (see "Delivery & ride dispatch"); the inbox is for
+  jobs you are actually part of.
+- Notification titles/bodies are written in French at write time (the
+  existing Anando convention) rather than as i18n keys, so an English-UI
+  user still reads French notification text. Changing that means storing
+  a key + params and translating at render time on both clients.
+
+## Live updates (Server-Sent Events)
+
+The bell in the top banner, the agent's available-jobs badge and the lists
+behind them update as the backend changes, instead of on their next poll.
+One connection per signed-in client does it: `GET /api/realtime/stream`
+(`server/src/modules/realtime/`), held open by `LiveUpdatesProvider.js` on
+the React side and `core/live_updates.dart` on Flutter.
+
+**SSE, not a WebSocket.** Every requirement points one way: the traffic is
+server-to-client only (a client that wants to *do* something has the REST
+API), it is ordinary HTTP so it passes through `middleware.js`'s proxy and
+any middlebox that allows the rest of the app, the browser's EventSource
+reconnects by itself, and it needs no new dependency on either side. A
+WebSocket would add a server library, a second protocol to authenticate and
+a hand-rolled reconnect loop, in exchange for an upstream channel nothing
+uses.
+
+**The payload says what changed, never the data.** Two events -
+`notification` ("a row was filed in your inbox") and `jobs` ("the set of
+unassigned jobs changed") - and a client that receives one refetches through
+the same authenticated endpoint it always used. So the stream never becomes
+a second path to the data itself, and therefore never a second place for an
+authorization mistake. It also means a missed event costs one poll interval
+rather than a wrong screen.
+
+**Two channels, because the audiences differ.** `user:<id>` is "something
+arrived for you", published from `notificationsService.notify()` - the one
+funnel every module's inbox writes go through, which is what makes this
+true of delivery, rideshare, Anando and anything added later without each
+remembering to. `role:<ROLE>` is "the shared board changed", published by
+`publishJobBoardChange()` to the agents who could take the job *and* to
+ADMIN, none of whom owns it.
+
+**The cookie is accepted on this one route, and that is a security
+decision.** EventSource takes a URL and nothing else - no headers, by
+specification - so the web client is authenticated by the `ocass-token`
+cookie the app already sets at login. That fallback is deliberately not
+added to `requireAuth`: a cookie rides cross-site requests too, so
+accepting it app-wide would make every state-changing endpoint
+CSRF-reachable without a token check. This route reads nothing and writes
+nothing, so the same forged request achieves nothing. The token is never
+read from the query string - morgan logs every URL, and a JWT in an access
+log is a session sitting in a log file. Flutter sends the normal
+Authorization header (dio can set headers on a streamed request).
+
+**Three things that decide whether it works in production**, all in
+`realtime.controller.js`: a comment-frame heartbeat every 25s, because
+anything between the app and this process (Render's router, a carrier's
+NAT) closes a connection that goes quiet for 30-60s; `Cache-Control:
+no-cache, no-transform` plus `X-Accel-Buffering: no`, because a proxy that
+buffers a stream looks exactly like a working one until the moment
+something happens; and a `retry:` hint, so a backend restart doesn't
+produce a reconnect stampede.
+
+**It is per-process, and the polls stay.** `realtime.bus.js` is an
+EventEmitter in the backend process: with two or more instances behind a
+load balancer, a client on instance B never sees an event published on
+instance A. That is right for this deploy (render.yaml provisions one web
+service and sets no scaling) and it degrades rather than lying, because
+every client keeps its poll as a backstop - slowed to 2-3 minutes while the
+stream is connected, back to 15-30s the moment it isn't, re-armed
+immediately rather than at the next tick. The day this runs more than one
+instance, the replacement is a shared broker (Redis pub/sub, or Postgres
+LISTEN/NOTIFY through a raw `pg` client, since Prisma's engine doesn't
+expose it) behind the same three functions. There is also no replay: a
+client that reconnects refetches once (`onReconnected` / the `ready`
+handler) rather than replaying what it missed.
+
+**The delivery tracking page keeps its 5s poll** and is not on the stream's
+critical path, because what it is watching is the rider's moving position -
+and position pings are deliberately not notified (see "Delivery & ride
+dispatch"). Status changes reach it live like everything else; the marker
+still moves on the poll.
+
+On Flutter the differences are all about being a phone: the streaming
+request gets its own Dio with **no `receiveTimeout`** (the shared client's
+15s would kill a connection that is meant to stay open, and the server's
+heartbeat is what proves liveness instead), the reconnect backoff is
+hand-rolled because dio does nothing for us there, and `app.dart` stops the
+stream on `AppLifecycleState.paused` and restarts it on resume - a paused
+app holding a socket spends battery on events nobody will see, and resuming
+is the one moment the user is definitely looking, so that is also when it
+catches up.
+
+**Writing Playwright tests against this**: `waitUntil: "networkidle"` never
+settles on an authenticated page, because an open SSE connection is a
+permanently pending request. Use `domcontentloaded` and wait for the thing
+you actually care about.
+
+**Closing a Dart stream takes a CancelToken, not a subscription cancel.**
+Cancelling the `StreamSubscription` stops this process reading and leaves
+the socket open, so the server goes on holding the connection and
+heartbeating into it. `LiveUpdates.stop()` therefore cancels the request's
+`CancelToken` as well - measured before that fix, a clean start/stop left
+the connection registered server-side and every pause/resume added another
+one that could never be released. For the same reason `_connect()` carries
+a **generation** number rather than reading a `_running` flag after its
+awaits: `stop()` immediately followed by `start()` - which is exactly what a
+role change and a resume do - sets that flag back to true before the
+suspended connect resumes, so it happily opens a second connection nothing
+is tracking. `GET /api/realtime/stats` (ADMIN) is how both were caught: one
+client is two listeners, its own channel and its role's.
+
+Verified against a real Postgres and a real browser: the bell in the top
+banner going 0 -> 1 in 205ms on the customer's own request and 1 -> 2 in
+220ms when an agent accepted it from another session, with zero
+unread-count polls in the following 20s; the agent's badge appearing in
+113ms against a 15s poll interval; 2 heartbeats over 70s idle through the
+Next.js proxy with the connection still delivering 15ms after a write; 3
+clients producing 6 listeners and 0 again once they went away
+(`GET /api/realtime/stats`, ADMIN-only); and the Dart client receiving a
+`jobs` event 101ms after another account's write, with stop/start producing
+a real reconnect (`flutter test`, against the running backend).
 
 ## Internationalization
 

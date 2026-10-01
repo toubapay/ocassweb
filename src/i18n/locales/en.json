@@ -86,7 +86,17 @@
     "greeting": "{{name}}, these are for you",
     "exploreOcass": "Explore Ocass",
     "popularRightNow": "Popular right now",
-    "featuredShops": "Featured shops"
+    "featuredShops": "Featured shops",
+    "jobsBadge": {
+      "deliveryTitle_one": "1 delivery available",
+      "deliveryTitle_other": "{{count}} deliveries available",
+      "rideTitle_one": "1 trip available",
+      "rideTitle_other": "{{count}} trips available",
+      "subtitle": "Waiting to be accepted",
+      "view": "View",
+      "mute": "Mute job alerts",
+      "unmute": "Unmute job alerts"
+    }
   },
   "auth": {
     "login": {

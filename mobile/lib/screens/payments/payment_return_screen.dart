@@ -83,7 +83,23 @@ class _PaymentReturnScreenState extends State<PaymentReturnScreen> {
         setState(() => _status = _Status.pending);
       }
     } catch (_) {
-      if (mounted) setState(() => _status = _Status.failed);
+      if (!mounted) return;
+      // Not being able to REACH the backend says nothing about the
+      // payment: the customer has just come back from PayDunya and the
+      // money may well have left their account with the IPN still in
+      // flight. So this retries within the same budget and then lands on
+      // "still processing" - never on "not completed", whose copy invites
+      // them to try again and is how somebody pays twice. _Status.failed
+      // is reserved for the server actually saying CANCELLED or FAILED.
+      if (_attempts < 4) {
+        _retryTimer = Timer(const Duration(seconds: 2), () {
+          if (!mounted) return;
+          setState(() => _attempts++);
+          _poll();
+        });
+      } else {
+        setState(() => _status = _Status.pending);
+      }
     }
   }
 

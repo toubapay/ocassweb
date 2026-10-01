@@ -3,6 +3,8 @@ const prisma = require("../../lib/prisma");
 const { uniqueSlug } = require("../../utils/slugify");
 const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
 const { getModuleFeeConfig } = require("../../utils/feeConfig");
+const deliveryNotify = require("../delivery/delivery.notify");
+const { publishJobBoardChange } = require("../realtime/jobBoard");
 
 async function requireOwnStore(req, res) {
   const store = await prisma.store.findUnique({ where: { ownerId: req.user.id } });
@@ -327,6 +329,14 @@ async function dispatchForDelivery(order, store, ownerPhone) {
       priceEstimate: estimateDeliveryPrice(pickup, feeConfig),
     },
   });
+
+  // Third path that creates a delivery, after the standalone request and
+  // the restaurant hand-off - and the reason delivery.notify.js is its own
+  // module. Without these two lines an ecommerce order's courier run would
+  // be the one that starts silently: no first message for the customer,
+  // and no agent told their board just gained a job.
+  deliveryNotify.notifyCreated(deliveryRequest);
+  publishJobBoardChange("delivery", "created");
 
   return prisma.order.update({
     where: { id: order.id },
