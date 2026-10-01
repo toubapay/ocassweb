@@ -37,6 +37,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    final future = apiClient.fetchOrders();
+    setState(() => _future = future);
+    await future;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAuthenticated = context.watch<AuthProvider>().isAuthenticated;
@@ -90,7 +96,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             );
           }
-          return ListView.separated(
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: orders.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -164,6 +172,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
               );
             },
+            ),
           );
         },
       ),

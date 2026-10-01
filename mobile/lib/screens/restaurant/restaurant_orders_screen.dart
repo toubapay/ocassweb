@@ -40,6 +40,12 @@ class _RestaurantOrdersScreenState extends State<RestaurantOrdersScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    final future = apiClient.fetchRestaurantOrders();
+    setState(() => _future = future);
+    await future;
+  }
+
   Future<void> _cancel(String id) async {
     setState(() => _cancellingId = id);
     try {
@@ -102,7 +108,9 @@ class _RestaurantOrdersScreenState extends State<RestaurantOrdersScreen> {
               ),
             );
           }
-          return ListView.separated(
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: orders.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -195,6 +203,7 @@ class _RestaurantOrdersScreenState extends State<RestaurantOrdersScreen> {
                 ),
               );
             },
+            ),
           );
         },
       ),

@@ -15,12 +15,18 @@ class RestaurantListScreen extends StatefulWidget {
 }
 
 class _RestaurantListScreenState extends State<RestaurantListScreen> {
-  late final Future<List<Restaurant>> _future;
+  late Future<List<Restaurant>> _future;
 
   @override
   void initState() {
     super.initState();
     _future = apiClient.fetchRestaurants();
+  }
+
+  Future<void> _refresh() async {
+    final future = apiClient.fetchRestaurants();
+    setState(() => _future = future);
+    await future;
   }
 
   @override
@@ -34,7 +40,9 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           final restaurants = snapshot.data ?? const <Restaurant>[];
-          return ListView.separated(
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: restaurants.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -82,6 +90,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                 ),
               );
             },
+            ),
           );
         },
       ),
