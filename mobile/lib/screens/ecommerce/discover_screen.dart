@@ -9,6 +9,7 @@ import '../../models/product.dart';
 import '../../models/showcase_slide.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/flash_sale_countdown.dart';
+import '../../widgets/hero_banner.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/product_showcase_carousel.dart';
 import '../../widgets/top_bar.dart';
@@ -65,6 +66,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       appBar: TopBar(title: context.t('ecommerce.discover.title'), showBack: false),
       body: CustomScrollView(
         slivers: [
+          // Static promo carousel for the app's own modules (flash sale,
+          // vendor sign-up, restaurant discovery) - see
+          // src/components/ecommerce/HeroBanner.js. Distinct from the
+          // admin-managed showcase carousel right below it.
+          const SliverToBoxAdapter(child: HeroBanner()),
           // Admin-managed rotating banner (see AdminShowcaseTab.js on web).
           SliverToBoxAdapter(
             child: FutureBuilder<List<ShowcaseSlide>>(
