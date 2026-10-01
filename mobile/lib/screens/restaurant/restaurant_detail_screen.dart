@@ -9,6 +9,7 @@ import '../../models/restaurant.dart';
 import '../../models/showcase_slide.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/product_showcase_carousel.dart';
 import '../../widgets/top_bar.dart';
 
@@ -48,13 +49,21 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   late final Future<Restaurant> _future;
   late final Future<List<ShowcaseSlide>> _showcaseFuture;
   final Map<String, int> _quantities = {};
-  bool _placing = false;
+  final _deliveryAddressController = TextEditingController();
+  double? _deliveryLat;
+  double? _deliveryLng;
 
   @override
   void initState() {
     super.initState();
     _future = apiClient.fetchRestaurant(widget.slug);
     _showcaseFuture = apiClient.fetchRestaurantShowcaseSlides();
+  }
+
+  @override
+  void dispose() {
+    _deliveryAddressController.dispose();
+    super.dispose();
   }
 
   void _setQuantity(String menuItemId, int quantity) {
@@ -67,28 +76,98 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     setState(() => _quantities[menuItemId] = quantity < 0 ? 0 : quantity);
   }
 
-  Future<void> _placeOrder() async {
+  Future<void> _placeOrder(List<Map<String, dynamic>> items, void Function(bool) setPlacing) async {
+    setPlacing(true);
+    try {
+      await apiClient.createRestaurantOrder(
+        widget.slug,
+        items,
+        deliveryAddress: _deliveryAddressController.text.trim(),
+        deliveryLat: _deliveryLat,
+        deliveryLng: _deliveryLng,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(); // close the checkout dialog
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('restaurant.detail.orderPlaced'))));
+      setState(() {
+        _quantities.clear();
+        _deliveryAddressController.clear();
+        _deliveryLat = null;
+        _deliveryLng = null;
+      });
+      context.push('/restaurant/orders');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('restaurant.detail.couldNotPlaceOrder'))));
+      setPlacing(false);
+    }
+  }
+
+  void _openCheckout(double total) {
     final items = _quantities.entries
         .where((e) => e.value > 0)
         .map((e) => {'menuItemId': e.key, 'quantity': e.value})
         .toList();
     if (items.isEmpty) return;
 
-    setState(() => _placing = true);
-    try {
-      await apiClient.createRestaurantOrder(widget.slug, items);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.tr('restaurant.detail.orderPlaced'))));
-      setState(() => _quantities.clear());
-      context.push('/restaurant/orders');
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('restaurant.detail.couldNotPlaceOrder'))));
-    } finally {
-      if (mounted) setState(() => _placing = false);
-    }
+    bool placing = false;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(context.t('restaurant.detail.checkoutTitle')),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(context.t('restaurant.detail.checkoutSubtitle'),
+                    style: const TextStyle(color: AppColors.textSecondary)),
+                const SizedBox(height: 16),
+                AddressAutocompleteField(
+                  controller: _deliveryAddressController,
+                  label: context.t('restaurant.detail.deliveryAddress'),
+                  onManualEdit: () => setDialogState(() {
+                    _deliveryLat = null;
+                    _deliveryLng = null;
+                  }),
+                  onPlaceSelected: ({required address, required lat, required lng}) => setDialogState(() {
+                    _deliveryLat = lat;
+                    _deliveryLng = lng;
+                  }),
+                ),
+                const SizedBox(height: 16),
+                Text(context.t('restaurant.detail.payWithWallet', {'amount': formatCfa(total)}),
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(context.t('common.cancel')),
+            ),
+            ElevatedButton(
+              onPressed: placing
+                  ? null
+                  : () {
+                      if (_deliveryAddressController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(context.tr('restaurant.detail.enterDeliveryAddress'))));
+                        return;
+                      }
+                      _placeOrder(items, (value) => setDialogState(() => placing = value));
+                    },
+              child: Text(placing
+                  ? context.t('restaurant.detail.placingOrder')
+                  : context.t('restaurant.detail.confirmAndPay')),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -217,11 +296,9 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                     child: SafeArea(
                       top: false,
                       child: ElevatedButton(
-                        onPressed: _placing ? null : _placeOrder,
-                        child: Text(_placing
-                            ? context.t('restaurant.detail.placingOrder')
-                            : context.tPlural('restaurant.detail.placeOrder', itemCount,
-                                {'total': formatCfa(total)})),
+                        onPressed: () => _openCheckout(total),
+                        child: Text(context.tPlural(
+                            'restaurant.detail.placeOrder', itemCount, {'total': formatCfa(total)})),
                       ),
                     ),
                   ),
