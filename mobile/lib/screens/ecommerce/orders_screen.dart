@@ -37,6 +37,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    final future = apiClient.fetchOrders();
+    setState(() => _future = future);
+    await future;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAuthenticated = context.watch<AuthProvider>().isAuthenticated;
@@ -90,7 +96,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             );
           }
-          return ListView.separated(
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: orders.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -113,13 +121,30 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       children: [
                         Text(context.t('ecommerce.orders.orderNumber', {'id': order.id.substring(0, 8)}),
                             style: const TextStyle(fontWeight: FontWeight.w700)),
-                        Chip(
-                          label: Text(
-                              context.tOr('ecommerce.orders.status.${order.status}',
-                                  order.status.replaceAll('_', ' ')),
-                              style: const TextStyle(color: Colors.white, fontSize: 11)),
-                          backgroundColor: _statusColors[order.status] ?? AppColors.textSecondary,
-                          visualDensity: VisualDensity.compact,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Chip(
+                              label: Text(
+                                order.paid ? context.t('ecommerce.orders.paid') : context.t('ecommerce.orders.unpaid'),
+                                style: TextStyle(
+                                    color: order.paid ? AppColors.green : AppColors.amber,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11),
+                              ),
+                              backgroundColor: order.paid ? AppColors.greenSoft : AppColors.amberSoft,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            const SizedBox(width: 4),
+                            Chip(
+                              label: Text(
+                                  context.tOr('ecommerce.orders.status.${order.status}',
+                                      order.status.replaceAll('_', ' ')),
+                                  style: const TextStyle(color: Colors.white, fontSize: 11)),
+                              backgroundColor: _statusColors[order.status] ?? AppColors.textSecondary,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -147,6 +172,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
               );
             },
+            ),
           );
         },
       ),

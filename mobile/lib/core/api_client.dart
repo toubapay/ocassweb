@@ -560,14 +560,23 @@ class ApiClient {
 
   /// [items] is a list of {menuItemId, quantity} maps, matching the
   /// backend's createOrder payload shape (server/src/modules/restaurant/orders.controller.js).
+  /// deliveryAddress is required server-side (createOrderSchema in
+  /// orders.controller.js) - this module is delivery-only for now, every
+  /// order needs a real dropoff for the delivery dispatch it creates.
   Future<RestaurantOrder> createRestaurantOrder(
     String restaurantSlug,
     List<Map<String, dynamic>> items, {
     String? note,
+    required String deliveryAddress,
+    double? deliveryLat,
+    double? deliveryLng,
   }) async {
     final res = await _dio.post('/restaurants/$restaurantSlug/orders', data: {
       'items': items,
       if (note != null && note.isNotEmpty) 'note': note,
+      'deliveryAddress': deliveryAddress,
+      if (deliveryLat != null) 'deliveryLat': deliveryLat,
+      if (deliveryLng != null) 'deliveryLng': deliveryLng,
     });
     return RestaurantOrder.fromJson(_data(res)['order'] as Map<String, dynamic>);
   }
