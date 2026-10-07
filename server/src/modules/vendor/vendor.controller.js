@@ -3,6 +3,10 @@ const prisma = require("../../lib/prisma");
 const { uniqueSlug } = require("../../utils/slugify");
 const { haversineDistanceKm, hasCoordinates } = require("../../utils/geo");
 const { getModuleFeeConfig } = require("../../utils/feeConfig");
+const {
+  resolveVendorShare,
+  DEFAULT_FEE_CONFIG: VENDOR_FEE_DEFAULTS,
+} = require("./vendor.service");
 const deliveryNotify = require("../delivery/delivery.notify");
 const { publishJobBoardChange } = require("../realtime/jobBoard");
 
@@ -120,10 +124,23 @@ async function listMyProducts(req, res, next) {
   }
 }
 
+/**
+ * What a vendor has to supply to put something up for sale: a name, a
+ * price, a photo and how many they have. Everything else is optional.
+ *
+ * `categoryId` used to be required, which meant a vendor photographing a
+ * sack of rice on their phone first had to decide which of the shop's
+ * taxonomy branches it belonged to. It now falls back to a catch-all
+ * category (see defaultCategoryId) so the product is still browsable,
+ * and the vendor can set a real one later from the same form.
+ */
 const productObjectSchema = z.object({
-  categoryId: z.string().uuid(),
+  categoryId: z.string().uuid().optional(),
   name: z.string().min(2),
   description: z.string().optional(),
+  // A data URI from the device camera/gallery counts as a URL here (see
+  // src/utils/imageFile.js and mobile's image_upload.dart): this app has
+  // no object storage, so an image IS a string in this field.
   images: z.array(z.string().url()).default([]),
   price: z.number().positive(),
   discountPrice: z.number().positive().nullable().optional(),
@@ -148,13 +165,39 @@ function withDiscountPercent(data) {
   return { ...data, discountPercent: Math.round((1 - data.discountPrice / data.price) * 100) };
 }
 
+/**
+ * The category a product lands in when the vendor didn't pick one.
+ *
+ * Found-or-created once and then reused, under a fixed slug, so a quick
+ * post is still browsable (every public listing filters by category) and
+ * so an admin can rename or re-icon it from the Categories tab like any
+ * other. Created rather than seeded because a deploy that never has a
+ * vendor posting this way should not grow a category it doesn't need -
+ * and `@@unique([moduleKey, slug])` makes the upsert safe against two
+ * vendors posting at the same moment.
+ */
+const UNCATEGORISED_SLUG = "autres";
+
+async function defaultCategoryId() {
+  const category = await prisma.category.upsert({
+    where: { moduleKey_slug: { moduleKey: "ecommerce", slug: UNCATEGORISED_SLUG } },
+    update: {},
+    create: { moduleKey: "ecommerce", slug: UNCATEGORISED_SLUG, name: "Autres", icon: "store" },
+  });
+  return category.id;
+}
+
 async function createProduct(req, res, next) {
   try {
     const store = await requireOwnStore(req, res);
     if (!store) return;
     const data = createProductSchema.parse(req.body);
-    const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
-    if (!category) return res.status(400).json({ message: "Unknown category" });
+    if (data.categoryId) {
+      const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+      if (!category) return res.status(400).json({ message: "Unknown category" });
+    } else {
+      data.categoryId = await defaultCategoryId();
+    }
 
     const slug = await uniqueSlug(
       data.name,
@@ -244,6 +287,109 @@ async function deactivateProduct(req, res, next) {
  * the *whole* order (not just this vendor's slice) belongs to this same
  * store, since a delivery pickup can only be from one physical location.
  */
+/**
+ * Every courier run raised for this shop's orders, newest first - the
+ * "Livraisons" view in the vendor dashboard.
+ *
+ * A vendor marking an order OUT_FOR_DELIVERY dispatches a real run (see
+ * dispatchForDelivery), and until now that was the last they heard of it:
+ * the run appeared on the agents' board and on the admin console, but the
+ * shop that raised it could not see whether anyone had taken it.
+ */
+async function listMyDeliveries(req, res, next) {
+  try {
+    const store = await requireOwnStore(req, res);
+    if (!store) return;
+    const orders = await prisma.order.findMany({
+      where: {
+        deliveryRequestId: { not: null },
+        items: { some: { product: { storeId: store.id } } },
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        user: { select: { name: true, phone: true } },
+        deliveryRequest: {
+          select: {
+            id: true,
+            status: true,
+            dropoffAddress: true,
+            priceEstimate: true,
+            distanceKm: true,
+            createdAt: true,
+            assignedAgent: { select: { name: true, phone: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    res.json({ deliveries: orders.filter((o) => o.deliveryRequest) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * What this shop has sold and what it kept, plus the rate those numbers
+ * come from.
+ *
+ * `gross` is what customers paid for this shop's line items on paid
+ * orders; `earned` is what actually reached the vendor's wallet, read
+ * back from the VENDOR_SALE wallet transactions rather than recomputed -
+ * so this screen cannot drift from the ledger the way a second
+ * calculation would. The difference is the platform's commission, shown
+ * as such rather than left for the vendor to work out.
+ */
+async function getMyEarnings(req, res, next) {
+  try {
+    const store = await requireOwnStore(req, res);
+    if (!store) return;
+
+    const [paidItems, payouts, feeConfig] = await Promise.all([
+      prisma.orderItem.findMany({
+        where: {
+          product: { storeId: store.id },
+          // Every status a paid order can be in. PENDING is the one
+          // deliberately left out: it has not been paid for, so counting
+          // it would show a vendor sales they have not been credited for
+          // - and CANCELLED, which they never will be.
+          order: { status: { in: ["CONFIRMED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED"] } },
+        },
+        select: { price: true, quantity: true },
+      }),
+      prisma.walletTransaction.findMany({
+        where: { purpose: "VENDOR_SALE", purposeId: { endsWith: `:${store.id}` } },
+        select: { amount: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      getModuleFeeConfig("vendor", VENDOR_FEE_DEFAULTS),
+    ]);
+
+    const gross = paidItems.reduce((sum, i) => sum + Number(i.price) * i.quantity, 0);
+    const earned = payouts.reduce((sum, t) => sum + Number(t.amount), 0);
+    // Not rounded: a 92.5% rate shown as 93% is the console and the shop
+    // disagreeing about the vendor's own cut.
+    const sharePercent = Number(
+      (resolveVendorShare(store, feeConfig.vendorSharePercent / 100) * 100).toFixed(2)
+    );
+
+    res.json({
+      grossFcfa: Math.round(gross),
+      earnedFcfa: Math.round(earned),
+      commissionFcfa: Math.round(gross) - Math.round(earned),
+      // The rate in force for this shop, and where it came from - an
+      // admin setting one per shop should be visible to the shop.
+      sharePercent,
+      sharePercentSource: store.commissionPercent != null ? "store" : "platform",
+      payoutCount: payouts.length,
+      lastPayoutAt: payouts[0]?.createdAt ?? null,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listMyOrders(req, res, next) {
   try {
     const store = await requireOwnStore(req, res);
@@ -254,7 +400,21 @@ async function listMyOrders(req, res, next) {
         items: { where: { product: { storeId: store.id } }, include: { product: true } },
         user: { select: { id: true, name: true, phone: true } },
         deliveryAddress: true,
-        deliveryRequest: { select: { id: true, status: true } },
+        deliveryRequest: {
+          select: {
+            id: true,
+            status: true,
+            // Who is carrying it and how to reach them: a vendor whose
+            // customer rings asking "where is my parcel" had the status
+            // and nothing else.
+            assignedAgent: { select: { name: true, phone: true } },
+            agentLat: true,
+            agentLng: true,
+            agentLocationAt: true,
+            dropoffAddress: true,
+            createdAt: true,
+          },
+        },
         _count: { select: { items: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -428,5 +588,7 @@ module.exports = {
   updateProduct,
   deactivateProduct,
   listMyOrders,
+  listMyDeliveries,
+  getMyEarnings,
   updateOrderStatus,
 };

@@ -10,6 +10,31 @@ const DEFAULT_FEE_CONFIG = {
   vendorSharePercent: 85,
 };
 
+
+/**
+ * What this vendor keeps of a sale, as a fraction.
+ *
+ * Three levels, most specific first:
+ *
+ *   1. `Store.commissionPercent` - this shop's own rate, set by an admin.
+ *   2. `User.commissionSharePercent` - the owner's personal rate. Kept as
+ *      a fallback so vendors who already had one are not silently moved
+ *      onto the default by this change.
+ *   3. `ModuleConfig("vendor").feeConfig.vendorSharePercent`.
+ *
+ * Level 1 exists because level 2 is shared with delivery, rideshare,
+ * Anando and restaurant payouts - and this app expects one person to do
+ * several of those. Before it, setting a shop's cut to 90% also paid that
+ * person 90% of every courier run they did.
+ */
+function resolveVendorShare(store, defaultShare) {
+  if (store.commissionPercent != null) return Number(store.commissionPercent) / 100;
+  if (store.owner?.commissionSharePercent != null) {
+    return Number(store.owner.commissionSharePercent) / 100;
+  }
+  return defaultShare;
+}
+
 /**
  * Credits each vendor whose products appear in this order their share of
  * those line items' total, once the order is confirmed paid (called from
@@ -55,16 +80,18 @@ async function payoutVendorsForOrder(orderId) {
     });
     if (alreadyPaid) continue;
 
-    // Per-owner override (see User.commissionSharePercent) beats the
-    // module-wide default when the admin has set one for this vendor.
-    const vendorShare =
-      store.owner?.commissionSharePercent != null
-        ? Number(store.owner.commissionSharePercent) / 100
-        : defaultVendorShare;
+    const vendorShare = resolveVendorShare(store, defaultVendorShare);
+    // Whole francs: XOF has no subunit, and crediting 1 275.85 put a
+    // figure in the wallet that no screen in the app can render honestly.
+    // Guarded because credit() rejects a non-positive amount - a rounded
+    // share of a tiny line total can be 0, and throwing here would undo
+    // an order that is already paid.
+    const amount = Math.round(total * vendorShare);
+    if (amount <= 0) continue;
 
     await walletService.credit({
       userId: store.ownerId,
-      amount: Math.round(total * vendorShare * 100) / 100,
+      amount,
       type: "EARNING",
       purpose: "VENDOR_SALE",
       purposeId,
@@ -73,4 +100,4 @@ async function payoutVendorsForOrder(orderId) {
   }
 }
 
-module.exports = { payoutVendorsForOrder };
+module.exports = { payoutVendorsForOrder, resolveVendorShare, DEFAULT_FEE_CONFIG };

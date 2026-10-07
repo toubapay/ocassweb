@@ -839,7 +839,11 @@
         "OUT_FOR_DELIVERY": "Order handed off for delivery",
         "CANCELLED": "Order cancelled"
       }
-    }
+    },
+    "quantity": "Quantity available",
+    "addPhoto": "Add a photo",
+    "moreDetails": "More details (optional)",
+    "categoryAuto": "Automatic (Other)"
   },
   "anando": {
     "title": "Anando",

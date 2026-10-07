@@ -170,6 +170,17 @@ model Store {
   // Admin pick shown in the "Featured shops" section on the main Home
   // Screen (see AdminVendorsTab.js) - independent of isActive.
   isFeatured Boolean   @default(false)
+  // What this vendor KEEPS of their own sales, as a percent (see
+  // payoutVendorsForOrder). Null means "use the module default"
+  // (ModuleConfig("vendor").feeConfig.vendorSharePercent).
+  //
+  // Deliberately on the store rather than reusing the owner's
+  // User.commissionSharePercent: that one field is also what pays them for
+  // delivery runs, ride jobs and restaurant orders, and this app actively
+  // expects one person to do more than one (see requireStoreOwner's note
+  // about a vendor who later picks up delivery jobs). Setting a shop's cut
+  // used to move their courier earnings with it.
+  commissionPercent Decimal? @db.Decimal(5, 2)
   // Nullable + unique: null for admin/seed-managed stores (no self-service
   // owner), unique among non-null values so a vendor can own at most one
   // store (Postgres unique constraints allow any number of NULLs).
