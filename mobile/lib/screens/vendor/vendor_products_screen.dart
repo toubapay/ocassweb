@@ -95,9 +95,18 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
     final stockController = TextEditingController(text: product != null ? '${product.stock}' : '');
     final newImageUrlController = TextEditingController();
     List<String> images = List<String>.from(product?.images ?? []);
-    String? categoryId = product?.categoryId ?? (_flatCategories.isNotEmpty ? _flatCategories.first.id : null);
+    // Null on a new product on purpose: the backend files an
+    // uncategorised one under a catch-all rather than refusing it, so the
+    // vendor is not made to choose a taxonomy branch before they can sell.
+    String? categoryId = product?.categoryId;
     bool saving = false;
     bool uploadingImage = false;
+    // Opened already expanded when editing something that has extra
+    // details, so a description written earlier does not look dropped.
+    bool showMore = product != null &&
+        ((product.description ?? '').isNotEmpty ||
+            product.discountPrice != null ||
+            product.images.length > 1);
 
     showModalBottomSheet(
       context: context,
@@ -120,54 +129,59 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: categoryId,
-                  decoration: InputDecoration(labelText: sheetContext.t('vendor.category')),
-                  items: _flatCategories
-                      .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                      .toList(),
-                  onChanged: (v) => setSheetState(() => categoryId = v),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(labelText: sheetContext.t('vendor.productName'))),
-                const SizedBox(height: 12),
-                TextField(
-                    controller: descriptionController,
-                    maxLines: 2,
-                    decoration: InputDecoration(labelText: sheetContext.t('vendor.description'))),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: priceController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(labelText: sheetContext.t('vendor.price')),
-                      ),
+                // Putting something up for sale asks four things: a photo,
+                // a name, a price and how many. The photo comes first
+                // because that is what a vendor standing in their shop
+                // with a phone does first.
+                GestureDetector(
+                  onTap: uploadingImage
+                      ? null
+                      : () async {
+                          setSheetState(() => uploadingImage = true);
+                          final dataUri = await pickAndEncodeImage(_picker);
+                          setSheetState(() {
+                            uploadingImage = false;
+                            if (dataUri != null) images.insert(0, dataUri);
+                          });
+                        },
+                  child: Container(
+                    height: 132,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: images.isEmpty ? const Color(0xFFFAFAFA) : null,
+                      borderRadius: BorderRadius.circular(14),
+                      border: images.isEmpty
+                          ? Border.all(color: AppColors.divider, style: BorderStyle.solid)
+                          : null,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: discountController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(labelText: sheetContext.t('vendor.discountPrice')),
-                      ),
-                    ),
-                  ],
+                    clipBehavior: Clip.antiAlias,
+                    child: images.isNotEmpty
+                        ? Image.network(images.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) {
+                            return const Center(child: Icon(Icons.category_rounded, size: 30));
+                          })
+                        : Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.photo_camera_rounded,
+                                    size: 30, color: AppColors.textSecondary),
+                                const SizedBox(height: 4),
+                                Text(
+                                  uploadingImage
+                                      ? sheetContext.t('common.loading')
+                                      : sheetContext.t('vendor.addPhoto'),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: stockController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: sheetContext.t('vendor.stock')),
-                ),
-                const SizedBox(height: 12),
-                Text(sheetContext.t('vendor.images'),
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 8),
-                if (images.isNotEmpty)
+                if (images.length > 1) ...[
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -179,14 +193,15 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                             borderRadius: BorderRadius.circular(10),
                             child: Image.network(
                               images[i],
-                              width: 64,
-                              height: 64,
+                              width: 48,
+                              height: 48,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) => Container(
-                                width: 64,
-                                height: 64,
+                                width: 48,
+                                height: 48,
                                 color: AppColors.greenSoft,
-                                child: const Icon(Icons.category_rounded, color: AppColors.textSecondary),
+                                child: const Icon(Icons.category_rounded,
+                                    color: AppColors.textSecondary),
                               ),
                             ),
                           ),
@@ -211,54 +226,101 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                       );
                     }),
                   ),
-                const SizedBox(height: 8),
+                ],
+                const SizedBox(height: 12),
+                TextField(
+                    controller: nameController,
+                    autofocus: true,
+                    decoration: InputDecoration(labelText: sheetContext.t('vendor.productName'))),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: TextField(
-                        controller: newImageUrlController,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          hintText: sheetContext.t('vendor.imageUrlPlaceholder'),
-                        ),
+                        controller: priceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(labelText: sheetContext.t('vendor.price')),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () {
-                        final url = newImageUrlController.text.trim();
-                        if (url.isEmpty) return;
-                        setSheetState(() {
-                          images.add(url);
-                          newImageUrlController.clear();
-                        });
-                      },
-                      child: Text(sheetContext.t('vendor.addImageUrl')),
+                    Expanded(
+                      child: TextField(
+                        controller: stockController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(labelText: sheetContext.t('vendor.quantity')),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                TextButton.icon(
-                  onPressed: uploadingImage
-                      ? null
-                      : () async {
-                          setSheetState(() => uploadingImage = true);
-                          final dataUri = await pickAndEncodeImage(_picker);
+                TextButton(
+                  onPressed: () => setSheetState(() => showMore = !showMore),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(sheetContext.t('vendor.moreDetails'),
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Icon(showMore ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 20),
+                    ],
+                  ),
+                ),
+                if (showMore) ...[
+                  DropdownButtonFormField<String>(
+                    initialValue: categoryId,
+                    decoration: InputDecoration(labelText: sheetContext.t('vendor.category')),
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: null,
+                        child: Text(sheetContext.t('vendor.categoryAuto')),
+                      ),
+                      ..._flatCategories
+                          .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                    ],
+                    onChanged: (v) => setSheetState(() => categoryId = v),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                      controller: descriptionController,
+                      maxLines: 2,
+                      decoration: InputDecoration(labelText: sheetContext.t('vendor.description'))),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: discountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(labelText: sheetContext.t('vendor.discountPrice')),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: newImageUrlController,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: sheetContext.t('vendor.imageUrlPlaceholder'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () {
+                          final url = newImageUrlController.text.trim();
+                          if (url.isEmpty) return;
                           setSheetState(() {
-                            uploadingImage = false;
-                            if (dataUri != null) images.add(dataUri);
+                            images.add(url);
+                            newImageUrlController.clear();
                           });
                         },
-                  icon: const Icon(Icons.upload_rounded, size: 18),
-                  label: Text(uploadingImage
-                      ? sheetContext.t('common.loading')
-                      : sheetContext.t('vendor.uploadImage')),
-                ),
+                        child: Text(sheetContext.t('vendor.addImageUrl')),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: saving || categoryId == null
+                    onPressed: saving
                         ? null
                         : () async {
                             final price = double.tryParse(priceController.text.trim());
@@ -273,7 +335,7 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                             try {
                               if (editing) {
                                 await apiClient.updateVendorProduct(
-                                  product!.id,
+                                  product.id,
                                   categoryId: categoryId,
                                   name: nameController.text.trim(),
                                   description: descriptionController.text.trim(),
@@ -285,7 +347,7 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                                 );
                               } else {
                                 await apiClient.createVendorProduct(
-                                  categoryId: categoryId!,
+                                  categoryId: categoryId,
                                   name: nameController.text.trim(),
                                   description: descriptionController.text.trim(),
                                   images: images,
@@ -294,11 +356,13 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                                   stock: int.tryParse(stockController.text.trim()) ?? 0,
                                 );
                               }
-                              if (!mounted) return;
+                              if (!sheetContext.mounted) return;
+                              final message = sheetContext.tr(
+                                  editing ? 'vendor.productUpdated' : 'vendor.productAdded');
                               Navigator.of(sheetContext).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text(context.tr(
-                                      editing ? 'vendor.productUpdated' : 'vendor.productAdded'))));
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(content: Text(message)));
                               await _load();
                             } catch (_) {
                               setSheetState(() => saving = false);

@@ -14,7 +14,8 @@ import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceW
 import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
 import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded";
 import TopBar from "../../src/components/layout/TopBar";
-import { fetchCart, createOrder } from "../../src/api/ecommerce";
+import DeliveryAddressPicker from "../../src/components/account/DeliveryAddressPicker";
+import { fetchCart, fetchCartQuote, createOrder } from "../../src/api/ecommerce";
 import { fetchWallet } from "../../src/api/wallet";
 import useAuth from "../../src/hooks/useAuth";
 import { formatCfa } from "../../src/utils/currency";
@@ -25,13 +26,18 @@ export default function Checkout() {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [addressId, setAddressId] = useState(null);
 
   const { data: items, isLoading } = useQuery("cart", fetchCart);
+  const { data: quote } = useQuery("cart-quote", fetchCartQuote, { enabled: isAuthenticated });
   const { data: wallet } = useQuery("wallet", fetchWallet, { enabled: isAuthenticated });
 
-  const orderMutation = useMutation((method) => createOrder(undefined, method), {
+  // The address is what makes the order deliverable: without it the
+  // vendor's "hand this to a courier" button has nowhere to send them.
+  const orderMutation = useMutation((method) => createOrder(addressId ?? undefined, method), {
     onSuccess: ({ paymentUrl }) => {
       queryClient.invalidateQueries("cart");
+      queryClient.invalidateQueries("cart-quote");
       queryClient.invalidateQueries("orders");
       queryClient.invalidateQueries("wallet");
       queryClient.invalidateQueries("wallet-transactions");
@@ -45,12 +51,21 @@ export default function Checkout() {
     onError: (err) => toast.error(err.response?.data?.message || t("ecommerce.checkout.couldNotPlaceOrder")),
   });
 
+  // The subtotal is computed here only so the line items add up on
+  // screen while the quote is in flight; every figure the customer is
+  // asked to agree to comes from the server.
   const subtotal = (items || []).reduce((sum, item) => {
     const unit = Number(item.product.discountPrice ?? item.product.price);
     return sum + unit * item.quantity;
   }, 0);
-  const deliveryFee = subtotal > 0 ? 500 : 0;
-  const total = subtotal + deliveryFee;
+  // This page used to invent `deliveryFee = 500` and add it to the total
+  // it displayed. The server charges no such thing - it adds each
+  // store's admin-configured fee and tax, which is 0 until one is set -
+  // so the customer confirmed 3 500 FCFA and was debited 3 000. Same
+  // rule as the transfer and bill quotes: the client may estimate for
+  // feedback, the server decides the money.
+  const fees = Number(quote?.feeAmount ?? 0) + Number(quote?.taxAmount ?? 0);
+  const total = quote ? Number(quote.total) : subtotal;
 
   return (
     <Box sx={{ pb: 12 }}>
@@ -60,17 +75,15 @@ export default function Checkout() {
         <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
           {t("ecommerce.checkout.deliveryTo")}
         </Typography>
-        <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 2, mb: 3 }}>
+        <Box sx={{ border: "1px solid #EEEEEE", borderRadius: 3, p: 1.5, mb: 1.5 }}>
           <Typography variant="body2" sx={{ fontWeight: 700 }}>
             {user?.name || t("ecommerce.checkout.you")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {user?.phone}
           </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {t("ecommerce.checkout.addAddressHint")}
-          </Typography>
         </Box>
+        <DeliveryAddressPicker value={addressId} onChange={setAddressId} />
 
         <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
           {t("ecommerce.checkout.orderSummary")}
@@ -99,12 +112,18 @@ export default function Checkout() {
           </Typography>
           <Typography variant="body2">{formatCfa(subtotal)}</Typography>
         </Box>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            {t("ecommerce.checkout.deliveryFee")}
-          </Typography>
-          <Typography variant="body2">{formatCfa(deliveryFee)}</Typography>
-        </Box>
+        {/* Only when there is one. An admin can set a fee per store, and
+            until somebody does there is nothing to put on this line -
+            a row reading "CFA 0" invites the question of what it is for,
+            and the courier's fare is not the customer's to pay here. */}
+        {fees > 0 && (
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              {t("ecommerce.checkout.serviceFee")}
+            </Typography>
+            <Typography variant="body2">{formatCfa(fees)}</Typography>
+          </Box>
+        )}
         <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
             {t("ecommerce.checkout.total")}

@@ -3,7 +3,7 @@ const { requireAuth } = require("../../middleware/auth");
 const { listCategories } = require("./categories.controller");
 const { listProducts, getProduct } = require("./products.controller");
 const { getCart, addItem, updateItem, removeItem } = require("./cart.controller");
-const { listOrders, getOrder, createOrder } = require("./orders.controller");
+const { listOrders, getOrder, createOrder, quoteCart } = require("./orders.controller");
 const { listWishlist, toggleWishlist } = require("./wishlist.controller");
 const { getActiveFlashSale } = require("./flashSales.controller");
 const { listActiveShowcaseSlides } = require("./showcaseSlides.controller");
@@ -17,6 +17,9 @@ router.get("/flash-sales/active", getActiveFlashSale);
 router.get("/showcase-slides", listActiveShowcaseSlides);
 
 router.get("/cart", requireAuth, getCart);
+// What this cart costs, priced by the server - the figure checkout
+// shows before the customer confirms.
+router.get("/cart/quote", requireAuth, quoteCart);
 router.post("/cart", requireAuth, addItem);
 router.patch("/cart/:id", requireAuth, updateItem);
 router.delete("/cart/:id", requireAuth, removeItem);

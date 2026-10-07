@@ -18,6 +18,75 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import { fetchAdminVendors, updateAdminVendorStore } from "../../api/admin";
 import { AdminCard, tableHeadRowSx, tableRowHoverSx } from "./AdminUiKit";
+import { formatCfa } from "../../utils/currency";
+
+/**
+ * The commission cell.
+ *
+ * Edited as "what the vendor keeps", because that is the number a vendor
+ * is told and the one the payout is computed from (see
+ * resolveVendorShare); the platform's cut is shown underneath so nobody
+ * has to do the subtraction. Left empty it clears the override and the
+ * shop falls back to the platform default, which is why the placeholder
+ * is that default rather than a blank - an empty box here means
+ * "whatever the platform charges", not "zero".
+ *
+ * Saved on blur or Enter rather than per keystroke: each save is a PATCH
+ * and a refetch, and a vendor's rate is not something to write 4 times
+ * while someone types "92.5".
+ */
+function CommissionCell({ store, platformPercent, onSave, saving }) {
+  const { t } = useTranslation();
+  const [value, setValue] = useState(
+    store.commissionPercent != null ? String(store.commissionPercent) : ""
+  );
+
+  const commit = () => {
+    const trimmed = value.trim();
+    const next = trimmed === "" ? null : Number(trimmed);
+    if (next !== null && (Number.isNaN(next) || next < 0 || next > 100)) {
+      setValue(store.commissionPercent != null ? String(store.commissionPercent) : "");
+      return;
+    }
+    const current = store.commissionPercent != null ? Number(store.commissionPercent) : null;
+    if (next === current) return;
+    onSave(next);
+  };
+
+  return (
+    <Box sx={{ minWidth: 132 }}>
+      <TextField
+        size="small"
+        value={value}
+        disabled={saving}
+        placeholder={String(platformPercent)}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        // On the input itself, not as a plain `onKeyDown` prop: TextField
+        // forwards onChange/onBlur to the input but spreads anything it
+        // does not recognise onto the root FormControl, so the handler
+        // landed on a <div> whose blur() is a no-op - the box saved when
+        // you clicked away and silently did nothing when you pressed
+        // Enter, which is the one key somebody typing a rate will use.
+        inputProps={{
+          onKeyDown: (e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          },
+        }}
+        InputProps={{
+          endAdornment: <InputAdornment position="end">%</InputAdornment>,
+        }}
+        sx={{ width: 108 }}
+      />
+      <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.25 }}>
+        {t("admin.vendors.platformKeeps", {
+          percent: Number((100 - store.effectiveSharePercent).toFixed(2)),
+        })}
+        {store.commissionPercent == null && ` · ${t("admin.vendors.usingDefault")}`}
+      </Typography>
+    </Box>
+  );
+}
 
 export default function AdminVendorsTab() {
   const { t } = useTranslation();
@@ -69,6 +138,8 @@ export default function AdminVendorsTab() {
                   <TableCell>{t("admin.vendors.store")}</TableCell>
                   <TableCell>{t("admin.vendors.owner")}</TableCell>
                   <TableCell align="center">{t("admin.vendors.products")}</TableCell>
+                  <TableCell>{t("admin.vendors.commission")}</TableCell>
+                  <TableCell align="right">{t("admin.vendors.paidOut")}</TableCell>
                   <TableCell align="center">{t("admin.vendors.active")}</TableCell>
                   <TableCell align="center">{t("admin.vendors.featured")}</TableCell>
                 </TableRow>
@@ -94,6 +165,21 @@ export default function AdminVendorsTab() {
                       </Typography>
                     </TableCell>
                     <TableCell align="center">{store._count?.products ?? 0}</TableCell>
+                    <TableCell>
+                      <CommissionCell
+                        store={store}
+                        platformPercent={data?.platformSharePercent ?? 85}
+                        saving={updateMutation.isLoading}
+                        onSave={(commissionPercent) =>
+                          updateMutation.mutate({ id: store.id, payload: { commissionPercent } })
+                        }
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography sx={{ fontSize: 13.5, fontWeight: 600 }}>
+                        {formatCfa(store.paidOutFcfa ?? 0)}
+                      </Typography>
+                    </TableCell>
                     <TableCell align="center">
                       <Switch
                         checked={store.isActive}
@@ -116,7 +202,7 @@ export default function AdminVendorsTab() {
                 ))}
                 {!isLoading && (data?.stores || []).length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ color: "text.secondary" }}>
+                    <TableCell colSpan={7} align="center" sx={{ color: "text.secondary" }}>
                       {t("admin.vendors.none")}
                     </TableCell>
                   </TableRow>

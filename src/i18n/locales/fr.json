@@ -236,11 +236,9 @@
       "title": "Paiement",
       "deliveryTo": "Livraison à",
       "you": "Vous",
-      "addAddressHint": "Ajoutez une adresse enregistrée pour accélérer vos prochaines commandes.",
       "orderSummary": "Récapitulatif de la commande",
       "loading": "Chargement...",
       "subtotal": "Sous-total",
-      "deliveryFee": "Frais de livraison",
       "total": "Total",
       "payWith": "Payer avec",
       "cashOnDelivery": "Paiement à la livraison",
@@ -250,7 +248,8 @@
       "orderPlaced": "Commande passée !",
       "couldNotPlaceOrder": "Impossible de passer la commande",
       "placingOrder": "Passage de la commande...",
-      "placeOrder": "Passer la commande · {{total}}"
+      "placeOrder": "Passer la commande · {{total}}",
+      "serviceFee": "Frais de service"
     },
     "orders": {
       "title": "Vos commandes",
@@ -843,7 +842,24 @@
     "quantity": "Quantité disponible",
     "addPhoto": "Ajouter une photo",
     "moreDetails": "Plus de détails (facultatif)",
-    "categoryAuto": "Automatique (Autres)"
+    "categoryAuto": "Automatique (Autres)",
+    "deliveries": "Livraisons",
+    "noDeliveries": "Aucune livraison pour le moment",
+    "waitingForCourier": "En attente d'un livreur",
+    "courier": "Livreur",
+    "orderRef": "Commande #{{ref}}",
+    "notAVendor": "Vous n'avez pas encore de boutique",
+    "earnings": {
+      "title": "Mes revenus",
+      "gross": "Ventes",
+      "commission": "Commission Ocass",
+      "net": "Versé sur mon portefeuille",
+      "noSalesYet": "Aucune vente pour le moment",
+      "rateForShop": "Vous gardez {{percent}}% - taux fixe pour votre boutique",
+      "ratePlatform": "Vous gardez {{percent}}% - taux par défaut de la plateforme",
+      "payouts_one": "1 versement à ce jour",
+      "payouts_other": "{{count}} versements à ce jour"
+    }
   },
   "anando": {
     "title": "Anando",
@@ -1166,7 +1182,11 @@
       "featured": "En vedette",
       "none": "Aucune boutique vendeur trouvée",
       "updated": "Boutique mise à jour",
-      "updateFailed": "Impossible de mettre à jour la boutique"
+      "updateFailed": "Impossible de mettre à jour la boutique",
+      "commission": "Le vendeur garde",
+      "paidOut": "Versé à ce jour",
+      "platformKeeps": "Ocass garde {{percent}}%",
+      "usingDefault": "défaut"
     },
     "restaurants": {
       "hint": "Suspendre un restaurant le masque de la navigation et affiche une page « indisponible » aux clients - le menu et l'historique des commandes du propriétaire ne sont pas supprimés.",
@@ -1277,5 +1297,17 @@
     "installHint": "Ajoutez l'app à votre écran d'accueil pour l'expérience plein écran.",
     "installHintIos": "Appuyez sur Partager, puis « Sur l'écran d'accueil ».",
     "install": "Installer"
+  },
+  "account": {
+    "address": {
+      "add": "Ajouter une adresse",
+      "label": "Nom",
+      "labelPlaceholder": "Maison, Bureau...",
+      "line1": "Adresse",
+      "city": "Ville",
+      "noneYet": "Aucune adresse enregistrée",
+      "noCoords": "Sans point GPS - la course sera estimée",
+      "couldNotSave": "Impossible d'enregistrer l'adresse"
+    }
   }
 }

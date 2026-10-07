@@ -26,3 +26,10 @@ export const fetchMyVendorOrders = () =>
   apiClient.get("/vendor/orders").then((res) => res.data.orders);
 export const updateVendorOrderStatus = (id, status) =>
   apiClient.patch(`/vendor/orders/${id}/status`, { status }).then((res) => res.data.order);
+
+// The shop's own view of the courier runs it raised, and of what it kept
+// after commission (see listMyDeliveries / getMyEarnings).
+export const fetchMyVendorDeliveries = () =>
+  apiClient.get("/vendor/deliveries").then((res) => res.data.deliveries);
+export const fetchMyVendorEarnings = () =>
+  apiClient.get("/vendor/earnings").then((res) => res.data);

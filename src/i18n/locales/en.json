@@ -236,11 +236,9 @@
       "title": "Checkout",
       "deliveryTo": "Delivery to",
       "you": "You",
-      "addAddressHint": "Add a saved address to speed up future orders.",
       "orderSummary": "Order summary",
       "loading": "Loading...",
       "subtotal": "Subtotal",
-      "deliveryFee": "Delivery fee",
       "total": "Total",
       "payWith": "Pay with",
       "cashOnDelivery": "Cash on delivery",
@@ -250,7 +248,8 @@
       "orderPlaced": "Order placed!",
       "couldNotPlaceOrder": "Could not place order",
       "placingOrder": "Placing order...",
-      "placeOrder": "Place order · {{total}}"
+      "placeOrder": "Place order · {{total}}",
+      "serviceFee": "Service fee"
     },
     "orders": {
       "title": "Your orders",
@@ -843,7 +842,24 @@
     "quantity": "Quantity available",
     "addPhoto": "Add a photo",
     "moreDetails": "More details (optional)",
-    "categoryAuto": "Automatic (Other)"
+    "categoryAuto": "Automatic (Other)",
+    "deliveries": "Deliveries",
+    "noDeliveries": "No deliveries yet",
+    "waitingForCourier": "Waiting for a courier",
+    "courier": "Courier",
+    "orderRef": "Order #{{ref}}",
+    "notAVendor": "You don't have a shop yet",
+    "earnings": {
+      "title": "My earnings",
+      "gross": "Sales",
+      "commission": "Ocass commission",
+      "net": "Paid to my wallet",
+      "noSalesYet": "No sales yet",
+      "rateForShop": "You keep {{percent}}% - rate set for your shop",
+      "ratePlatform": "You keep {{percent}}% - platform default rate",
+      "payouts_one": "1 payout so far",
+      "payouts_other": "{{count}} payouts so far"
+    }
   },
   "anando": {
     "title": "Anando",
@@ -1166,7 +1182,11 @@
       "featured": "Featured",
       "none": "No vendor stores found",
       "updated": "Store updated",
-      "updateFailed": "Could not update store"
+      "updateFailed": "Could not update store",
+      "commission": "Vendor keeps",
+      "paidOut": "Paid out",
+      "platformKeeps": "Ocass keeps {{percent}}%",
+      "usingDefault": "default"
     },
     "restaurants": {
       "hint": "Suspending a restaurant hides it from browsing and shows customers an \"unavailable\" page - the owner's menu and order history aren't deleted.",
@@ -1277,5 +1297,17 @@
     "installHint": "Add it to your home screen for the full-screen app experience.",
     "installHintIos": "Tap Share, then \"Add to Home Screen\".",
     "install": "Install"
+  },
+  "account": {
+    "address": {
+      "add": "Add an address",
+      "label": "Name",
+      "labelPlaceholder": "Home, Office...",
+      "line1": "Address",
+      "city": "City",
+      "noneYet": "No saved addresses",
+      "noCoords": "No GPS point - the fare will be an estimate",
+      "couldNotSave": "Could not save the address"
+    }
   }
 }

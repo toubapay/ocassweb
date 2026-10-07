@@ -23,6 +23,9 @@ export const fetchShowcaseSlides = () =>
 export const fetchCart = () =>
   apiClient.get("/ecommerce/cart").then((res) => res.data.items);
 
+export const fetchCartQuote = () =>
+  apiClient.get("/ecommerce/cart/quote").then((res) => res.data.quote);
+
 export const addToCart = (productId, quantity = 1) =>
   apiClient.post("/ecommerce/cart", { productId, quantity }).then((res) => res.data.item);
 
