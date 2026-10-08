@@ -1,6 +1,8 @@
 const { z } = require("zod");
 const prisma = require("../../lib/prisma");
 const walletService = require("../wallet/wallet.service");
+const rideNotify = require("./rideshare.notify");
+const { publishJobBoardChange } = require("../realtime/jobBoard");
 const { hasCoordinates } = require("../../utils/geo");
 const { roadDistanceKm } = require("../../utils/distanceMatrix");
 const { getModuleFeeConfig, clampFee } = require("../../utils/feeConfig");
@@ -127,6 +129,8 @@ async function createRide(req, res, next) {
     const ride = await prisma.rideRequest.create({
       data: { ...data, userId: req.user.id, priceEstimate: await estimatePrice(data, feeConfig) },
     });
+    rideNotify.notifyCreated(ride);
+    publishJobBoardChange("ride", "created");
     res.status(201).json({ ride });
   } catch (err) {
     next(err);
@@ -146,20 +150,42 @@ async function cancelRide(req, res, next) {
       where: { id: req.params.id },
       data: { status: "CANCELLED" },
     });
+    rideNotify.notifyCancelled(ride);
+    publishJobBoardChange("ride", "cancelled");
     res.json({ ride });
   } catch (err) {
     next(err);
   }
 }
 
+/**
+ * What "available to me" means, for both the board and its count, so the
+ * home screen's badge can never advertise a ride the board won't show.
+ * The rider's own requests are excluded because acceptRide refuses them -
+ * see the same helper in delivery.controller.js.
+ */
+function availableRidesWhere(userId) {
+  return { status: "REQUESTED", assignedRiderId: null, userId: { not: userId } };
+}
+
 /** Unassigned, still-open ride requests any rider can pick up. */
 async function listAvailable(req, res, next) {
   try {
     const rides = await prisma.rideRequest.findMany({
-      where: { status: "REQUESTED", assignedRiderId: null },
+      where: availableRidesWhere(req.user.id),
       orderBy: { createdAt: "asc" },
     });
     res.json({ rides });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Just the number of open rides, for the home screen's badge. */
+async function countAvailable(req, res, next) {
+  try {
+    const count = await prisma.rideRequest.count({ where: availableRidesWhere(req.user.id) });
+    res.json({ count });
   } catch (err) {
     next(err);
   }
@@ -201,6 +227,8 @@ async function acceptRide(req, res, next) {
       return res.status(409).json({ message: "This ride was already taken" });
     }
     const ride = await prisma.rideRequest.findUnique({ where: { id: req.params.id } });
+    rideNotify.notifyAccepted(ride, req.user);
+    publishJobBoardChange("ride", "taken");
     res.json({ ride });
   } catch (err) {
     next(err);
@@ -217,6 +245,7 @@ async function startRide(req, res, next) {
       return res.status(400).json({ message: "Ride is not in a state you can start" });
     }
     const ride = await prisma.rideRequest.findUnique({ where: { id: req.params.id } });
+    rideNotify.notifyStarted(ride);
     res.json({ ride });
   } catch (err) {
     next(err);
@@ -260,6 +289,9 @@ async function completeRide(req, res, next) {
       where: { id: req.params.id },
       data: { status: "COMPLETED" },
     });
+    // Captured so the rider's notification states what was really
+    // credited - see the same note in delivery.controller.js.
+    let earned = null;
     if (existing.priceEstimate) {
       const feeConfig = await getModuleFeeConfig("rideshare", DEFAULT_FEE_CONFIG);
       // Per-rider override (see User.commissionSharePercent) beats the
@@ -268,15 +300,21 @@ async function completeRide(req, res, next) {
         req.user.commissionSharePercent != null
           ? Number(req.user.commissionSharePercent) / 100
           : feeConfig.riderSharePercent / 100;
-      await walletService.credit({
-        userId: req.user.id,
-        amount: Number(existing.priceEstimate) * riderShare,
-        type: "EARNING",
-        purpose: "RIDE_REQUEST",
-        purposeId: ride.id,
-        description: "Ride earnings",
-      });
+      // Whole francs, and guarded - see the same note in
+      // delivery.controller.js.
+      earned = Math.round(Number(existing.priceEstimate) * riderShare);
+      if (earned > 0) {
+        await walletService.credit({
+          userId: req.user.id,
+          amount: earned,
+          type: "EARNING",
+          purpose: "RIDE_REQUEST",
+          purposeId: ride.id,
+          description: "Ride earnings",
+        });
+      }
     }
+    rideNotify.notifyCompleted(ride, earned);
     res.json({ ride });
   } catch (err) {
     next(err);
@@ -290,6 +328,7 @@ module.exports = {
   getFeeQuote,
   cancelRide,
   listAvailable,
+  countAvailable,
   listMyJobs,
   acceptRide,
   startRide,

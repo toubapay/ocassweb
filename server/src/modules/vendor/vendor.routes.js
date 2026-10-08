@@ -11,6 +11,8 @@ const {
   updateProduct,
   deactivateProduct,
   listMyOrders,
+  listMyDeliveries,
+  getMyEarnings,
   updateOrderStatus,
 } = require("./vendor.controller");
 
@@ -42,6 +44,10 @@ router.patch("/products/:id", updateProduct);
 router.delete("/products/:id", deactivateProduct);
 
 router.get("/orders", listMyOrders);
+// The shop's own view of the courier runs it raised, and of what it has
+// earned after commission.
+router.get("/deliveries", listMyDeliveries);
+router.get("/earnings", getMyEarnings);
 router.patch("/orders/:id/status", updateOrderStatus);
 
 module.exports = router;

@@ -42,6 +42,7 @@ import '../screens/anando/anando_track_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/vendor/vendor_dashboard_screen.dart';
 import '../screens/vendor/vendor_products_screen.dart';
+import '../screens/vendor/vendor_deliveries_screen.dart';
 import '../screens/vendor/vendor_orders_screen.dart';
 import '../screens/payments/payment_return_screen.dart';
 import '../screens/payments/payment_cancelled_screen.dart';
@@ -141,6 +142,9 @@ final GoRouter appRouter = GoRouter(
         GoRoute(path: '/vendor', builder: (context, state) => const VendorDashboardScreen()),
         GoRoute(path: '/vendor/products', builder: (context, state) => const VendorProductsScreen()),
         GoRoute(path: '/vendor/orders', builder: (context, state) => const VendorOrdersScreen()),
+        GoRoute(
+            path: '/vendor/deliveries',
+            builder: (context, state) => const VendorDeliveriesScreen()),
 
         // Static /ecommerce/* siblings must come before the dynamic
         // /ecommerce/:categorySlug catch-all below, or the catch-all would

@@ -3,6 +3,10 @@ const prisma = require("../../lib/prisma");
 const { MODULE_KEYS } = require("../../constants/modules");
 const { uniqueSlug } = require("../../utils/slugify");
 const { getModuleFeeConfig } = require("../../utils/feeConfig");
+const {
+  resolveVendorShare,
+  DEFAULT_FEE_CONFIG: VENDOR_FEE_DEFAULTS,
+} = require("../vendor/vendor.service");
 
 // ---------------- Users ----------------
 
@@ -334,11 +338,11 @@ async function listVendorStores(req, res, next) {
         : {}),
     };
 
-    const [stores, total] = await Promise.all([
+    const [stores, total, feeConfig] = await Promise.all([
       prisma.store.findMany({
         where,
         include: {
-          owner: { select: { id: true, name: true, phone: true } },
+          owner: { select: { id: true, name: true, phone: true, commissionSharePercent: true } },
           _count: { select: { products: true } },
         },
         orderBy: { name: "asc" },
@@ -346,9 +350,39 @@ async function listVendorStores(req, res, next) {
         skip,
       }),
       prisma.store.count({ where }),
+      getModuleFeeConfig("vendor", VENDOR_FEE_DEFAULTS),
     ]);
 
-    res.json({ stores, total, page: Number(page) || 1, pageSize: take });
+    // What each shop has actually been paid, read back from the ledger
+    // (VENDOR_SALE transactions carry `<orderId>:<storeId>` as purposeId)
+    // rather than recomputed from orders - so the console cannot show a
+    // vendor a different number from the one in their wallet.
+    const paid = await prisma.walletTransaction.findMany({
+      where: { purpose: "VENDOR_SALE" },
+      select: { amount: true, purposeId: true },
+    });
+    const paidByStore = new Map();
+    for (const row of paid) {
+      const storeId = String(row.purposeId ?? "").split(":")[1];
+      if (!storeId) continue;
+      paidByStore.set(storeId, (paidByStore.get(storeId) ?? 0) + Number(row.amount));
+    }
+
+    res.json({
+      stores: stores.map((store) => ({
+        ...store,
+        // The rate in force and where it comes from, so the switch below
+        // reads "85% (platform default)" rather than an empty box.
+        effectiveSharePercent: Number(
+          (resolveVendorShare(store, feeConfig.vendorSharePercent / 100) * 100).toFixed(2)
+        ),
+        paidOutFcfa: Math.round(paidByStore.get(store.id) ?? 0),
+      })),
+      total,
+      page: Number(page) || 1,
+      pageSize: take,
+      platformSharePercent: feeConfig.vendorSharePercent,
+    });
   } catch (err) {
     next(err);
   }
@@ -357,6 +391,12 @@ async function listVendorStores(req, res, next) {
 const updateVendorStoreSchema = z.object({
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  // What this shop keeps of its own sales. Null clears the override and
+  // puts the shop back on the module-wide default; it is deliberately a
+  // separate field from the owner's User.commissionSharePercent, which
+  // also pays them for delivery runs and ride jobs (see
+  // resolveVendorShare).
+  commissionPercent: z.number().min(0).max(100).nullable().optional(),
 });
 
 async function updateVendorStore(req, res, next) {
@@ -366,7 +406,7 @@ async function updateVendorStore(req, res, next) {
       where: { id: req.params.id },
       data,
       include: {
-        owner: { select: { id: true, name: true, phone: true } },
+        owner: { select: { id: true, name: true, phone: true, commissionSharePercent: true } },
         _count: { select: { products: true } },
       },
     });

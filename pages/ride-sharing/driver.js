@@ -11,6 +11,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import TopBar from "../../src/components/layout/TopBar";
 import useAuth from "../../src/hooks/useAuth";
+import { useLiveStatus } from "../../src/components/live/LiveUpdatesProvider";
 import {
   fetchAvailableRideJobs,
   fetchMyRideJobs,
@@ -59,6 +60,9 @@ export default function RideDriverDashboard() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
+  // A new or taken job arrives on the live stream (LiveUpdatesProvider);
+  // the poll below is the backstop when it isn't connected.
+  const { connected: live } = useLiveStatus();
   const [tab, setTab] = useState(0);
 
   // Lets profile.js link straight to the job history tab (?tab=mine)
@@ -74,7 +78,7 @@ export default function RideDriverDashboard() {
   const { data: available, isLoading: loadingAvailable } = useQuery(
     "ride-jobs-available",
     fetchAvailableRideJobs,
-    { enabled: isRider, refetchInterval: 15000 }
+    { enabled: isRider, refetchInterval: live ? 120000 : 15000 }
   );
   const { data: myJobs, isLoading: loadingMine } = useQuery(
     "ride-jobs-mine",
@@ -88,6 +92,9 @@ export default function RideDriverDashboard() {
   const invalidateJobs = () => {
     queryClient.invalidateQueries("ride-jobs-available");
     queryClient.invalidateQueries("ride-jobs-mine");
+    // Clears the home screen's badge immediately - see the same note in
+    // pages/delivery/agent.js.
+    queryClient.invalidateQueries("ride-jobs-available-count");
   };
 
   const acceptMutation = useMutation((id) => acceptRideJob(id), {

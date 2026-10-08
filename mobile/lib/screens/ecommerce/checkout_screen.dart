@@ -10,6 +10,7 @@ import '../../models/wallet.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/address_picker.dart';
 import '../../widgets/top_bar.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -21,14 +22,18 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _placing = false;
+  String? _addressId;
   String _paymentMethod = 'cash';
   Wallet? _wallet;
-  static const double _deliveryFee = 500;
+  Map<String, dynamic>? _quote;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadWallet());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadWallet();
+      _loadQuote();
+    });
   }
 
   Future<void> _loadWallet() async {
@@ -42,10 +47,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  /// What the cart costs, priced by the server.
+  ///
+  /// This screen used to hold `_deliveryFee = 500` and add it to the
+  /// total it displayed. The backend charges no such thing - it adds each
+  /// store's admin-configured fee and tax, 0 until one is set - so the
+  /// customer confirmed 3 500 FCFA and was debited 3 000, and had an
+  /// admin configured a real fee the figure would have been wrong the
+  /// other, worse way round. Same rule as every other money screen here:
+  /// the client may estimate for feedback, the server decides the money.
+  Future<void> _loadQuote() async {
+    try {
+      final quote = await apiClient.fetchCartQuote();
+      if (mounted) setState(() => _quote = quote);
+    } catch (_) {
+      // Falls back to the line-item subtotal, which is what the customer
+      // can already add up from the list above it.
+    }
+  }
+
   Future<void> _placeOrder(num total) async {
     setState(() => _placing = true);
     try {
-      final (_, paymentUrl) = await apiClient.createOrder(paymentMethod: _paymentMethod);
+      // The address is what makes the order deliverable: without one the
+      // vendor's hand-off to the couriers has nowhere to send them.
+      final (_, paymentUrl) = await apiClient.createOrder(
+        paymentMethod: _paymentMethod,
+        deliveryAddressId: _addressId,
+      );
       if (!mounted) return;
       await context.read<CartProvider>().fetch();
       if (!mounted) return;
@@ -61,6 +90,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(context.tr('ecommerce.checkout.orderPlaced'))));
       }
+      // launchUrl above is awaited, so the screen may be gone by now -
+      // navigating from a disposed State is what this guard is for.
+      if (!mounted) return;
       context.go('/ecommerce/orders');
     } catch (_) {
       if (!mounted) return;
@@ -76,8 +108,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cart = context.watch<CartProvider>();
     final user = context.watch<AuthProvider>().user;
     final subtotal = cart.subtotal;
-    final deliveryFee = cart.items.isEmpty ? 0 : _deliveryFee;
-    final total = subtotal + deliveryFee;
+    final fees = (_quote?['feeAmount'] as num? ?? 0) + (_quote?['taxAmount'] as num? ?? 0);
+    final total = _quote != null ? (_quote!['total'] as num) : subtotal;
     final walletInsufficient = _wallet != null && _wallet!.balance < total;
 
     return Scaffold(
@@ -101,13 +133,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Text(user?.name ?? context.t('ecommerce.checkout.you'),
                     style: const TextStyle(fontWeight: FontWeight.w700)),
                 Text(user?.phone ?? '', style: const TextStyle(color: AppColors.textSecondary)),
-                const SizedBox(height: 4),
-                Text(context.t('ecommerce.checkout.addAddressHint'),
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          AddressPicker(
+            selectedId: _addressId,
+            onChanged: (id) => setState(() => _addressId = id),
+          ),
+          const SizedBox(height: 12),
           Text(context.t('ecommerce.checkout.orderSummary'),
               style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
@@ -133,15 +167,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Text(formatCfa(subtotal)),
             ],
           ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(context.t('ecommerce.checkout.deliveryFee'),
-                  style: const TextStyle(color: AppColors.textSecondary)),
-              Text(formatCfa(deliveryFee)),
-            ],
-          ),
+          // Only when there is one. An admin can set a fee per store, and
+          // until somebody does there is nothing to put on this line - a
+          // row reading "CFA 0" invites the question of what it is for,
+          // and the courier's fare is not the customer's to pay here.
+          if (fees > 0) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(context.t('ecommerce.checkout.serviceFee'),
+                    style: const TextStyle(color: AppColors.textSecondary)),
+                Text(formatCfa(fees)),
+              ],
+            ),
+          ],
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

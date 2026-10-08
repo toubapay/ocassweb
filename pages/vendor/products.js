@@ -17,6 +17,9 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
+import Collapse from "@mui/material/Collapse";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import IconButton from "@mui/material/IconButton";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
@@ -62,6 +65,7 @@ export default function VendorProducts() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [showMore, setShowMore] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const { data: products, isLoading } = useQuery("vendor-products", fetchMyProducts, {
@@ -135,12 +139,19 @@ export default function VendorProducts() {
   };
 
   const openCreate = () => {
+    setShowMore(false);
     setForm(emptyForm);
     setEditingId(null);
     setDialogOpen(true);
   };
 
   const openEdit = (product) => {
+    // Opened with the extra section already showing when the product has
+    // something in it - otherwise a description the vendor wrote earlier
+    // would look like it had been dropped.
+    setShowMore(
+      Boolean(product.description || product.discountPrice || product.images?.length > 1)
+    );
     setForm({
       categoryId: product.categoryId,
       name: product.name,
@@ -155,12 +166,14 @@ export default function VendorProducts() {
   };
 
   const handleSave = () => {
-    if (!form.name || !form.categoryId || !form.price) {
+    if (!form.name || !form.price) {
       toast.error(t("vendor.fillRequiredFields"));
       return;
     }
     const payload = {
-      categoryId: form.categoryId,
+      // Omitted rather than empty-string: the schema treats absent as
+      // "file it under Autres".
+      ...(form.categoryId ? { categoryId: form.categoryId } : {}),
       name: form.name,
       description: form.description || undefined,
       price: Number(form.price),
@@ -280,34 +293,75 @@ export default function VendorProducts() {
           {editingId ? t("vendor.editProduct") : t("vendor.newProduct")}
         </DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-          <FormControl fullWidth>
-            <InputLabel id="vendor-category-label">{t("vendor.category")}</InputLabel>
-            <Select
-              labelId="vendor-category-label"
-              label={t("vendor.category")}
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-            >
-              {flatCategories.map((cat) => (
-                <MenuItem key={cat.id} value={cat.id}>
-                  {cat.indent ? `— ${cat.name}` : cat.name}
-                </MenuItem>
+          {/* Putting something up for sale asks four things: a photo, a
+              name, a price and how many. Everything the catalogue can
+              hold is still here, folded away below - a vendor standing in
+              their shop with a phone should not have to pick a taxonomy
+              branch before they can sell a sack of rice. */}
+          <Button
+            component="label"
+            disabled={uploadingImage}
+            sx={{
+              height: 132,
+              borderRadius: 3,
+              border: "1px dashed",
+              borderColor: form.images.length ? "transparent" : "divider",
+              bgcolor: form.images.length ? "transparent" : "#FAFAFA",
+              p: 0,
+              overflow: "hidden",
+            }}
+          >
+            {form.images.length > 0 ? (
+              <Box
+                component="img"
+                src={form.images[0]}
+                alt=""
+                sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <Box sx={{ textAlign: "center", color: "text.secondary" }}>
+                <PhotoCameraRoundedIcon sx={{ fontSize: 30 }} />
+                <Typography variant="caption" sx={{ display: "block", fontWeight: 700 }}>
+                  {uploadingImage ? t("common.loading") : t("vendor.addPhoto")}
+                </Typography>
+              </Box>
+            )}
+            <input type="file" accept="image/*" hidden onChange={handleUpload} />
+          </Button>
+          {form.images.length > 0 && (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: -1 }}>
+              {form.images.map((url, index) => (
+                <Box key={index} sx={{ position: "relative" }}>
+                  <Avatar src={url} variant="rounded" sx={{ width: 48, height: 48 }}>
+                    <CategoryRoundedIcon />
+                  </Avatar>
+                  <IconButton
+                    size="small"
+                    onClick={() => removeImage(index)}
+                    sx={{
+                      position: "absolute",
+                      top: -8,
+                      right: -8,
+                      bgcolor: "#fff",
+                      boxShadow: 1,
+                      width: 22,
+                      height: 22,
+                      "&:hover": { bgcolor: "#fff" },
+                    }}
+                  >
+                    <CloseRoundedIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Box>
               ))}
-            </Select>
-          </FormControl>
+            </Box>
+          )}
+
           <TextField
             label={t("vendor.productName")}
             fullWidth
+            autoFocus
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-          <TextField
-            label={t("vendor.productDescription")}
-            fullWidth
-            multiline
-            minRows={2}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
           <Box sx={{ display: "flex", gap: 1.5 }}>
             <TextField
@@ -318,74 +372,75 @@ export default function VendorProducts() {
               onChange={(e) => setForm({ ...form, price: e.target.value })}
             />
             <TextField
-              label={t("vendor.discountPrice")}
+              label={t("vendor.quantity")}
               type="number"
               fullWidth
-              value={form.discountPrice}
-              onChange={(e) => setForm({ ...form, discountPrice: e.target.value })}
+              value={form.stock}
+              onChange={(e) => setForm({ ...form, stock: e.target.value })}
             />
           </Box>
-          <TextField
-            label={t("vendor.stock")}
-            type="number"
-            fullWidth
-            value={form.stock}
-            onChange={(e) => setForm({ ...form, stock: e.target.value })}
-          />
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-              {t("vendor.images")}
-            </Typography>
-            {form.images.length > 0 && (
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
-                {form.images.map((url, index) => (
-                  <Box key={index} sx={{ position: "relative" }}>
-                    <Avatar src={url} variant="rounded" sx={{ width: 64, height: 64 }}>
-                      <CategoryRoundedIcon />
-                    </Avatar>
-                    <IconButton
-                      size="small"
-                      onClick={() => removeImage(index)}
-                      sx={{
-                        position: "absolute",
-                        top: -8,
-                        right: -8,
-                        bgcolor: "#fff",
-                        boxShadow: 1,
-                        width: 22,
-                        height: 22,
-                        "&:hover": { bgcolor: "#fff" },
-                      }}
-                    >
-                      <CloseRoundedIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                  </Box>
-                ))}
-              </Box>
-            )}
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <TextField
-                size="small"
-                fullWidth
-                placeholder={t("vendor.imageUrlPlaceholder")}
-                value={newImageUrl}
-                onChange={(e) => setNewImageUrl(e.target.value)}
+
+          <Button
+            onClick={() => setShowMore((v) => !v)}
+            endIcon={
+              <ExpandMoreRoundedIcon
+                sx={{ transform: showMore ? "rotate(180deg)" : "none", transition: "0.2s" }}
               />
-              <Button variant="outlined" disabled={!newImageUrl.trim()} onClick={addImageUrl}>
-                {t("vendor.addImageUrl")}
-              </Button>
+            }
+            sx={{ alignSelf: "flex-start", fontWeight: 700, px: 0 }}
+          >
+            {t("vendor.moreDetails")}
+          </Button>
+          <Collapse in={showMore} unmountOnExit>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel id="vendor-category-label">{t("vendor.category")}</InputLabel>
+                <Select
+                  labelId="vendor-category-label"
+                  label={t("vendor.category")}
+                  value={form.categoryId}
+                  onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                >
+                  {/* Left blank on purpose: the backend files an
+                      uncategorised product under "Autres" rather than
+                      refusing it. */}
+                  <MenuItem value="">{t("vendor.categoryAuto")}</MenuItem>
+                  {flatCategories.map((cat) => (
+                    <MenuItem key={cat.id} value={cat.id}>
+                      {cat.indent ? `— ${cat.name}` : cat.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label={t("vendor.productDescription")}
+                fullWidth
+                multiline
+                minRows={2}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+              <TextField
+                label={t("vendor.discountPrice")}
+                type="number"
+                fullWidth
+                value={form.discountPrice}
+                onChange={(e) => setForm({ ...form, discountPrice: e.target.value })}
+              />
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder={t("vendor.imageUrlPlaceholder")}
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                />
+                <Button variant="outlined" disabled={!newImageUrl.trim()} onClick={addImageUrl}>
+                  {t("vendor.addImageUrl")}
+                </Button>
+              </Box>
             </Box>
-            <Button
-              component="label"
-              size="small"
-              startIcon={<UploadRoundedIcon />}
-              disabled={uploadingImage}
-              sx={{ mt: 1 }}
-            >
-              {uploadingImage ? t("common.loading") : t("vendor.uploadImage")}
-              <input type="file" accept="image/*" hidden onChange={handleUpload} />
-            </Button>
-          </Box>
+          </Collapse>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={closeDialog}>{t("vendor.cancel")}</Button>

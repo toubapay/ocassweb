@@ -13,6 +13,7 @@ import theme from "../src/theme";
 import createEmotionCache from "../src/theme/createEmotionCache";
 import { store, persistor } from "../src/redux/store";
 import AppLayout from "../src/components/layout/AppLayout";
+import LiveUpdatesProvider from "../src/components/live/LiveUpdatesProvider";
 import "../src/i18n";
 import I18nSync from "../src/i18n/I18nSync";
 
@@ -54,9 +55,15 @@ export default function App(props) {
                   ".pac-container": { zIndex: `${t.zIndex.tooltip} !important` },
                 })}
               />
-              <AppLayout>
-                <Component {...pageProps} />
-              </AppLayout>
+              {/* One SSE connection for the whole React surface -
+                  storefront and admin alike - so screens update as the
+                  backend changes instead of on their next poll. Inside
+                  QueryClientProvider because that is what it invalidates. */}
+              <LiveUpdatesProvider>
+                <AppLayout>
+                  <Component {...pageProps} />
+                </AppLayout>
+              </LiveUpdatesProvider>
               <Toaster position="top-center" toastOptions={{ duration: 2200 }} />
             </ThemeProvider>
           </QueryClientProvider>

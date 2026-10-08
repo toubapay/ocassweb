@@ -10,6 +10,7 @@ import '../../core/geo.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/ride_request.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/available_jobs_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/top_bar.dart';
 
@@ -37,6 +38,7 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
   late final TabController _tabController;
   List<RideRequest> _available = [];
   List<RideRequest> _mine = [];
+  bool _loadError = false;
   bool _loadingAvailable = true;
   bool _loadingMine = true;
   final Set<String> _busyIds = {};
@@ -90,18 +92,33 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
       _loadingAvailable = true;
       _loadingMine = true;
     });
-    final results = await Future.wait([
-      apiClient.fetchAvailableRideJobs(),
-      apiClient.fetchMyRideJobs(),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _available = results[0];
-      _mine = results[1];
-      _loadingAvailable = false;
-      _loadingMine = false;
-    });
+    try {
+      final results = await Future.wait([
+        apiClient.fetchAvailableRideJobs(),
+        apiClient.fetchMyRideJobs(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _available = results[0];
+        _mine = results[1];
+        _loadError = false;
+        _loadingAvailable = false;
+        _loadingMine = false;
+      });
+    } catch (_) {
+      // See the same guard in delivery_agent_screen.dart.
+      if (!mounted) return;
+      setState(() {
+        _loadError = true;
+        _loadingAvailable = false;
+        _loadingMine = false;
+      });
+    }
     _syncLocationTimer();
+    // The home screen's badge reads the same open-job set. Refreshing it
+    // here is what makes it disappear the moment a job is accepted rather
+    // than up to a poll interval later - which is the whole promise of it.
+    if (mounted) context.read<AvailableJobsProvider>().refresh();
   }
 
   Future<void> _accept(String id) async {
@@ -216,6 +233,7 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
   }
 
   Widget _buildAvailable() {
+    if (_loadError) return _loadErrorView();
     if (_loadingAvailable) {
       return Center(child: Text(context.t('common.loading')));
     }
@@ -260,6 +278,7 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
   }
 
   Widget _buildMine() {
+    if (_loadError) return _loadErrorView();
     if (_loadingMine) {
       return Center(child: Text(context.t('common.loading')));
     }
@@ -318,4 +337,26 @@ class _RideSharingDriverScreenState extends State<RideSharingDriverScreen>
       ),
     );
   }
+
+  /// Shown instead of a spinner that would otherwise never end: before
+  /// this, one failed request in _loadAll's Future.wait rethrew, the
+  /// loading flags were never cleared, and the screen sat on
+  /// "Chargement..." with no error and no way back.
+  Widget _loadErrorView() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_rounded, size: 40, color: AppColors.textSecondary),
+              const SizedBox(height: 12),
+              Text(context.t('common.loadFailed'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              ElevatedButton(onPressed: _loadAll, child: Text(context.t('common.retry'))),
+            ],
+          ),
+        ),
+      );
 }

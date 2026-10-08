@@ -36,6 +36,7 @@ import DeliveryAddressDialog from "../src/components/home/DeliveryAddressDialog"
 import SortableModuleTile from "../src/components/home/SortableModuleTile";
 import HeaderWave from "../src/components/home/HeaderWave";
 import ShortcutCard from "../src/components/home/ShortcutCard";
+import AvailableJobsBadge from "../src/components/home/AvailableJobsBadge";
 import ProductCard from "../src/components/ecommerce/ProductCard";
 import FlashSaleCountdown from "../src/components/ecommerce/FlashSaleCountdown";
 import useAuth from "../src/hooks/useAuth";
@@ -43,6 +44,7 @@ import { fetchProducts, fetchCategories, fetchActiveFlashSale } from "../src/api
 import { fetchStores } from "../src/api/vendor";
 import { fetchUnreadCount } from "../src/api/notifications";
 import { fetchHomeBanner } from "../src/api/home";
+import { useLiveStatus } from "../src/components/live/LiveUpdatesProvider";
 
 const CATEGORY_ICONS = {
   footwear: { icon: CheckroomRoundedIcon, color: "#0FAE58", bg: "#E7F7EE" },
@@ -69,9 +71,11 @@ export default function Home() {
   );
   const { data: featuredStores } = useQuery("featured-stores", () => fetchStores({ featured: true }));
   const { data: homeBanner } = useQuery("home-banner", fetchHomeBanner);
+  const { connected: liveConnected } = useLiveStatus();
+  // See TopBar.js: the live stream carries this, the poll is the backstop.
   const { data: unreadCount } = useQuery("notifications-unread-count", fetchUnreadCount, {
     enabled: isAuthenticated,
-    refetchInterval: 30000,
+    refetchInterval: liveConnected ? 180000 : 30000,
   });
   const firstName = user?.name?.split(" ")[0];
 
@@ -154,6 +158,12 @@ export default function Home() {
 
         <HeaderWave />
       </Box>
+
+      {/* Straight under the module grid, in the middle of the first
+          screenful: a delivery agent / rider needs to see that work is
+          waiting without scrolling or opening a dashboard. Renders nothing
+          for everyone else, and nothing when there is no open job. */}
+      <AvailableJobsBadge />
 
       <Box sx={{ px: 2.5, pt: 3, pb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

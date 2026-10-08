@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -71,9 +72,33 @@ class _DeliveryTrackScreenState extends State<DeliveryTrackScreen> {
     if (!mounted || !context.read<AuthProvider>().isAuthenticated) return;
     try {
       final request = await apiClient.fetchDeliveryRequest(widget.requestId);
-      if (mounted) setState(() => _request = request);
+      if (!mounted) return;
+      setState(() {
+        _request = request;
+        // A poll that succeeds clears a not-found from an earlier one:
+        // this flag is checked before the data below, so leaving it set
+        // would keep showing "introuvable" over a screen that now has
+        // something to draw.
+        _notFound = false;
+      });
+      // Nothing more will change, so stop asking. A finished run left the
+      // old timer polling every 5 seconds for as long as the screen
+      // stayed open.
+      if (['DELIVERED', 'CANCELLED'].contains(request.status)) {
+        _pollTimer?.cancel();
+        _pollTimer = null;
+      }
+    } on DioException catch (err) {
+      if (!mounted) return;
+      // Only the server saying "no such thing" means not found. Any other
+      // failure is the network, and a dropped poll is not evidence that a
+      // delivery someone is watching has ceased to exist - before this, a
+      // single blip replaced a live map with "introuvable" for the life of
+      // the screen, because later successful polls never reset it.
+      final status = err.response?.statusCode;
+      if (status == 404 || status == 403) setState(() => _notFound = true);
     } catch (_) {
-      if (mounted) setState(() => _notFound = true);
+      // Anything unexpected: keep what is on screen.
     } finally {
       if (mounted) setState(() => _loading = false);
     }

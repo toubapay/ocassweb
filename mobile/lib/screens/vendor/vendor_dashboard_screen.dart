@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/top_bar.dart';
+import '../../widgets/vendor_earnings_card.dart';
 
 /// Mirrors pages/vendor/index.js: create-or-edit-store form, then once a
 /// store exists, a summary card + links to product management and orders.
@@ -181,7 +182,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            // Where the web puts it too: the first thing on the dashboard
+            // is what the shop has made.
+            const VendorEarningsCard(),
             OutlinedButton.icon(
               onPressed: () => context.push('/vendor/products'),
               icon: const Icon(Icons.inventory_2_rounded),
@@ -197,6 +201,16 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               icon: const Icon(Icons.receipt_long_rounded),
               label:
                   Align(alignment: Alignment.centerLeft, child: Text(context.t('vendor.viewOrders'))),
+              style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  alignment: Alignment.centerLeft),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/vendor/deliveries'),
+              icon: const Icon(Icons.two_wheeler_rounded),
+              label:
+                  Align(alignment: Alignment.centerLeft, child: Text(context.t('vendor.deliveries'))),
               style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                   alignment: Alignment.centerLeft),

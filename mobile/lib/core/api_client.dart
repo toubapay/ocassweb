@@ -1,5 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+// Narrowed to VoidCallback, the only thing this file needs from
+// foundation: the unrestricted import also brings in an annotation called
+// Category, which collides with this app's own models/category.dart and
+// makes every Category reference below ambiguous.
+import 'package:flutter/foundation.dart' show VoidCallback;
 
 import 'constants.dart';
 import 'secure_storage.dart';
@@ -27,6 +31,7 @@ import '../models/flash_sale.dart';
 import '../models/showcase_slide.dart';
 import '../models/home_banner.dart';
 import '../models/payment_status.dart';
+import '../models/saved_address.dart';
 
 /// Thin wrapper around every backend endpoint the app calls. Kept as one
 /// file (rather than one per module) so every route string lives next to
@@ -159,6 +164,15 @@ class ApiClient {
         .toList();
   }
 
+  /// What the cart costs, priced by the server: subtotal plus each
+  /// store's admin-configured fee and tax. The figure checkout shows
+  /// before the customer confirms, so it cannot differ from the one they
+  /// are charged.
+  Future<Map<String, dynamic>> fetchCartQuote() async {
+    final res = await _dio.get('/ecommerce/cart/quote');
+    return _data(res)['quote'] as Map<String, dynamic>;
+  }
+
   /// Slides for the Boutique home page's rotating banner - see
   /// AdminShowcaseTab.js on web for how admins manage these.
   Future<List<ShowcaseSlide>> fetchShowcaseSlides() async {
@@ -228,6 +242,36 @@ class ApiClient {
   /// Returns the created order and, for `paymentMethod: 'paydunya'`, the
   /// PayDunya checkout URL to redirect the customer to (null for
   /// `'wallet'`, which settles synchronously - no redirect needed).
+  // ---------------- Saved delivery addresses ----------------
+  //
+  // An order with no deliveryAddressId cannot be handed to the couriers -
+  // dispatchForDelivery has nowhere to send them - which is why checkout
+  // asks for one of these (see address_picker.dart).
+
+  Future<List<SavedAddress>> fetchAddresses() async {
+    final res = await _dio.get('/account/addresses');
+    return (_data(res)['addresses'] as List<dynamic>)
+        .map((a) => SavedAddress.fromJson(a as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<SavedAddress> createAddress({
+    required String label,
+    required String line1,
+    required String city,
+    double? lat,
+    double? lng,
+  }) async {
+    final res = await _dio.post('/account/addresses', data: {
+      'label': label,
+      'line1': line1,
+      'city': city,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+    });
+    return SavedAddress.fromJson(_data(res)['address'] as Map<String, dynamic>);
+  }
+
   Future<(Order, String?)> createOrder({
     String? deliveryAddressId,
     String paymentMethod = 'cash',
@@ -405,6 +449,15 @@ class ApiClient {
   /// safely ignore (see the periodic broadcast in delivery_agent_screen.dart).
   Future<void> updateDeliveryJobLocation(String id, {required double lat, required double lng}) async {
     await _dio.patch('/delivery/jobs/$id/location', data: {'lat': lat, 'lng': lng});
+  }
+
+  /// Just the number of open jobs, for the home screen's available-jobs
+  /// badge - the board's own rows are far more than a badge needs, and this
+  /// one is polled while an agent sits on the home screen. Excludes the
+  /// caller's own requests server-side, which accept refuses anyway.
+  Future<int> fetchAvailableDeliveryJobCount() async {
+    final res = await _dio.get('/delivery/jobs/available/count');
+    return (_data(res)['count'] as num).toInt();
   }
 
   // ---------------- Insurance ----------------
@@ -775,6 +828,12 @@ class ApiClient {
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
   }
 
+  /// See fetchAvailableDeliveryJobCount - same reasoning, rider side.
+  Future<int> fetchAvailableRideJobCount() async {
+    final res = await _dio.get('/rideshare/jobs/available/count');
+    return (_data(res)['count'] as num).toInt();
+  }
+
   Future<RideRequest> completeRideJob(String id) async {
     final res = await _dio.post('/rideshare/jobs/$id/complete');
     return RideRequest.fromJson(_data(res)['ride'] as Map<String, dynamic>);
@@ -1052,8 +1111,24 @@ class ApiClient {
         .toList();
   }
 
+  /// `categoryId` is optional: the backend files a product posted without
+  /// one under a catch-all category rather than refusing it, which is what
+  /// lets the quick-post sheet ask for four things instead of seven.
+  /// The courier runs this shop raised, with who is carrying them.
+  Future<List<Map<String, dynamic>>> fetchVendorDeliveries() async {
+    final res = await _dio.get('/vendor/deliveries');
+    return (_data(res)['deliveries'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  /// Gross, commission and what reached the wallet - read back from the
+  /// ledger server-side, never recomputed here.
+  Future<Map<String, dynamic>> fetchVendorEarnings() async {
+    final res = await _dio.get('/vendor/earnings');
+    return _data(res);
+  }
+
   Future<Product> createVendorProduct({
-    required String categoryId,
+    String? categoryId,
     required String name,
     String? description,
     List<String> images = const [],
@@ -1063,7 +1138,7 @@ class ApiClient {
     List<String> tags = const [],
   }) async {
     final res = await _dio.post('/vendor/products', data: {
-      'categoryId': categoryId,
+      if (categoryId != null) 'categoryId': categoryId,
       'name': name,
       if (description != null && description.isNotEmpty) 'description': description,
       'images': images,

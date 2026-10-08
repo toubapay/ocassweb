@@ -77,6 +77,57 @@ async function getOrder(req, res, next) {
   }
 }
 
+/** Subtotal of a cart, from the price each line will actually be billed
+ *  at. Shared so the quote and the order cannot disagree. */
+function cartSubtotal(cartItems) {
+  return cartItems.reduce((sum, item) => {
+    const unitPrice = item.product.discountPrice ?? item.product.price;
+    return sum + Number(unitPrice) * item.quantity;
+  }, 0);
+}
+
+/**
+ * What this cart will cost, before the customer confirms it.
+ *
+ * The checkout sheet used to compute its own `deliveryFee = 500` in the
+ * page and add it to the total it showed. The server charges no such
+ * thing: it adds each store's admin-configured ServiceFeeConfig, which
+ * is 0 until somebody sets one. So the customer was shown 3 500 FCFA,
+ * debited 3 000, and the order stored 3 000 - and had an admin
+ * configured a real fee the number would have been wrong in the other,
+ * worse direction.
+ *
+ * This is the authoritative figure, computed by the same functions
+ * createOrder prices the order with, so the total somebody confirms is
+ * the total they are charged. A multi-vendor cart makes that matter
+ * more, not less: the fee is per store, so no single number the client
+ * could hardcode is right.
+ */
+async function quoteCart(req, res, next) {
+  try {
+    const cartItems = await prisma.cartItem.findMany({
+      where: { userId: req.user.id },
+      include: { product: true },
+    });
+
+    const subtotal = cartSubtotal(cartItems);
+    const { feeAmount, taxAmount } = cartItems.length
+      ? await computeCartFeeAndTax(cartItems)
+      : { feeAmount: 0, taxAmount: 0 };
+
+    res.json({
+      quote: {
+        subtotal,
+        feeAmount,
+        taxAmount,
+        total: Math.round((subtotal + feeAmount + taxAmount) * 100) / 100,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function createOrder(req, res, next) {
   try {
     const { deliveryAddressId, paymentMethod } = createOrderSchema.parse(req.body);
@@ -90,10 +141,7 @@ async function createOrder(req, res, next) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    const subtotal = cartItems.reduce((sum, item) => {
-      const unitPrice = item.product.discountPrice ?? item.product.price;
-      return sum + Number(unitPrice) * item.quantity;
-    }, 0);
+    const subtotal = cartSubtotal(cartItems);
     const { feeAmount, taxAmount } = await computeCartFeeAndTax(cartItems);
     const total = Math.round((subtotal + feeAmount + taxAmount) * 100) / 100;
 
@@ -206,4 +254,4 @@ async function createOrder(req, res, next) {
   }
 }
 
-module.exports = { listOrders, getOrder, createOrder };
+module.exports = { listOrders, getOrder, createOrder, quoteCart };

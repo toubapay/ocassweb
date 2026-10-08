@@ -47,9 +47,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
         context.read<CartProvider>().fetch(),
         context.read<WishlistProvider>().fetch(),
       ]);
+      if (!mounted) return;
       context.read<NotificationsProvider>().startPolling();
 
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(context.tr('auth.verify.welcome',
               {'name': user.name != null ? ', ${user.name}' : ''}))));
